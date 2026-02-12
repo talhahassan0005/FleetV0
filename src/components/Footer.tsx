@@ -11,9 +11,9 @@ export default function Footer() {
           {/* Company Info - Column 1 */}
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
-              <span className="text-2xl font-bold whitespace-nowrap">
+              <Image src="/images/symbol-green.png" alt="FleetXchange" width={60} height={60} className="h-14 w-auto" />
+              <span className="text-2xl font-bold">
                 <span className="text-white">Fleet</span>
-                <Image src="/images/symbol-green.png" alt="FleetXchange" width={60} height={60} className="h-14 w-auto" />
                 <span className="text-white">change</span>
               </span>
             </div>
