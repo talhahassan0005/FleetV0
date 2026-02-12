@@ -10,7 +10,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info - Column 1 */}
           <div className="space-y-4">
-            <Image src="/images/logo.png" alt="FleetXchange" width={180} height={50} className="h-10 w-auto" />
+            <div className="flex items-center gap-0.5">
+              <span className="text-2xl font-bold text-white">Fleet</span>
+              <Image src="/images/symbol-green.png" alt="X" width={30} height={30} className="h-7 w-auto" />
+              <span className="text-2xl font-bold text-white">change</span>
+            </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               Digital freight coordination platform managing cargo movement
               across Southern Africa.
