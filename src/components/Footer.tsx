@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, MapPin, Phone } from 'lucide-react';
 
 export default function Footer() {
@@ -9,16 +10,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info - Column 1 */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-emerald-500/10 rounded flex items-center justify-center">
-                <div className="w-5 h-5 text-emerald-500">
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                  </svg>
-                </div>
-              </div>
-              <span className="text-xl font-bold text-white">FleetXchange</span>
-            </div>
+            <Image src="/images/logo.png" alt="FleetXchange" width={180} height={50} className="h-10 w-auto" />
             <p className="text-sm text-gray-400 leading-relaxed">
               Digital freight coordination platform managing cargo movement
               across Southern Africa.
