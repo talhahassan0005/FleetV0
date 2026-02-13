@@ -2,11 +2,11 @@
 
 import PageHero from "@/components/PageHero";
 import FadeIn from "@/components/FadeIn";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
 import { FileText, Package, MapPin, Clock, CheckCircle2, Truck, Building2 } from "lucide-react";
 
-export default function ContactPage() {
+function ContactForm() {
   const searchParams = useSearchParams();
   const [formType, setFormType] = useState<'client' | 'transporter'>('client');
   const [formData, setFormData] = useState({
@@ -654,5 +654,13 @@ export default function ContactPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function ContactPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ContactForm />
+    </Suspense>
   );
 }
