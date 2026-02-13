@@ -1,5 +1,6 @@
 'use client';
 import FadeIn from "@/components/FadeIn";
+import Link from 'next/link';
 import { Shield, Lock, Eye, Share2, UserCheck, Mail } from 'lucide-react';
 
 export default function PrivacyPolicy() {
@@ -231,7 +232,8 @@ export default function PrivacyPolicy() {
 
             {/* Contact Section */}
             <FadeIn direction="up" delay={600} duration={900} distance={40} blur={true}>
-              <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl shadow-lg p-8 md:p-12 text-white relative overflow-hidden group hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
+              <Link href="/contact">
+                <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl shadow-lg p-8 md:p-12 text-white relative overflow-hidden group hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 cursor-pointer">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                 
                 <div className="relative">
@@ -262,6 +264,7 @@ export default function PrivacyPolicy() {
                   </a>
                 </div>
               </div>
+              </Link>
             </FadeIn>
           </div>
 
