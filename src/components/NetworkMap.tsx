@@ -160,8 +160,7 @@ const NetworkMap = () => {
         const currentLat = Math.pow(1-t, 2) * from.lat + 2 * (1-t) * t * controlLat + Math.pow(t, 2) * to.lat;
         const currentLng = Math.pow(1-t, 2) * from.lng + 2 * (1-t) * t * controlLng + Math.pow(t, 2) * to.lng;
 
-        const color = shipment.status === 'delivered' ? '#10b981' : 
-                     shipment.status === 'delayed' ? '#ef4444' : '#3b82f6';
+        const color = '#10b981';
 
         // Draw full curved route (dashed) with animation
         L.polyline(curvePoints, {
@@ -209,8 +208,15 @@ const NetworkMap = () => {
           const truckIcon = L.divIcon({
             html: `
               <div style="position: relative; width: 40px; height: 40px;">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="${color}" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-                  <path d="M18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5M19.5,9.5L21.46,12H17V9.5M6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5M20,8H17V4H3C1.89,4 1,4.89 1,6V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V12L20,8Z"/>
+                <svg width="40" height="40" viewBox="0 0 24 24" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                  <defs>
+                    <linearGradient id="truckGradient-${shipment.id}" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+                      <stop offset="50%" style="stop-color:#14b8a6;stop-opacity:1" />
+                      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+                    </linearGradient>
+                  </defs>
+                  <path fill="url(#truckGradient-${shipment.id})" d="M18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5M19.5,9.5L21.46,12H17V9.5M6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5M20,8H17V4H3C1.89,4 1,4.89 1,6V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V12L20,8Z"/>
                 </svg>
               </div>
             `,
