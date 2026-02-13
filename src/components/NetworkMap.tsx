@@ -212,13 +212,11 @@ const NetworkMap = () => {
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="${color}" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
                   <path d="M18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5M19.5,9.5L21.46,12H17V9.5M6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5M20,8H17V4H3C1.89,4 1,4.89 1,6V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V12L20,8Z"/>
                 </svg>
-                <div style="position: absolute; top: -8px; right: -8px; background: white; border: 2px solid ${color}; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: ${color};">
-                  ${Math.round(shipment.progress)}%
-                </div>
               </div>
             `,
             iconSize: [40, 40],
-            iconAnchor: [20, 20]
+            iconAnchor: [20, 20],
+            className: 'truck-icon'
           });
 
           const marker = L.marker([currentLat, currentLng], { icon: truckIcon })
@@ -261,6 +259,10 @@ const NetworkMap = () => {
         }
         .leaflet-marker-icon:hover {
           transform: scale(1) !important;
+        }
+        .truck-icon {
+          background: transparent !important;
+          border: none !important;
         }
       `}} />
       
