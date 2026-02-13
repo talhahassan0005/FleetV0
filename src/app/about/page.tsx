@@ -280,7 +280,7 @@ export default function AboutPage() {
         </div>
       </section>
       
-      <div className="h-[80px] w-full bg-white"></div>
+      {/* <div className="h-[80px] w-full bg-white"></div> */}
     </div>
   );
 }

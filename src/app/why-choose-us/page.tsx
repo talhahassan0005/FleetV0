@@ -279,7 +279,7 @@ export default function WhyChooseUsPage() {
         </div>
       </section>
       
-      <div className="h-[80px] w-full bg-white"></div>
+      {/* <div className="h-[80px] w-full bg-white"></div> */}
 
       <style jsx>{`
         @keyframes slide {

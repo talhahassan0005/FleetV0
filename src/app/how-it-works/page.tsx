@@ -290,7 +290,7 @@ export default function HowItWorksPage() {
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500 to-transparent animate-slide"></div>
       </section>
       
-      <div className="h-[80px] w-full bg-white"></div>
+      {/* <div className="h-[80px] w-full bg-white"></div> */}
 
       <style jsx>{`
         @keyframes slide {

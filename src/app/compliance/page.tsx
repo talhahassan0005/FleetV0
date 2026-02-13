@@ -320,13 +320,13 @@ export default function CompliancePage() {
           {/* Animated bottom border */}
           <FadeIn direction="up" delay={500} duration={600} distance={10}>
             <div className="w-24 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 mx-auto mt-12 rounded-full overflow-hidden">
-              <div className="w-full h-full bg-white transform -translate-x-full animate-[slide_2s_ease-in-out_infinite]"></div>
+              <div className="transform -translate-x-full animate-[slide_2s_ease-in-out_infinite]"></div>
             </div>
           </FadeIn>
         </div>
       </section>
       
-      <div className="h-[80px] w-full bg-white"></div>
+      {/* <div className="h-[80px] w-full bg-white"></div> */}
 
       <style jsx>{`
         @keyframes slide {

@@ -11,7 +11,7 @@ export default function Footer() {
           {/* Company Info - Column 1 */}
           <div className="space-y-4">
             <div>
-              <Image src="/images/logo-green.png" alt="FleetXchange" width={180} height={60} className="h-14 w-auto" />
+              <Image src="/images/logo-white.png" alt="FleetXchange" width={180} height={60} className="h-14 w-auto" />
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               Digital freight coordination platform managing cargo movement

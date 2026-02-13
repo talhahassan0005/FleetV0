@@ -27,7 +27,19 @@ const NetworkMap = () => {
     { id: 'SH005', from: 'Gaborone', to: 'Harare', status: 'in-transit', progress: 55, cargo: 'Textiles', eta: '4 hours' },
     { id: 'SH006', from: 'Johannesburg', to: 'Lusaka', status: 'in-transit', progress: 20, cargo: 'Mining Equipment', eta: '12 hours' },
     { id: 'SH007', from: 'Harare', to: 'Johannesburg', status: 'in-transit', progress: 85, cargo: 'Agricultural Products', eta: '1 hour' },
-    { id: 'SH008', from: 'Lubumbashi', to: 'Lusaka', status: 'in-transit', progress: 45, cargo: 'Construction Materials', eta: '6 hours' }
+    { id: 'SH008', from: 'Lubumbashi', to: 'Lusaka', status: 'in-transit', progress: 45, cargo: 'Construction Materials', eta: '6 hours' },
+    { id: 'SH009', from: 'Windhoek', to: 'Johannesburg', status: 'in-transit', progress: 15, cargo: 'Pharmaceuticals', eta: '10 hours' },
+    { id: 'SH010', from: 'Maputo', to: 'Johannesburg', status: 'in-transit', progress: 60, cargo: 'Food Products', eta: '4 hours' },
+    { id: 'SH011', from: 'Johannesburg', to: 'Maputo', status: 'in-transit', progress: 35, cargo: 'Auto Parts', eta: '5 hours' },
+    { id: 'SH012', from: 'Blantyre', to: 'Harare', status: 'in-transit', progress: 50, cargo: 'Chemicals', eta: '6 hours' },
+    { id: 'SH013', from: 'Dar es Salaam', to: 'Lusaka', status: 'in-transit', progress: 70, cargo: 'Minerals', eta: '15 hours' },
+    { id: 'SH014', from: 'Gaborone', to: 'Windhoek', status: 'in-transit', progress: 25, cargo: 'Furniture', eta: '8 hours' },
+    { id: 'SH015', from: 'Lusaka', to: 'Dar es Salaam', status: 'in-transit', progress: 80, cargo: 'Copper', eta: '12 hours' },
+    { id: 'SH016', from: 'Johannesburg', to: 'Windhoek', status: 'delayed', progress: 10, cargo: 'Steel', eta: '11 hours' },
+    { id: 'SH017', from: 'Harare', to: 'Blantyre', status: 'in-transit', progress: 90, cargo: 'Plastics', eta: '2 hours' },
+    { id: 'SH018', from: 'Windhoek', to: 'Gaborone', status: 'in-transit', progress: 42, cargo: 'Paper Products', eta: '7 hours' },
+    { id: 'SH019', from: 'Maputo', to: 'Blantyre', status: 'in-transit', progress: 68, cargo: 'Beverages', eta: '9 hours' },
+    { id: 'SH020', from: 'Blantyre', to: 'Dar es Salaam', status: 'in-transit', progress: 52, cargo: 'Tobacco', eta: '14 hours' }
   ]);
 
   useEffect(() => {
@@ -41,8 +53,13 @@ const NetworkMap = () => {
       scrollWheelZoom: true
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '© Esri',
+      maxZoom: 19
+    }).addTo(mapRef.current);
+
+    // Add labels overlay
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 19
     }).addTo(mapRef.current);
 
@@ -51,7 +68,11 @@ const NetworkMap = () => {
       { name: 'Gaborone', lat: -24.6282, lng: 25.9231, country: 'Botswana' },
       { name: 'Harare', lat: -17.8252, lng: 31.0335, country: 'Zimbabwe' },
       { name: 'Lusaka', lat: -15.3875, lng: 28.3228, country: 'Zambia' },
-      { name: 'Lubumbashi', lat: -11.6609, lng: 27.4794, country: 'DRC' }
+      { name: 'Lubumbashi', lat: -11.6609, lng: 27.4794, country: 'DRC' },
+      { name: 'Windhoek', lat: -22.5597, lng: 17.0832, country: 'Namibia' },
+      { name: 'Maputo', lat: -25.9655, lng: 32.5832, country: 'Mozambique' },
+      { name: 'Blantyre', lat: -15.7861, lng: 35.0058, country: 'Malawi' },
+      { name: 'Dar es Salaam', lat: -6.7924, lng: 39.2083, country: 'Tanzania' }
     ];
 
     const locationIcon = L.divIcon({
@@ -98,7 +119,11 @@ const NetworkMap = () => {
       { name: 'Gaborone', lat: -24.6282, lng: 25.9231 },
       { name: 'Harare', lat: -17.8252, lng: 31.0335 },
       { name: 'Lusaka', lat: -15.3875, lng: 28.3228 },
-      { name: 'Lubumbashi', lat: -11.6609, lng: 27.4794 }
+      { name: 'Lubumbashi', lat: -11.6609, lng: 27.4794 },
+      { name: 'Windhoek', lat: -22.5597, lng: 17.0832 },
+      { name: 'Maputo', lat: -25.9655, lng: 32.5832 },
+      { name: 'Blantyre', lat: -15.7861, lng: 35.0058 },
+      { name: 'Dar es Salaam', lat: -6.7924, lng: 39.2083 }
     ];
 
     markersRef.current.forEach(marker => marker.remove());
@@ -111,25 +136,74 @@ const NetworkMap = () => {
       if (from && to) {
         const latDiff = to.lat - from.lat;
         const lngDiff = to.lng - from.lng;
-        const currentLat = from.lat + (latDiff * shipment.progress / 100);
-        const currentLng = from.lng + (lngDiff * shipment.progress / 100);
+        
+        // Create curved path using quadratic bezier curve
+        const midLat = (from.lat + to.lat) / 2;
+        const midLng = (from.lng + to.lng) / 2;
+        
+        // Control point offset for curve (perpendicular to the line)
+        const offsetLat = -lngDiff * 0.3;
+        const offsetLng = latDiff * 0.3;
+        const controlLat = midLat + offsetLat;
+        const controlLng = midLng + offsetLng;
+        
+        // Generate curved path points
+        const curvePoints: [number, number][] = [];
+        for (let t = 0; t <= 1; t += 0.05) {
+          const lat = Math.pow(1-t, 2) * from.lat + 2 * (1-t) * t * controlLat + Math.pow(t, 2) * to.lat;
+          const lng = Math.pow(1-t, 2) * from.lng + 2 * (1-t) * t * controlLng + Math.pow(t, 2) * to.lng;
+          curvePoints.push([lat, lng]);
+        }
+        
+        // Calculate current position on curve
+        const t = shipment.progress / 100;
+        const currentLat = Math.pow(1-t, 2) * from.lat + 2 * (1-t) * t * controlLat + Math.pow(t, 2) * to.lat;
+        const currentLng = Math.pow(1-t, 2) * from.lng + 2 * (1-t) * t * controlLng + Math.pow(t, 2) * to.lng;
 
         const color = shipment.status === 'delivered' ? '#10b981' : 
                      shipment.status === 'delayed' ? '#ef4444' : '#3b82f6';
 
-        L.polyline([[from.lat, from.lng], [to.lat, to.lng]], {
+        // Draw full curved route (dashed) with animation
+        L.polyline(curvePoints, {
           color: color,
-          weight: 3,
-          opacity: 0.4,
-          dashArray: '10, 10',
-          className: 'animated-route'
+          weight: 0.5,
+          opacity: 0.25,
+          dashArray: '8, 12',
+          className: 'animated-route',
+          lineCap: 'round',
+          lineJoin: 'round'
         }).addTo(mapRef.current!);
 
-        L.polyline([[from.lat, from.lng], [currentLat, currentLng]], {
-          color: color,
-          weight: 4,
-          opacity: 0.8
-        }).addTo(mapRef.current!);
+        // Draw progress on curved route with gradient effect
+        const progressPoints = curvePoints.slice(0, Math.floor(curvePoints.length * shipment.progress / 100));
+        if (progressPoints.length > 0) {
+          // Outer glow (widest)
+          L.polyline(progressPoints, {
+            color: color,
+            weight: 3,
+            opacity: 0.1,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }).addTo(mapRef.current!);
+          
+          // Middle glow
+          L.polyline(progressPoints, {
+            color: color,
+            weight: 4,
+            opacity: 0.2,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }).addTo(mapRef.current!);
+          
+          // Main line
+          L.polyline(progressPoints, {
+            color: color,
+            weight: 2,
+            opacity: 1,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }).addTo(mapRef.current!);
+        }
 
         if (shipment.status !== 'delivered') {
           const truckIcon = L.divIcon({

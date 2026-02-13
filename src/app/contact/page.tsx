@@ -2,10 +2,13 @@
 
 import PageHero from "@/components/PageHero";
 import FadeIn from "@/components/FadeIn";
-import { useState } from "react";
-import { FileText, Package, MapPin, Clock, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from 'next/navigation';
+import { FileText, Package, MapPin, Clock, CheckCircle2, Truck, Building2 } from "lucide-react";
 
 export default function ContactPage() {
+  const searchParams = useSearchParams();
+  const [formType, setFormType] = useState<'client' | 'transporter'>('client');
   const [formData, setFormData] = useState({
     companyName: "",
     contactPerson: "",
@@ -16,8 +19,27 @@ export default function ContactPage() {
     timeline: "",
     specialRequirements: ""
   });
+  const [transporterData, setTransporterData] = useState({
+    companyName: "",
+    contactName: "",
+    email: "",
+    phone: "",
+    country: "",
+    fleetSize: "",
+    vehicleTypes: "",
+    operatingRoutes: "",
+    yearsInBusiness: "",
+    message: ""
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
+  useEffect(() => {
+    const type = searchParams.get('type');
+    if (type === 'transporter') {
+      setFormType('transporter');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,28 +47,46 @@ export default function ContactPage() {
     setSubmitStatus(null);
 
     try {
-      const response = await fetch('/api/contact', {
+      const endpoint = formType === 'client' ? '/api/contact' : '/api/transporter';
+      const data = formType === 'client' ? formData : transporterData;
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(data)
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
-      if (data.success) {
-        setSubmitStatus({ type: 'success', message: data.message });
-        setFormData({
-          companyName: "",
-          contactPerson: "",
-          email: "",
-          phone: "",
-          cargoDetails: "",
-          route: "",
-          timeline: "",
-          specialRequirements: ""
-        });
+      if (result.success) {
+        setSubmitStatus({ type: 'success', message: result.message });
+        if (formType === 'client') {
+          setFormData({
+            companyName: "",
+            contactPerson: "",
+            email: "",
+            phone: "",
+            cargoDetails: "",
+            route: "",
+            timeline: "",
+            specialRequirements: ""
+          });
+        } else {
+          setTransporterData({
+            companyName: "",
+            contactName: "",
+            email: "",
+            phone: "",
+            country: "",
+            fleetSize: "",
+            vehicleTypes: "",
+            operatingRoutes: "",
+            yearsInBusiness: "",
+            message: ""
+          });
+        }
       } else {
-        setSubmitStatus({ type: 'error', message: data.message || 'Failed to submit request' });
+        setSubmitStatus({ type: 'error', message: result.message || 'Failed to submit request' });
       }
     } catch (error) {
       setSubmitStatus({ type: 'error', message: 'Network error. Please try again.' });
@@ -55,8 +95,12 @@ export default function ContactPage() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    if (formType === 'client') {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+    } else {
+      setTransporterData({ ...transporterData, [e.target.name]: e.target.value });
+    }
   };
 
   return (
@@ -78,13 +122,46 @@ export default function ContactPage() {
         </div>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Toggle Buttons */}
+          <FadeIn direction="down" delay={0} duration={600} distance={20}>
+            <div className="flex justify-center mb-8">
+              <div className="inline-flex rounded-lg border-2 border-emerald-200 bg-white p-1 shadow-lg">
+                <button
+                  onClick={() => { setFormType('client'); setSubmitStatus(null); }}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-md font-semibold transition-all duration-300 ${
+                    formType === 'client'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'text-gray-600 hover:text-emerald-600'
+                  }`}
+                >
+                  <Building2 className="h-5 w-5" />
+                  Client Request
+                </button>
+                <button
+                  onClick={() => { setFormType('transporter'); setSubmitStatus(null); }}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-md font-semibold transition-all duration-300 ${
+                    formType === 'transporter'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'text-gray-600 hover:text-emerald-600'
+                  }`}
+                >
+                  <Truck className="h-5 w-5" />
+                  Transporter Application
+                </button>
+              </div>
+            </div>
+          </FadeIn>
           <div className="grid lg:grid-cols-3 gap-8">
             {/* FORM COLUMN */}
             <div className="lg:col-span-2">
               <FadeIn direction="left" delay={0} duration={800} distance={40} blur={true}>
                 <div className="rounded-xl border border-none shadow-xl bg-white p-10 md:p-16 hover:shadow-2xl transition-all duration-500">
-                  <h2 className="text-3xl font-bold text-slate-900 mb-10">Request a Load Movement</h2>
+                  <h2 className="text-3xl font-bold text-slate-900 mb-10">
+                    {formType === 'client' ? 'Request a Load Movement' : 'Apply as Transporter'}
+                  </h2>
                   <form onSubmit={handleSubmit} className="space-y-8">
+                    {formType === 'client' ? (
+                      <>
                     {/* COMPANY INFORMATION */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-slate-900 flex items-center group">
@@ -212,6 +289,161 @@ export default function ContactPage() {
                         ></textarea>
                       </FadeIn>
                     </div>
+                      </>
+                    ) : (
+                      /* TRANSPORTER FORM */
+                      <>
+                        {/* COMPANY INFORMATION */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold text-slate-900 flex items-center group">
+                            <Truck className="h-5 w-5 mr-3 text-emerald-600 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" />
+                            <span className="group-hover:text-emerald-600 transition-colors duration-300">Company Information</span>
+                          </h3>
+                          <div className="grid md:grid-cols-2 gap-5">
+                            <FadeIn direction="up" delay={100} duration={600} distance={20}>
+                              <input 
+                                type="text" 
+                                name="companyName"
+                                required
+                                value={transporterData.companyName}
+                                onChange={handleChange}
+                                placeholder="Company Name"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-300 hover:border-emerald-400"
+                              />
+                            </FadeIn>
+                            <FadeIn direction="up" delay={150} duration={600} distance={20}>
+                              <input 
+                                type="text" 
+                                name="contactName"
+                                required
+                                value={transporterData.contactName}
+                                onChange={handleChange}
+                                placeholder="Contact Person"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-300 hover:border-emerald-400"
+                              />
+                            </FadeIn>
+                          </div>
+                          <div className="grid md:grid-cols-2 gap-5">
+                            <FadeIn direction="up" delay={200} duration={600} distance={20}>
+                              <input 
+                                type="email" 
+                                name="email"
+                                required
+                                value={transporterData.email}
+                                onChange={handleChange}
+                                placeholder="Email Address"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-300 hover:border-emerald-400"
+                              />
+                            </FadeIn>
+                            <FadeIn direction="up" delay={250} duration={600} distance={20}>
+                              <input 
+                                type="tel" 
+                                name="phone"
+                                required
+                                value={transporterData.phone}
+                                onChange={handleChange}
+                                placeholder="Phone Number"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-300 hover:border-emerald-400"
+                              />
+                            </FadeIn>
+                          </div>
+                        </div>
+
+                        {/* FLEET DETAILS */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold text-slate-900 flex items-center group">
+                            <Package className="h-5 w-5 mr-3 text-emerald-600 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" />
+                            <span className="group-hover:text-emerald-600 transition-colors duration-300">Fleet Details</span>
+                          </h3>
+                          <div className="grid md:grid-cols-2 gap-5">
+                            <FadeIn direction="up" delay={300} duration={600} distance={20}>
+                              <select
+                                name="country"
+                                required
+                                value={transporterData.country}
+                                onChange={handleChange}
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 transition-all duration-300 hover:border-emerald-400"
+                              >
+                                <option value="">Select Country</option>
+                                <option value="South Africa">South Africa</option>
+                                <option value="Botswana">Botswana</option>
+                                <option value="Zambia">Zambia</option>
+                                <option value="Zimbabwe">Zimbabwe</option>
+                                <option value="Namibia">Namibia</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </FadeIn>
+                            <FadeIn direction="up" delay={350} duration={600} distance={20}>
+                              <input 
+                                type="text" 
+                                name="fleetSize"
+                                required
+                                value={transporterData.fleetSize}
+                                onChange={handleChange}
+                                placeholder="Fleet Size (e.g., 10 trucks)"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-300 hover:border-emerald-400"
+                              />
+                            </FadeIn>
+                          </div>
+                          <FadeIn direction="up" delay={400} duration={600} distance={20}>
+                            <input 
+                              type="text" 
+                              name="vehicleTypes"
+                              required
+                              value={transporterData.vehicleTypes}
+                              onChange={handleChange}
+                              placeholder="Vehicle Types (e.g., Flatbed, Refrigerated, Tanker)"
+                              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-300 hover:border-emerald-400"
+                            />
+                          </FadeIn>
+                        </div>
+
+                        {/* OPERATING DETAILS */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold text-slate-900 flex items-center group">
+                            <MapPin className="h-5 w-5 mr-3 text-emerald-600 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" />
+                            <span className="group-hover:text-emerald-600 transition-colors duration-300">Operating Details</span>
+                          </h3>
+                          <FadeIn direction="up" delay={450} duration={600} distance={20}>
+                            <input 
+                              type="text" 
+                              name="operatingRoutes"
+                              required
+                              value={transporterData.operatingRoutes}
+                              onChange={handleChange}
+                              placeholder="Primary Operating Routes"
+                              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-300 hover:border-emerald-400"
+                            />
+                          </FadeIn>
+                          <FadeIn direction="up" delay={500} duration={600} distance={20}>
+                            <input 
+                              type="text" 
+                              name="yearsInBusiness"
+                              required
+                              value={transporterData.yearsInBusiness}
+                              onChange={handleChange}
+                              placeholder="Years in Business"
+                              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-300 hover:border-emerald-400"
+                            />
+                          </FadeIn>
+                        </div>
+
+                        {/* ADDITIONAL MESSAGE */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold text-slate-900">Additional Information</h3>
+                          <FadeIn direction="up" delay={550} duration={600} distance={20}>
+                            <textarea 
+                              name="message"
+                              value={transporterData.message}
+                              onChange={handleChange}
+                              rows={4}
+                              placeholder="Tell us about your company, certifications, and why you want to join FleetXchange"
+                              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-300 hover:border-emerald-400"
+                            ></textarea>
+                          </FadeIn>
+                        </div>
+                      </>
+                    )}
 
                     <div className="pt-8">
                       {submitStatus && (
@@ -232,7 +464,7 @@ export default function ContactPage() {
                           className="group relative w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white py-3 px-8 rounded-lg shadow-lg hover:shadow-xl transition-all duration-500 font-semibold text-base overflow-hidden"
                         >
                           <span className="relative z-10 flex items-center justify-center gap-2">
-                            {isSubmitting ? 'Submitting...' : 'Submit Load Request'}
+                            {isSubmitting ? 'Submitting...' : (formType === 'client' ? 'Submit Load Request' : 'Submit Application')}
                             {!isSubmitting && (
                               <svg 
                                 xmlns="http://www.w3.org/2000/svg" 

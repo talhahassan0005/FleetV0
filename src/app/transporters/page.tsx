@@ -265,7 +265,7 @@ export default function TransportersPage() {
           </FadeIn>
 
           <FadeIn direction="up" delay={400} duration={800} distance={20} once={true}>
-            <a href="/contact">
+            <a href="/contact?type=transporter">
               <button className="group relative bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-lg font-bold text-lg transition-all duration-500 hover:scale-110 active:scale-95 shadow-lg hover:shadow-xl inline-flex items-center gap-2 overflow-hidden">
                 <span className="relative z-10 flex items-center gap-2">
                   Apply as Transporter 
