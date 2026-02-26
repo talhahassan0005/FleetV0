@@ -57,7 +57,7 @@ export async function sendTransporterApplicationEmail(data: any) {
   try {
     const result = await transporter.sendMail({
       from: `"FleetXchange" <${process.env.OUTLOOK_EMAIL}>`,
-      to: 'Info@fleetxchange.africa',
+      to: 'Mrtiger@fleetxchange.africa',
       subject: `New Transporter Application from ${data.companyName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

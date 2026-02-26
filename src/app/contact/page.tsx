@@ -555,7 +555,7 @@ function ContactForm() {
                         </div>
                         <p className="text-sm text-gray-200 mb-2 font-medium">Johannesburg</p>
                         <p className="text-xs text-gray-400 mb-1">Email:</p>
-                        <p className="text-sm text-gray-300 font-medium mb-3 group-hover/country:text-white transition-colors duration-300">mrtiger@fleetxchange.africa</p>
+                        <p className="text-sm text-gray-300 font-medium mb-3 group-hover/country:text-white transition-colors duration-300">Info@fleetxchange.africa</p>
                         <p className="text-xs text-gray-400 mb-1">Phone:</p>
                         <p className="text-sm text-gray-300 font-medium group-hover/country:text-white transition-colors duration-300">+27 73 828 1478</p>
                       </div>
@@ -568,7 +568,7 @@ function ContactForm() {
                         </div>
                         <p className="text-sm text-gray-200 mb-2 font-medium">Gaborone</p>
                         <p className="text-xs text-gray-400 mb-1">Email:</p>
-                        <p className="text-sm text-gray-300 font-medium mb-3 group-hover/country:text-white transition-colors duration-300">mrtiger@fleetxchange.africa</p>
+                        <p className="text-sm text-gray-300 font-medium mb-3 group-hover/country:text-white transition-colors duration-300">Info@fleetxchange.africa</p>
                         <p className="text-xs text-gray-400 mb-1">Phone:</p>
                         <p className="text-sm text-gray-300 font-medium group-hover/country:text-white transition-colors duration-300">+267 76 666 598</p>
                       </div>
@@ -581,7 +581,7 @@ function ContactForm() {
                         </div>
                         <p className="text-sm text-gray-200 mb-2 font-medium">Lusaka</p>
                         <p className="text-xs text-gray-400 mb-1">Email:</p>
-                        <p className="text-sm text-gray-300 font-medium group-hover/country:text-white transition-colors duration-300">mrtiger@fleetxchange.africa</p>
+                        <p className="text-sm text-gray-300 font-medium group-hover/country:text-white transition-colors duration-300">Info@fleetxchange.africa</p>
                       </div>
                     </div>
 
