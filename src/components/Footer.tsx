@@ -1,3 +1,4 @@
+import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Mail, MapPin, Phone } from 'lucide-react';
@@ -33,10 +34,10 @@ export default function Footer() {
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-emerald-500" />
                 <a 
-                  href="mailto:mrtiger@fleetxchange.africa"
+                  href="mailto:Info@fleetxchange.africa"
                   className="hover:text-emerald-500 transition-colors"
                 >
-                  mrtiger@fleetxchange.africa
+                  Info@fleetxchange.africa
                 </a>
               </div>
               <div className="flex items-center space-x-2">
@@ -62,10 +63,10 @@ export default function Footer() {
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-emerald-500" />
                 <a 
-                  href="mailto:mrtiger@fleetxchange.africa"
+                  href="mailto:Info@fleetxchange.africa"
                   className="hover:text-emerald-500 transition-colors"
                 >
-                  mrtiger@fleetxchange.africa
+                  Info@fleetxchange.africa
                 </a>
               </div>
               <div className="flex items-center space-x-2">
@@ -91,10 +92,10 @@ export default function Footer() {
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-emerald-500" />
                 <a 
-                  href="mailto:mulenga@fleetxchange.africa"
+                  href="mailto:Info@fleetxchange.africa"
                   className="hover:text-emerald-500 transition-colors"
                 >
-                  mulenga@fleetxchange.africa
+                  Info@fleetxchange.africa
                 </a>
               </div>
             </div>

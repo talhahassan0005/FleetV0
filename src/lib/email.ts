@@ -14,7 +14,7 @@ export async function sendLoadRequestEmail(data: any) {
   try {
     const result = await transporter.sendMail({
       from: `"FleetXchange" <${process.env.OUTLOOK_EMAIL}>`,
-      to: 'mrtiger@fleetxchange.africa',
+      to: 'Info@fleetxchange.africa',
       subject: `New Load Request from ${data.companyName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -57,7 +57,7 @@ export async function sendTransporterApplicationEmail(data: any) {
   try {
     const result = await transporter.sendMail({
       from: `"FleetXchange" <${process.env.OUTLOOK_EMAIL}>`,
-      to: 'mrtiger@fleetxchange.africa',
+      to: 'Info@fleetxchange.africa',
       subject: `New Transporter Application from ${data.companyName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
