@@ -33,7 +33,7 @@ export default function Footer() {
               <p className="text-gray-400">Johannesburg</p>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-emerald-500" />
-                <a 
+                <a
                   href="mailto:Info@fleetxchange.africa"
                   className="hover:text-emerald-500 transition-colors"
                 >
@@ -62,7 +62,7 @@ export default function Footer() {
               <p className="text-gray-400">Botswana</p>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-emerald-500" />
-                <a 
+                <a
                   href="mailto:Info@fleetxchange.africa"
                   className="hover:text-emerald-500 transition-colors"
                 >
@@ -92,7 +92,7 @@ export default function Footer() {
               <p className="text-gray-400">Lusaka</p>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-emerald-500" />
-                <a 
+                <a
                   href="mailto:Info@fleetxchange.africa"
                   className="hover:text-emerald-500 transition-colors"
                 >

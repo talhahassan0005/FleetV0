@@ -253,7 +253,7 @@ export default function PrivacyPolicy() {
                   <p className="text-white/90 mb-4 group-hover:text-white transition-colors duration-300">For privacy-related inquiries, contact us at:</p>
                   
                   <a 
-                    href="mailto:Info@fleetxchange.africa" 
+                    href="mailto:Mrtiger@fleetxchange.africa" 
                     className="inline-block bg-white text-emerald-600 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition-all duration-500 hover:scale-110 hover:shadow-xl relative overflow-hidden group/btn"
                   >
                     <span className="relative z-10 flex items-center gap-2">
