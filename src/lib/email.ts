@@ -46,6 +46,11 @@ export async function sendLoadRequestEmail(data: any) {
       `,
     });
     console.log('✅ Email sent successfully:', result.messageId);
+    // Detailed delivery info for debugging (provider responses)
+    console.log('   accepted:', result.accepted);
+    console.log('   rejected:', result.rejected);
+    if (result.envelope) console.log('   envelope:', result.envelope);
+    if (result.response) console.log('   response:', result.response);
     return { success: true, result };
   } catch (error) {
     console.error('❌ Email send error:', error);
@@ -87,6 +92,11 @@ export async function sendTransporterApplicationEmail(data: any) {
       `,
     });
     console.log('✅ Email sent successfully:', result.messageId);
+    // Detailed delivery info for debugging (provider responses)
+    console.log('   accepted:', result.accepted);
+    console.log('   rejected:', result.rejected);
+    if (result.envelope) console.log('   envelope:', result.envelope);
+    if (result.response) console.log('   response:', result.response);
     return { success: true, result };
   } catch (error) {
     console.error('❌ Email send error:', error);
