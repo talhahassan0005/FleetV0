@@ -66,7 +66,8 @@ export default function Footer() {
                   href="mailto:Info@fleetxchange.africa"
                   className="hover:text-emerald-500 transition-colors"
                 >
-                  Info@fleetxchange.africa
+                    Info@fleetxchange.africa
+
                 </a>
               </div>
               <div className="flex items-center space-x-2">
@@ -95,7 +96,8 @@ export default function Footer() {
                   href="mailto:Info@fleetxchange.africa"
                   className="hover:text-emerald-500 transition-colors"
                 >
-                  Info@fleetxchange.africa
+                      Info@fleetxchange.africa
+
                 </a>
               </div>
             </div>
