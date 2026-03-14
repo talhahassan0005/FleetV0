@@ -37,12 +37,20 @@ function createTransporter() {
   });
 }
 
-const transporter = createTransporter();
+let transporter: any = null;
+
+function getTransporter() {
+  if (!transporter) {
+    transporter = createTransporter();
+  }
+  return transporter;
+}
+
 const effectiveFrom = process.env.MAIL_FROM || process.env.OUTLOOK_EMAIL || process.env.MAIL_USER || process.env.OUTLOOK_EMAIL || '';
 
 export async function sendLoadRequestEmail(data: any) {
   try {
-    const result = await transporter.sendMail({
+    const result = await getTransporter().sendMail({
       from: `"FleetXchange" <${effectiveFrom}>`,
       to: 'Mrtiger@fleetxchange.africa',
       subject: `New Load Request from ${data.companyName}`,
