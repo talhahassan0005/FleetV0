@@ -32,6 +32,18 @@ export default function RootLayout({
             gtag('js', new Date());
             gtag('config', 'G-90274WEQY5');`}
         </Script>
+        {/* Google Ads Conversion Tracking */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=AW-10808030018"
+          strategy="afterInteractive"
+        />
+        <Script id="google-ads-conversion" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-10808030018');`}
+        </Script>
       </head>
       <body className="antialiased">
         <Header />
