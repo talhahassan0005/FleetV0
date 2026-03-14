@@ -20,16 +20,6 @@ function createTransporter() {
   const port = Number(process.env.MAIL_PORT || process.env.OUTLOOK_PORT || 587);
   const secure = port === 465;
 
-  // Log masked effective configuration (no secrets)
-  console.log('Mail config (masked):', {
-    NODE_ENV: process.env.NODE_ENV || 'development',
-    host,
-    port,
-    user: maskEmail(user || null),
-    hasPass: !!pass,
-    from: maskEmail(fromEnv || user || null),
-  });
-
   if (!user || !pass) {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('Mail transporter is not configured. Set MAIL_USER/OUTLOOK_EMAIL and MAIL_PASS/OUTLOOK_PASSWORD.');
