@@ -5,8 +5,17 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "FleetXchange | Digital Freight Coordination",
-  description: "Africa's largest freight coordination platform managing cargo movement across Southern Africa",
+  title: "FleetXchange | Freight Booking & Truck Transport South Africa",
+  description: "FleetXchange is South Africa's leading freight coordination platform. Book reliable trucks, connect with verified transporters, and manage logistics with real-time tracking across Southern Africa.",
+  keywords: "freight booking, truck transport, logistics platform, South Africa, transporters, cross-border",
+  authors: [{ name: "FleetXchange" }],
+  viewport: "width=device-width, initial-scale=1",
+  openGraph: {
+    title: "FleetXchange | Freight Booking & Truck Transport South Africa",
+    description: "Connect with verified transporters for instant freight booking, real-time tracking, and efficient logistics solutions.",
+    type: "website",
+    url: "http://fleetxchange.africa/",
+  },
 };
 
 export default function RootLayout({

@@ -1,8 +1,13 @@
 'use client';
 
+import type { Metadata } from "next";
 import { CheckCircle2, ArrowRight, Mail, Phone, MessageSquare } from 'lucide-react';
 import FadeIn from "@/components/FadeIn";
 import { useEffect } from 'react';
+
+// Note: Metadata must be exported from a server component
+// This file uses 'use client' for animations, but metadata is handled at layout level
+// For metadata, see: src/app/layout.tsx
 
 export default function ThankYouPage() {
   useEffect(() => {
@@ -43,7 +48,7 @@ export default function ThankYouPage() {
 
               {/* Subheadline */}
               <p className="text-xl md:text-2xl text-gray-700 mb-8 leading-relaxed">
-                Thanks for reaching out. We've received your request and our team is reviewing it now.
+                Thanks for reaching out. We&apos;ve received your request and our team is reviewing it now.
               </p>
 
               {/* Confirmation Message */}
@@ -54,7 +59,7 @@ export default function ThankYouPage() {
                     <div className="text-left">
                       <p className="font-semibold text-slate-900 mb-2">Confirmation email sent</p>
                       <p className="text-gray-700">
-                        Check your inbox for a confirmation email with your request details. We'll be in touch within 24 hours.
+                        Check your inbox for a confirmation email with your request details. We&apos;ll be in touch within 24 hours.
                       </p>
                     </div>
                   </div>

@@ -14,7 +14,7 @@ export default function TrustSection() {
               Why Logistics Businesses Trust FleetXchange
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              We're not just a platform — we're your logistics partner built on trust, reliability, and proven results.
+              We&apos;re not just a platform — we&apos;re your logistics partner built on trust, reliability, and proven results.
             </p>
           </div>
         </FadeIn>

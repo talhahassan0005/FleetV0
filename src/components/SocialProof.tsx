@@ -60,7 +60,7 @@ export default function SocialProof() {
                 <div className="mb-6">
                   <MessageSquare className="h-6 w-6 text-emerald-400 mb-4 opacity-50" />
                   <p className="text-gray-700 font-medium leading-relaxed">
-                    "{testimonial.quote}"
+                    &quot;{testimonial.quote}&quot;
                   </p>
                 </div>
 
