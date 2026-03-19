@@ -1,15 +1,19 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "FleetXchange | Freight Booking & Truck Transport South Africa",
   description: "FleetXchange is South Africa's leading freight coordination platform. Book reliable trucks, connect with verified transporters, and manage logistics with real-time tracking across Southern Africa.",
   keywords: "freight booking, truck transport, logistics platform, South Africa, transporters, cross-border",
   authors: [{ name: "FleetXchange" }],
-  viewport: "width=device-width, initial-scale=1",
   openGraph: {
     title: "FleetXchange | Freight Booking & Truck Transport South Africa",
     description: "Connect with verified transporters for instant freight booking, real-time tracking, and efficient logistics solutions.",
