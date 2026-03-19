@@ -3,11 +3,12 @@
 import PageHero from "@/components/PageHero";
 import FadeIn from "@/components/FadeIn";
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { FileText, Package, MapPin, Clock, CheckCircle2, Truck, Building2 } from "lucide-react";
 
 function ContactForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [formType, setFormType] = useState<'client' | 'transporter'>('client');
   const [formData, setFormData] = useState({
     companyName: "",
@@ -60,6 +61,7 @@ function ContactForm() {
 
       if (result.success) {
         setSubmitStatus({ type: 'success', message: result.message });
+        // Reset form
         if (formType === 'client') {
           setFormData({
             companyName: "",
@@ -85,6 +87,10 @@ function ContactForm() {
             message: ""
           });
         }
+        // Redirect to thank you page after 1 second
+        setTimeout(() => {
+          router.push('/thank-you');
+        }, 1000);
       } else {
         setSubmitStatus({ type: 'error', message: result.message || 'Failed to submit request' });
       }
