@@ -32,7 +32,7 @@ export default function HomeContent() {
             
             <FadeIn direction="up" delay={300} duration={900} distance={30} blur={true}>
               <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-                Connect with verified transporters. Fast, secure, and efficient logistics solutions for freight booking and truck matching.
+                Book trucks in minutes. Track shipments in real-time. Connect with 500+ verified transporters across South Africa.
               </p>
             </FadeIn>
             
@@ -56,15 +56,16 @@ export default function HomeContent() {
               </div>
             </FadeIn>
 
-            {/* Trust Icons Below Hero */}
+            {/* Trust Icons Below Hero with Metrics */}
             <FadeIn direction="up" delay={600} duration={800} distance={30}>
               <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mt-8 pt-4 border-t border-white/10">
                 {[
-                  { icon: CheckCircle2, label: "Verified Transporters" },
-                  { icon: Zap, label: "Fast Delivery" },
-                  { icon: Shield, label: "Secure & Reliable" }
+                  { icon: CheckCircle2, label: "Verified Transporters", metric: "500+" },
+                  { icon: Zap, label: "Fast Quotes", metric: "<5 min" },
+                  { icon: Shield, label: "Trusted By", metric: "200+" }
                 ].map((item, i) => (
                   <div key={i} className="flex flex-col items-center gap-2">
+                    <p className="font-bold text-emerald-300 text-lg">{item.metric}</p>
                     <item.icon className="h-6 w-6 text-emerald-400" />
                     <p className="text-xs md:text-sm text-gray-300">{item.label}</p>
                   </div>
@@ -77,6 +78,38 @@ export default function HomeContent() {
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent"></div>
       </section>
 
+      {/* SOCIAL PROOF BANNER */}
+      <section className="bg-gradient-to-r from-emerald-600 to-blue-600 py-12 text-white text-center">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <FadeIn direction="up" delay={0} duration={800} distance={15}>
+              <div>
+                <p className="text-4xl md:text-5xl font-bold">50K+</p>
+                <p className="text-emerald-100 text-sm mt-2">Shipments Tracked</p>
+              </div>
+            </FadeIn>
+            <FadeIn direction="up" delay={150} duration={800} distance={15}>
+              <div>
+                <p className="text-4xl md:text-5xl font-bold">99%</p>
+                <p className="text-emerald-100 text-sm mt-2">Visibility Rate</p>
+              </div>
+            </FadeIn>
+            <FadeIn direction="up" delay={300} duration={800} distance={15}>
+              <div>
+                <p className="text-4xl md:text-5xl font-bold">4.9★</p>
+                <p className="text-emerald-100 text-sm mt-2">User Rating</p>
+              </div>
+            </FadeIn>
+            <FadeIn direction="up" delay={450} duration={800} distance={15}>
+              <div>
+                <p className="text-4xl md:text-5xl font-bold">200+</p>
+                <p className="text-emerald-100 text-sm mt-2">Companies</p>
+              </div>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
       {/* TRUST SECTION */}
       <TrustSection />
 
@@ -85,8 +118,8 @@ export default function HomeContent() {
 
       {/* CTA SECTION - AFTER SERVICES */}
       <CTASection
-        title="Ready to Get Your Freight Moving?"
-        subtitle="Post your load and get matched with verified transporters in minutes."
+        title="Book Your Freight in Minutes"
+        subtitle="No complicated process. Post your load and get matched instantly with verified transporters."
         variant="dark"
       />
 
@@ -95,8 +128,8 @@ export default function HomeContent() {
 
       {/* CTA SECTION - BEFORE LOCATION */}
       <CTASection
-        title="Logistics Made Simple for South Africa"
-        subtitle="Whether you're in Johannesburg, Cape Town, or anywhere across Southern Africa, we've got you covered."
+        title="Track Your Freight Across South Africa"
+        subtitle="Real-time updates on every shipment. Know exactly where your load is, 24/7."
         variant="default"
       />
 
@@ -147,20 +180,26 @@ export default function HomeContent() {
           <div className="space-y-6 text-lg text-gray-700 leading-relaxed max-w-3xl mx-auto">
             <FadeIn direction="up" delay={200} duration={900} distance={20} blur={true}>
               <p className="text-center font-semibold text-xl text-slate-900">
-                We connect logistics businesses across South Africa with a network of verified transporters and comprehensive freight management tools.
+                FleetXchange is a freight booking platform. Post your load → get matched → book → track in real-time.
               </p>
             </FadeIn>
             
             <FadeIn direction="up" delay={300} duration={900} distance={20} blur={true}>
               <p>
-                Instead of managing multiple transporters, we simplify the process. Our platform provides real-time tracking, instant matching, and professional coordination — so you focus on your core business.
+                No more juggling multiple transporters or unclear pricing. FleetXchange connects you with verified transporters, provides real-time tracking, and handles everything seamlessly.
               </p>
             </FadeIn>
             
             <FadeIn direction="up" delay={500} duration={1000} distance={15}>
-              <p className="font-semibold text-emerald-700 text-center text-lg pt-4">
-                Trusted by FMCG businesses, retailers, manufacturers, and logistics companies across Southern Africa.
-              </p>
+              <div className="pt-8 border-t border-gray-200 text-center">
+                <p className="font-semibold text-slate-900 mb-6">Trusted by 200+ Leading Companies</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-sm font-semibold text-gray-700">FMCG Leaders</div>
+                  <div className="text-sm font-semibold text-gray-700">Major Retailers</div>
+                  <div className="text-sm font-semibold text-gray-700">Manufacturers</div>
+                  <div className="text-sm font-semibold text-gray-700">Logistics Firms</div>
+                </div>
+              </div>
             </FadeIn>
           </div>
         </div>
@@ -168,15 +207,15 @@ export default function HomeContent() {
 
       {/* FINAL CTA SECTION */}
       <CTASection
-        title="Ready to Start Moving Freight?"
-        subtitle="Join hundreds of companies across South Africa already using FleetXchange. Post your load or become a verified transporter today."
+        title="Start Booking Freight Today"
+        subtitle="Post your load and get matched with verified transporters. Or apply to become a transporter and grow your business."
         primaryCTA={{
-          text: "Post Your Load Now",
+          text: "Book Your Freight",
           href: "/contact",
           icon: <Truck className="h-5 w-5" />
         }}
         secondaryCTA={{
-          text: "Apply as Transporter",
+          text: "Become a Transporter",
           href: "/contact?type=transporter",
           icon: <Truck className="h-5 w-5" />
         }}
