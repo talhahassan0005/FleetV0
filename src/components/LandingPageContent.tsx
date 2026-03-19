@@ -12,7 +12,7 @@ export default function LandingPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pb-16 md:pb-0">
       {/* MINIMAL HEADER - No full navigation */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
@@ -41,7 +41,7 @@ export default function LandingPageContent() {
 
             {/* SUBHEADLINE */}
             <p className="text-lg sm:text-xl text-gray-200 max-w-3xl mx-auto leading-relaxed">
-              Get matched with verified transporters. Fast, secure, and reliable logistics solutions.
+              Get matched with verified transporters for fast, secure, and reliable delivery.
             </p>
 
             {/* URGENCY TEXT */}
@@ -68,15 +68,14 @@ export default function LandingPageContent() {
             </div>
 
             {/* TRUST BADGES */}
-            <div className="grid grid-cols-3 gap-3 max-w-2xl mx-auto pt-6 text-sm">
+          <div className="grid grid-cols-3 gap-3 max-w-2xl mx-auto pt-8 text-sm">
               {[
-                { icon: CheckCircle2, text: "Verified Transporters" },
-                { icon: Clock, text: "Fast Response" },
-                { icon: Shield, text: "Secure & Reliable" }
+                { icon: CheckCircle2, text: "✓ Verified" },
+                { icon: Clock, text: "⚡ Minutes" },
+                { icon: Shield, text: "🔒 Secure" }
               ].map((item, i) => (
-                <div key={i} className="flex flex-col items-center gap-1">
-                  <item.icon className="h-5 w-5 text-emerald-300" />
-                  <span className="text-xs">{item.text}</span>
+                <div key={i} className="flex flex-col items-center gap-2 bg-white bg-opacity-10 rounded-lg py-3 px-2">
+                  <span className="text-base font-bold text-emerald-300">{item.text}</span>
                 </div>
               ))}
             </div>
@@ -89,9 +88,9 @@ export default function LandingPageContent() {
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
-              Get Your Freight Quote
+              Get Your Instant Quote
             </h2>
-            <p className="text-gray-600">Tell us about your shipment - we&apos;ll match you with the perfect transporter</p>
+            <p className="text-gray-600">Submit your details below. Get matched with verified transporters in minutes.</p>
           </div>
 
           {/* SIMPLIFIED FORM */}
@@ -99,9 +98,12 @@ export default function LandingPageContent() {
             <QuickQuoteForm />
           </div>
 
-          {/* TRUST TEXT */}
-          <div className="text-center mt-4 text-sm text-gray-600">
-            <p>✓ We respect your privacy. No spam. No hidden fees.</p>
+          {/* URGENCY & TRUST TEXT */}
+          <div className="text-center mt-6 space-y-2">
+            <div className="inline-block bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
+              <p className="text-sm font-semibold text-emerald-700">⚡ Limited transporter availability today</p>
+            </div>
+            <p className="text-xs text-gray-600">✓ We respect your privacy. No spam. No hidden fees. No quotas.</p>
           </div>
         </div>
       </section>
@@ -118,19 +120,19 @@ export default function LandingPageContent() {
               {
                 num: "1",
                 title: "Submit Your Request",
-                desc: "Tell us your pickup location, destination, and cargo details. Takes just 2 minutes.",
+                desc: "Tell us pickup, destination, and cargo. Takes 2 minutes.",
                 icon: Truck
               },
               {
                 num: "2",
-                title: "Get Matched",
-                desc: "We match you with verified transporters who can handle your shipment perfectly.",
+                title: "Get Matched Instantly",
+                desc: "We find verified transporters who fit your needs perfectly.",
                 icon: CheckCircle2
               },
               {
                 num: "3",
-                title: "Book & Track",
-                desc: "Book your transporter and track your load in real-time across South Africa.",
+                title: "Book & Track Now",
+                desc: "Confirm your booking and track your load in real-time.",
                 icon: MapPin
               }
             ].map((step, i) => (
@@ -157,13 +159,33 @@ export default function LandingPageContent() {
 
           <div className="grid md:grid-cols-4 gap-6">
             {[
-              { icon: CheckCircle2, title: "Verified Network", desc: "All transporters screened and verified" },
-              { icon: Clock, title: "Real-Time Tracking", desc: "Know where your load is every moment" },
-              { icon: Globe, title: "Cross-Border Expert", desc: "Expertise across Southern Africa" },
-              { icon: Shield, title: "Secure & Reliable", desc: "Professional management & accountability" }
+              { 
+                icon: CheckCircle2, 
+                title: "Verified Transporters", 
+                desc: "100% screened & verified professionals",
+                highlight: true
+              },
+              { 
+                icon: Clock, 
+                title: "Minutes, Not Hours", 
+                desc: "Get quotes and responses fast",
+                highlight: true
+              },
+              { 
+                icon: Globe, 
+                title: "Cross-Border Expert", 
+                desc: "Coverage across Southern Africa",
+                highlight: false
+              },
+              { 
+                icon: Shield, 
+                title: "Secure & Reliable", 
+                desc: "Full accountability & insurance",
+                highlight: false
+              }
             ].map((item, i) => (
-              <div key={i} className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-xl p-6 border border-emerald-200 hover:shadow-lg transition-shadow">
-                <item.icon className="h-8 w-8 text-emerald-600 mb-3" />
+              <div key={i} className={`${item.highlight ? 'bg-gradient-to-br from-emerald-100 to-green-100 border-2 border-emerald-400 shadow-md' : 'bg-gradient-to-br from-emerald-50 to-blue-50 border border-emerald-200'} rounded-xl p-6 hover:shadow-lg transition-shadow`}>
+                <item.icon className={`h-8 w-8 ${item.highlight ? 'text-emerald-700' : 'text-emerald-600'} mb-3`} />
                 <h3 className="font-bold text-slate-900 mb-2">{item.title}</h3>
                 <p className="text-gray-600 text-sm">{item.desc}</p>
               </div>
@@ -183,20 +205,20 @@ export default function LandingPageContent() {
             <div>
               <h3 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-emerald-600" />
-                Johannesburg Freight Transport
+                Johannesburg Freight Services
               </h3>
               <p className="text-gray-600 mb-4">
-                Fast and reliable freight booking services for Johannesburg, Pretoria, and the Gauteng region. We connect you with verified truck transporters for same-day and scheduled deliveries.
+                Fast, reliable freight booking for Johannesburg, Pretoria, Gauteng. Same-day delivery available. Connect with verified truck transporters.
               </p>
             </div>
 
             <div>
               <h3 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <Globe className="h-5 w-5 text-emerald-600" />
-                Cross-Border Logistics Africa
+                Cross-Border Africa Logistics
               </h3>
               <p className="text-gray-600 mb-4">
-                Expertise in cross-border freight transport across South Africa, Botswana, Zimbabwe, Zambia, and beyond. We handle customs, documentation, and compliance.
+                Expertise in cross-border freight across South Africa, Botswana, Zimbabwe, Zambia & beyond. We handle customs, documentation, compliance.
               </p>
             </div>
 
@@ -223,16 +245,19 @@ export default function LandingPageContent() {
         </div>
       </section>
 
-      {/* CTA REINFORCEMENT SECTION */}
-      <section className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white py-12 md:py-16">
+      {/* CTA REINFORCEMENT SECTION - High Conversion */}
+      <section className="bg-gradient-to-r from-emerald-600 via-green-500 to-blue-600 text-white py-12 md:py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Book Your Freight?</h2>
-          <p className="text-lg text-emerald-100 mb-8 max-w-2xl mx-auto">
-            Get instant quotes from verified transporters. No hidden fees. No long waiting times.
+          <h2 className="text-3xl md:text-4xl font-bold mb-2">Ready to Book Your Freight?</h2>
+          <p className="text-lg text-emerald-50 mb-2 max-w-2xl mx-auto">
+            ⚡ Fast quotes. Verified transporters. No hidden fees.
+          </p>
+          <p className="text-sm text-emerald-100 mb-8 max-w-2xl mx-auto font-semibold">
+            🕐 Average response time: 3-5 minutes
           </p>
           <button
             onClick={scrollToForm}
-            className="inline-flex items-center gap-2 bg-white text-emerald-600 font-bold px-8 py-4 rounded-lg hover:bg-gray-100 transition-colors text-lg shadow-xl"
+            className="inline-flex items-center gap-2 bg-white text-emerald-600 font-bold px-8 py-4 rounded-lg hover:bg-gray-100 transition-all transform hover:scale-105 text-lg shadow-2xl"
           >
             <Truck className="h-6 w-6" />
             Get Your Quote Now
@@ -240,8 +265,27 @@ export default function LandingPageContent() {
         </div>
       </section>
 
-      {/* FLOATING ACTION BUTTONS - MOBILE OPTIMIZED */}
-      <FloatingActionButtons />
+      {/* STICKY MOBILE CTA - Always Visible */}
+      <div className="fixed bottom-0 left-0 right-0 bg-emerald-600 text-white p-3 shadow-2xl z-20 md:hidden">
+        <button
+          onClick={scrollToForm}
+          className="w-full font-bold py-3 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 transition-colors text-lg flex items-center justify-center gap-2"
+        >
+          <Truck className="h-5 w-5" />
+          Get Quote Now
+        </button>
+      </div>
+
+      {/* STICKY MOBILE CTA - Always Visible */}
+      <div className="fixed bottom-0 left-0 right-0 bg-emerald-600 text-white p-3 shadow-2xl z-20 md:hidden">
+        <button
+          onClick={scrollToForm}
+          className="w-full font-bold py-3 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 transition-colors text-lg flex items-center justify-center gap-2"
+        >
+          <Truck className="h-5 w-5" />
+          Get Quote Now
+        </button>
+      </div>
 
       {/* FOOTER MINIMAL */}
       <footer className="bg-slate-900 text-white py-6">
@@ -311,8 +355,8 @@ function QuickQuoteForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {success && (
-        <div className="bg-emerald-100 border border-emerald-300 text-emerald-800 px-4 py-3 rounded-lg">
-          ✓ Quote request received! We&apos;ll contact you within minutes.
+        <div className="bg-emerald-100 border-2 border-emerald-400 text-emerald-800 px-4 py-4 rounded-lg font-semibold">
+          ✓ Got it! A transporter will contact you within minutes. Your reference sent to email.
         </div>
       )}
 
@@ -341,7 +385,7 @@ function QuickQuoteForm() {
         <input
           type="email"
           name="email"
-          placeholder="Email Address"
+          placeholder="📧 Email (where we send quote)"
           value={formData.email}
           onChange={handleChange}
           required
@@ -350,7 +394,7 @@ function QuickQuoteForm() {
         <input
           type="tel"
           name="phone"
-          placeholder="Phone Number"
+          placeholder="📱 Phone +27..."
           value={formData.phone}
           onChange={handleChange}
           required
@@ -362,7 +406,7 @@ function QuickQuoteForm() {
         <input
           type="text"
           name="pickupLocation"
-          placeholder="Pickup Location"
+          placeholder="📍 Pickup Location (e.g. Johannesburg)"
           value={formData.pickupLocation}
           onChange={handleChange}
           required
@@ -371,7 +415,7 @@ function QuickQuoteForm() {
         <input
           type="text"
           name="dropLocation"
-          placeholder="Drop Location"
+          placeholder="📍 Drop Location (Destination)"
           value={formData.dropLocation}
           onChange={handleChange}
           required
@@ -392,7 +436,7 @@ function QuickQuoteForm() {
       <input
         type="text"
         name="timeline"
-        placeholder="When do you need transport? (e.g., ASAP, tomorrow, next week)"
+        placeholder="⏰ When? (ASAP, tomorrow, specific date)"
         value={formData.timeline}
         onChange={handleChange}
         required
@@ -402,9 +446,9 @@ function QuickQuoteForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg text-lg transition-colors shadow-lg"
+        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg text-lg transition-colors shadow-lg hover:shadow-xl transform hover:scale-105"
       >
-        {submitting ? "Sending..." : "Get Instant Quote"}
+        {submitting ? "⏳ Sending..." : "📦 Get Instant Quote"}
       </button>
     </form>
   );
