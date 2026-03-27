@@ -6,7 +6,7 @@ import TrustSection from "@/components/TrustSection";
 import ServicesSection from "@/components/ServicesSection";
 import CTASection from "@/components/CTASection";
 import SocialProof from "@/components/SocialProof";
-import QuickQuoteForm from "@/components/QuickQuoteForm";
+import EmbeddedContactForm from "@/components/EmbeddedContactForm";
 
 export default function HomeContent() {
   return (
@@ -111,8 +111,12 @@ export default function HomeContent() {
         </div>
       </section>
 
-      {/* QUICK QUOTE FORM - ABOVE FOLD CONVERSION */}
-      <QuickQuoteForm />
+      {/* EMBEDDED CONTACT FORM - COMPACT VERSION */}
+      <EmbeddedContactForm 
+        compact={true}
+        title="Get Your Free Quote"
+        subtitle="Fill your details below and get a quote within 5 minutes"
+      />
 
       {/* TRUST SECTION */}
       <TrustSection />
