@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Network & Logistics Routes | South Africa | FleetXchange",
-  description: "Explore FleetXchange's extensive network covering all major routes across South Africa and Southern Africa. Connect with transporters nationwide.",
-  keywords: "logistics network, South Africa routes, Johannesburg, Cape Town, cross-border logistics, transport network",
+  title: "Our Freight Network Across Southern Africa | FleetXchange",
+  description: "FleetXchange covers all major routes across South Africa, Botswana, Zimbabwe, and beyond. Real-time tracking on 50,000+ monthly shipments. Coverage everywhere you ship.",
+  keywords: "freight network South Africa, cross-border logistics, transport routes, Johannesburg, Cape Town, Durban, regional logistics",
 };
 
 export default function NetworkLayout({

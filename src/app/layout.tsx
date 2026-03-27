@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
-import Header from "@/components/Header";
+import HeaderWrapper from "@/components/HeaderWrapper";
 import Footer from "@/components/Footer";
 
 export const viewport: Viewport = {
@@ -59,7 +59,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body className="antialiased">
-        <Header />
+        <HeaderWrapper />
         {children}
         <Footer />
       </body>

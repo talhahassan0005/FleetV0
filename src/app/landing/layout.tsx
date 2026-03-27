@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import HomeContent from "@/components/HomeContent";
 
 export const metadata: Metadata = {
   title: "Book Freight & Truck Services South Africa | Get Instant Quote",
@@ -7,6 +6,11 @@ export const metadata: Metadata = {
   keywords: "freight booking South Africa, truck transport, logistics services, freight quote, truck matching",
 };
 
-export default function LandingPage() {
-  return <HomeContent />;
+export default function LandingLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return children;
 }
+
