@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import HeaderWrapper from "@/components/HeaderWrapper";
 import Footer from "@/components/Footer";
+import GTMClient from "@/components/GTMClient";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -45,7 +46,7 @@ export default function RootLayout({
             gtag('js', new Date());
             gtag('config', 'G-90274WEQY5');`}
         </Script>
-        {/* Google Ads Conversion Tracking */}
+        {/* Google Ads (Conversion Tracking) */}
         <Script
           async
           src="https://www.googletagmanager.com/gtag/js?id=AW-10808030018"
@@ -57,8 +58,18 @@ export default function RootLayout({
             gtag('js', new Date());
             gtag('config', 'AW-10808030018');`}
         </Script>
+        {/* GTM noscript */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXXXX"
+            height="0"
+            width="0"
+            style={{ display: 'none', visibility: 'hidden' }}
+          ></iframe>
+        </noscript>
       </head>
       <body className="antialiased">
+        <GTMClient />
         <HeaderWrapper />
         {children}
         <Footer />

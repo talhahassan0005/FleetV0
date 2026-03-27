@@ -2,14 +2,14 @@
 
 import PageHero from "@/components/PageHero";
 import FadeIn from "@/components/FadeIn";
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import { FileText, Package, MapPin, Clock, CheckCircle2, Truck, Building2 } from "lucide-react";
 
 function ContactForm() {
-  const searchParams = useSearchParams();
   const router = useRouter();
   const [formType, setFormType] = useState<'client' | 'transporter'>('client');
+  const [isHydrated, setIsHydrated] = useState(false);
   const [formData, setFormData] = useState({
     companyName: "",
     contactPerson: "",
@@ -36,11 +36,13 @@ function ContactForm() {
   const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   useEffect(() => {
-    const type = searchParams.get('type');
+    setIsHydrated(true);
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get('type');
     if (type === 'transporter') {
       setFormType('transporter');
     }
-  }, [searchParams]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -664,9 +666,5 @@ function ContactForm() {
 }
 
 export default function ContactPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-      <ContactForm />
-    </Suspense>
-  );
+  return <ContactForm />;
 }

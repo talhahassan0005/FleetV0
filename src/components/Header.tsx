@@ -20,7 +20,7 @@ export default function Header() {
           
           {/* Desktop Menu */}
           <div className="hidden lg:flex items-center space-x-1">
-            <Link href="/" className={`px-4 py-2 rounded-lg text-sm font-medium ${pathname === '/' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50/50'}`}>Home</Link>
+            <Link href="/landing" className={`px-4 py-2 rounded-lg text-sm font-medium ${pathname === '/landing' || pathname === '/' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50/50'}`}>Home</Link>
             <Link href="/about" className={`px-4 py-2 rounded-lg text-sm font-medium ${pathname === '/about' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50/50'}`}>About</Link>
             <Link href="/how-it-works" className={`px-4 py-2 rounded-lg text-sm font-medium ${pathname === '/how-it-works' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50/50'}`}>How It Works</Link>
             <Link href="/network" className={`px-4 py-2 rounded-lg text-sm font-medium ${pathname === '/network' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50/50'}`}>Network</Link>
@@ -49,7 +49,7 @@ export default function Header() {
         {/* Mobile Menu */}
         {isOpen && (
           <div className="lg:hidden py-4 space-y-2 border-t border-gray-200">
-            <Link href="/" onClick={() => setIsOpen(false)} className={`block px-4 py-2 rounded-lg text-sm font-medium ${pathname === '/' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:bg-emerald-50'}`}>Home</Link>
+            <Link href="/landing" onClick={() => setIsOpen(false)} className={`block px-4 py-2 rounded-lg text-sm font-medium ${pathname === '/landing' || pathname === '/' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:bg-emerald-50'}`}>Home</Link>
             <Link href="/about" onClick={() => setIsOpen(false)} className={`block px-4 py-2 rounded-lg text-sm font-medium ${pathname === '/about' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:bg-emerald-50'}`}>About</Link>
             <Link href="/how-it-works" onClick={() => setIsOpen(false)} className={`block px-4 py-2 rounded-lg text-sm font-medium ${pathname === '/how-it-works' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:bg-emerald-50'}`}>How It Works</Link>
             <Link href="/network" onClick={() => setIsOpen(false)} className={`block px-4 py-2 rounded-lg text-sm font-medium ${pathname === '/network' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:bg-emerald-50'}`}>Network</Link>
