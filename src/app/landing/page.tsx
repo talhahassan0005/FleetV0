@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import HomeContent from "@/components/HomeContent";
 
 export const metadata: Metadata = {
-  title: "Book Freight & Truck Services South Africa | Get Instant Quote",
-  description: "Fast freight booking and truck transport across South Africa. Get matched with verified transporters. Instant quotes, real-time tracking, and reliable logistics services.",
+  title: "Book Freight & Trucks South Africa | Instant Quote",
+  description: "Fast freight booking across South Africa. Get instant quotes, real-time tracking, and match with verified transporters.",
   keywords: "freight booking South Africa, truck transport, logistics services, freight quote, truck matching",
 };
 
