@@ -147,8 +147,8 @@ export default function HomeContent() {
             <p className="text-lg text-center text-gray-300 mb-16">We support freight movements, truck transport, and cross-border logistics across:</p>
           </FadeIn>
           
-          <div className="grid md:grid-cols-5 gap-6 mb-8">
-            {["Johannesburg Transport", "Cape Town Logistics", "Durban Freight", "Pretoria Hub", "Cross-Border Africa"].map((route, index) => (
+          <div className="grid md:grid-cols-6 gap-6 mb-8">
+            {["Johannesburg Transport", "Cape Town Logistics", "Durban Freight", "Pretoria Hub", "Gaborone – Johannesburg Corridor", "Cross-Border Africa"].map((route, index) => (
               <FadeIn 
                 key={index}
                 direction="up" 
