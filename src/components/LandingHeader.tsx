@@ -1,6 +1,6 @@
 'use client';
 
-import { Phone } from 'lucide-react';
+import { Phone, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -12,9 +12,13 @@ export default function LandingHeader() {
           <Image src="/images/logo.png" alt="FleetXchange" width={180} height={50} className="h-12 w-auto" />
         </Link>
         <div className="flex gap-3">
+          <a href="https://wa.me/27738281478?text=Hi%20FleetXchange%2C%20I%20need%20freight%20services" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-all duration-300 hover:shadow-lg shadow-md">
+            <MessageCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">WhatsApp</span>
+          </a>
           <a href="tel:+27738281478" className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-all duration-300 hover:shadow-lg shadow-md">
             <Phone className="h-4 w-4" />
-            <span className="hidden sm:inline">Call +27 738 281 478</span>
+            <span className="hidden sm:inline">Call</span>
           </a>
         </div>
       </div>

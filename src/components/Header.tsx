@@ -10,6 +10,11 @@ export default function Header() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
+  // Don't render header on landing page - LandingHeader should be used instead
+  if (pathname === '/landing' || pathname === '/') {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
