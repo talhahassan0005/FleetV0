@@ -176,7 +176,7 @@ export default function EmbeddedContactForm({
                         value={formData.companyName}
                         onChange={handleChange}
                         placeholder="Company"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                       />
                       <input 
                         type="text" 
@@ -185,7 +185,7 @@ export default function EmbeddedContactForm({
                         value={formData.contactPerson}
                         onChange={handleChange}
                         placeholder="Contact Person"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                       />
                     </div>
 
@@ -197,7 +197,7 @@ export default function EmbeddedContactForm({
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="Email"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                       />
                       <input 
                         type="tel" 
@@ -206,7 +206,7 @@ export default function EmbeddedContactForm({
                         value={formData.phone}
                         onChange={handleChange}
                         placeholder="Phone"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                       />
                     </div>
 
@@ -217,7 +217,7 @@ export default function EmbeddedContactForm({
                       onChange={handleChange}
                       rows={2}
                       placeholder="What are you shipping? (type, weight, quantity)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                     ></textarea>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -228,7 +228,7 @@ export default function EmbeddedContactForm({
                         value={formData.route}
                         onChange={handleChange}
                         placeholder="From → To"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                       />
                       <input 
                         type="text" 
@@ -237,7 +237,7 @@ export default function EmbeddedContactForm({
                         value={formData.timeline}
                         onChange={handleChange}
                         placeholder="When needed?"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                       />
                     </div>
 
@@ -247,7 +247,7 @@ export default function EmbeddedContactForm({
                       value={formData.specialRequirements}
                       onChange={handleChange}
                       placeholder="Any special requirements (optional)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                     />
                   </>
                 ) : (
@@ -260,7 +260,7 @@ export default function EmbeddedContactForm({
                         value={transporterData.companyName}
                         onChange={handleChange}
                         placeholder="Company Name"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                       />
                       <input 
                         type="text" 
@@ -269,7 +269,7 @@ export default function EmbeddedContactForm({
                         value={transporterData.contactName}
                         onChange={handleChange}
                         placeholder="Contact Person"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                       />
                     </div>
 
@@ -281,7 +281,7 @@ export default function EmbeddedContactForm({
                         value={transporterData.email}
                         onChange={handleChange}
                         placeholder="Email"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                       />
                       <input 
                         type="tel" 
@@ -290,7 +290,7 @@ export default function EmbeddedContactForm({
                         value={transporterData.phone}
                         onChange={handleChange}
                         placeholder="Phone"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                       />
                     </div>
 
@@ -316,7 +316,7 @@ export default function EmbeddedContactForm({
                         value={transporterData.fleetSize}
                         onChange={handleChange}
                         placeholder="Fleet Size"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                       />
                     </div>
 
@@ -347,7 +347,7 @@ export default function EmbeddedContactForm({
                       onChange={handleChange}
                       rows={2}
                       placeholder="Tell us about your company"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                     ></textarea>
                   </>
                 )}
@@ -369,7 +369,7 @@ export default function EmbeddedContactForm({
 
   // Full version (for contact page)
   return (
-    <div className="rounded-xl border border-none shadow-xl bg-white p-10 md:p-16 hover:shadow-2xl transition-all duration-500">
+    <div className="rounded-xl border border-none shadow-xl bg-white p-10 md:p-16 hover:shadow-2xl transition-all duration-500" style={{ color: '#111827' }}>
       <h2 className="text-3xl font-bold text-slate-900 mb-10">
         {formType === 'client' ? 'Request a Load Movement' : 'Apply as Transporter'}
       </h2>
@@ -418,7 +418,7 @@ export default function EmbeddedContactForm({
                   value={formData.companyName}
                   onChange={handleChange}
                   placeholder="Company Name"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                 />
                 <input 
                   type="text" 
@@ -427,7 +427,7 @@ export default function EmbeddedContactForm({
                   value={formData.contactPerson}
                   onChange={handleChange}
                   placeholder="Contact Person"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                 />
               </div>
               <div className="grid md:grid-cols-2 gap-5">
@@ -438,7 +438,7 @@ export default function EmbeddedContactForm({
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Email Address"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                 />
                 <input 
                   type="tel" 
@@ -447,7 +447,7 @@ export default function EmbeddedContactForm({
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="Phone Number"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                 />
               </div>
             </div>
@@ -465,7 +465,7 @@ export default function EmbeddedContactForm({
                 onChange={handleChange}
                 rows={3}
                 placeholder="Describe your cargo (type, weight, volume, quantity, special handling requirements)"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
               ></textarea>
             </div>
 
@@ -482,7 +482,7 @@ export default function EmbeddedContactForm({
                 value={formData.route}
                 onChange={handleChange}
                 placeholder="From [City/Location] to [City/Location]"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
               />
             </div>
 
@@ -499,7 +499,7 @@ export default function EmbeddedContactForm({
                 value={formData.timeline}
                 onChange={handleChange}
                 placeholder="e.g., Pickup on 15 Aug, delivery by 18 Aug"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
               />
             </div>
 
@@ -512,7 +512,7 @@ export default function EmbeddedContactForm({
                 onChange={handleChange}
                 rows={4}
                 placeholder="Any special requirements, handling instructions, insurance needs, or other important details"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
               ></textarea>
             </div>
           </>
@@ -532,7 +532,7 @@ export default function EmbeddedContactForm({
                   value={transporterData.companyName}
                   onChange={handleChange}
                   placeholder="Company Name"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                 />
                 <input 
                   type="text" 
@@ -541,7 +541,7 @@ export default function EmbeddedContactForm({
                   value={transporterData.contactName}
                   onChange={handleChange}
                   placeholder="Contact Person"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                 />
               </div>
               <div className="grid md:grid-cols-2 gap-5">
@@ -552,7 +552,7 @@ export default function EmbeddedContactForm({
                   value={transporterData.email}
                   onChange={handleChange}
                   placeholder="Email Address"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                 />
                 <input 
                   type="tel" 
@@ -561,7 +561,7 @@ export default function EmbeddedContactForm({
                   value={transporterData.phone}
                   onChange={handleChange}
                   placeholder="Phone Number"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                 />
               </div>
             </div>
@@ -578,7 +578,7 @@ export default function EmbeddedContactForm({
                   required
                   value={transporterData.country}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                 >
                   <option value="">Select Country</option>
                   <option value="South Africa">South Africa</option>
@@ -594,7 +594,7 @@ export default function EmbeddedContactForm({
                   value={transporterData.fleetSize}
                   onChange={handleChange}
                   placeholder="Fleet Size (e.g., 10 trucks)"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
                 />
               </div>
               <input 
@@ -604,7 +604,7 @@ export default function EmbeddedContactForm({
                 value={transporterData.vehicleTypes}
                 onChange={handleChange}
                 placeholder="Vehicle Types (e.g., Flatbed, Refrigerated, Tanker)"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
               />
             </div>
 
@@ -621,7 +621,7 @@ export default function EmbeddedContactForm({
                 value={transporterData.operatingRoutes}
                 onChange={handleChange}
                 placeholder="Primary Operating Routes"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
               />
               <input 
                 type="text" 
@@ -630,7 +630,7 @@ export default function EmbeddedContactForm({
                 value={transporterData.yearsInBusiness}
                 onChange={handleChange}
                 placeholder="Years in Business"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
               />
             </div>
 
@@ -643,7 +643,7 @@ export default function EmbeddedContactForm({
                 onChange={handleChange}
                 rows={4}
                 placeholder="Tell us about your company, certifications, and why you want to join FleetXchange"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900"
               ></textarea>
             </div>
           </>
