@@ -11,15 +11,15 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "FleetXchange | Freight Booking & Truck Transport South Africa",
-  description: "FleetXchange is South Africa's leading freight coordination platform. Book reliable trucks, connect with verified transporters, and manage logistics with real-time tracking across Southern Africa.",
+  title: "FleetXchange | Freight Booking South Africa",
+  description: "Book trucks in minutes. Connect with 500+ verified transporters. Instant quotes, real-time tracking across South Africa.",
   keywords: "freight booking, truck transport, logistics platform, South Africa, transporters, cross-border",
   authors: [{ name: "FleetXchange" }],
   openGraph: {
-    title: "FleetXchange | Freight Booking & Truck Transport South Africa",
-    description: "Connect with verified transporters for instant freight booking, real-time tracking, and efficient logistics solutions.",
+    title: "FleetXchange | Freight Booking South Africa",
+    description: "Book trucks in minutes. Connect with 500+ verified transporters. Instant quotes, real-time tracking across South Africa.",
     type: "website",
-    url: "http://fleetxchange.africa/",
+    url: "https://fleetxchange.africa/",
   },
 };
 
@@ -34,6 +34,49 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="alternate icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/favicon.svg" />
+        
+        {/* Schema.org Markup for Google */}
+        <Script id="org-schema" type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "FleetXchange",
+            "url": "https://fleetxchange.africa",
+            "logo": "https://fleetxchange.africa/images/logo.png",
+            "description": "South Africa's leading freight coordination platform",
+            "sameAs": [
+              "https://www.linkedin.com/company/fleetxchange",
+              "https://www.facebook.com/fleetxchange"
+            ],
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "telephone": "+27-73-828-1478",
+              "contactType": "Customer Service"
+            }
+          })}
+        </Script>
+
+        <Script id="service-schema" type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Service",
+            "name": "Freight Booking & Truck Transport",
+            "description": "Book reliable trucks and connect with verified transporters across South Africa",
+            "provider": {
+              "@type": "Organization",
+              "name": "FleetXchange"
+            },
+            "areaServed": [
+              "ZA",
+              "BW",
+              "ZM",
+              "ZW",
+              "NA"
+            ],
+            "serviceType": "Freight Transport Coordination"
+          })}
+        </Script>
+
         {/* Google Tag Manager */}
         <Script
           async

@@ -6,6 +6,7 @@ import TrustSection from "@/components/TrustSection";
 import ServicesSection from "@/components/ServicesSection";
 import CTASection from "@/components/CTASection";
 import SocialProof from "@/components/SocialProof";
+import QuickQuoteForm from "@/components/QuickQuoteForm";
 
 export default function HomeContent() {
   return (
@@ -109,6 +110,9 @@ export default function HomeContent() {
           </div>
         </div>
       </section>
+
+      {/* QUICK QUOTE FORM - ABOVE FOLD CONVERSION */}
+      <QuickQuoteForm />
 
       {/* TRUST SECTION */}
       <TrustSection />
