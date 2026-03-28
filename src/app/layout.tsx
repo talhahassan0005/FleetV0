@@ -8,6 +8,9 @@ import GTMClient from "@/components/GTMClient";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  minimumScale: 1,
+  viewportFit: "cover",
+  colorScheme: "light",
 };
 
 export const metadata: Metadata = {
@@ -32,6 +35,10 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="canonical" href="https://fleetxchange.africa" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="alternate icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/favicon.svg" />

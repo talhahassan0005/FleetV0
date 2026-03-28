@@ -1,12 +1,15 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { MapPin, Package, TrendingUp, Eye, Gauge, Shield, Truck, Zap, Award, CheckCircle2 } from 'lucide-react';
 import FadeIn from "@/components/FadeIn";
-import TrustSection from "@/components/TrustSection";
-import ServicesSection from "@/components/ServicesSection";
-import CTASection from "@/components/CTASection";
-import SocialProof from "@/components/SocialProof";
 import EmbeddedContactForm from "@/components/EmbeddedContactForm";
+
+// Lazy load heavy components (improves initial page load)
+const TrustSection = dynamic(() => import("@/components/TrustSection"), { loading: () => <div className="h-32" /> });
+const ServicesSection = dynamic(() => import("@/components/ServicesSection"), { loading: () => <div className="h-32" /> });
+const CTASection = dynamic(() => import("@/components/CTASection"), { loading: () => <div className="h-32" /> });
+const SocialProof = dynamic(() => import("@/components/SocialProof"), { loading: () => <div className="h-32" /> });
 
 export default function HomeContent() {
   return (
