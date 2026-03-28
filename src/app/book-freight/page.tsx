@@ -3,6 +3,7 @@
 import { Truck, CheckCircle2, MapPin, Clock, Shield, Phone, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import FadeIn from "@/components/FadeIn";
 
 export default function BookFreightPage() {
@@ -171,15 +172,16 @@ export default function BookFreightPage() {
 }
 
 function QuoteForm() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     companyName: "",
     contactPerson: "",
     email: "",
     phone: "",
-    pickupLocation: "",
-    dropLocation: "",
+    route: "",
     cargoDetails: "",
-    timeline: ""
+    timeline: "",
+    specialRequirements: ""
   });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -206,12 +208,14 @@ function QuoteForm() {
           contactPerson: "",
           email: "",
           phone: "",
-          pickupLocation: "",
-          dropLocation: "",
+          route: "",
           cargoDetails: "",
-          timeline: ""
+          timeline: "",
+          specialRequirements: ""
         });
-        setTimeout(() => setSuccess(false), 3000);
+        setTimeout(() => {
+          router.push('/thank-you');
+        }, 1500);
       }
     } catch (error) {
       console.error('Form submission error:', error);
@@ -236,7 +240,7 @@ function QuoteForm() {
           value={formData.companyName}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
         />
         <input
           type="text"
@@ -245,7 +249,7 @@ function QuoteForm() {
           value={formData.contactPerson}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
         />
       </div>
 
@@ -257,7 +261,7 @@ function QuoteForm() {
           value={formData.email}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
         />
         <input
           type="tel"
@@ -266,28 +270,28 @@ function QuoteForm() {
           value={formData.phone}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
         />
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         <input
           type="text"
-          name="pickupLocation"
-          placeholder="Pickup Location"
-          value={formData.pickupLocation}
+          name="route"
+          placeholder="Route (e.g., Johannesburg to Cape Town)"
+          value={formData.route}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
         />
         <input
           type="text"
-          name="dropLocation"
-          placeholder="Drop Location"
-          value={formData.dropLocation}
+          name="timeline"
+          placeholder="When? (ASAP, tomorrow, specific date)"
+          value={formData.timeline}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
         />
       </div>
 
@@ -298,25 +302,24 @@ function QuoteForm() {
         onChange={handleChange}
         rows={3}
         required
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
       ></textarea>
 
       <input
         type="text"
-        name="timeline"
-        placeholder="When? (ASAP, tomorrow, specific date)"
-        value={formData.timeline}
+        name="specialRequirements"
+        placeholder="Special Requirements (optional)"
+        value={formData.specialRequirements}
         onChange={handleChange}
-        required
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
       />
 
       <button
         type="submit"
-        disabled={submitting}
-        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg text-lg transition-colors shadow-lg hover:shadow-xl"
+        disabled={submitting || success}
+        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 disabled:opacity-50 text-white font-bold py-4 px-6 rounded-lg text-lg transition-colors shadow-lg hover:shadow-xl"
       >
-        {submitting ? "⏳ Sending..." : "📦 Get Quote Now"}
+        {submitting ? "⏳ Sending..." : success ? "✓ Sent!" : "📦 Get Quote Now"}
       </button>
     </form>
   );

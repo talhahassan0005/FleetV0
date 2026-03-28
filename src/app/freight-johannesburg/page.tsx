@@ -2,6 +2,7 @@
 
 import { MapPin, Truck, CheckCircle2, Clock } from 'lucide-react';
 import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import FadeIn from "@/components/FadeIn";
 
 export default function FreightJohannesburg() {
@@ -107,16 +108,19 @@ export default function FreightJohannesburg() {
 }
 
 function QuoteForm() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     companyName: "",
+    contactPerson: "",
     email: "",
     phone: "",
-    pickupLocation: "Johannesburg",
-    dropLocation: "",
     cargoDetails: "",
-    timeline: ""
+    route: "Johannesburg",
+    timeline: "",
+    specialRequirements: ""
   });
   const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e: any) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -126,11 +130,20 @@ function QuoteForm() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await fetch('/api/contact', {
+      const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+      const result = await response.json();
+      if (result.success) {
+        setSuccess(true);
+        setTimeout(() => {
+          router.push('/thank-you');
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
     } finally {
       setSubmitting(false);
     }
@@ -138,13 +151,19 @@ function QuoteForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <input type="text" name="companyName" placeholder="Company" value={formData.companyName} onChange={handleChange} required className="w-full px-4 py-3 border rounded-lg" />
-      <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required className="w-full px-4 py-3 border rounded-lg" />
-      <input type="tel" name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} required className="w-full px-4 py-3 border rounded-lg" />
-      <input type="text" name="dropLocation" placeholder="Drop Location" value={formData.dropLocation} onChange={handleChange} required className="w-full px-4 py-3 border rounded-lg" />
-      <textarea name="cargoDetails" placeholder="Cargo Details" value={formData.cargoDetails} onChange={handleChange} required rows={3} className="w-full px-4 py-3 border rounded-lg"></textarea>
-      <input type="text" name="timeline" placeholder="Timeline" value={formData.timeline} onChange={handleChange} required className="w-full px-4 py-3 border rounded-lg" />
-      <button type="submit" disabled={submitting} className="w-full bg-emerald-600 text-white font-bold py-4 rounded-lg hover:bg-emerald-700">{submitting ? "Sending..." : "📦 Get Quote"}</button>
+      {success && (
+        <div className="bg-emerald-100 border-2 border-emerald-400 text-emerald-800 px-4 py-3 rounded-lg font-semibold text-center">
+          ✓ Got it! Redirecting to confirmation page...
+        </div>
+      )}
+      <input type="text" name="companyName" placeholder="Company Name" value={formData.companyName} onChange={handleChange} required className="w-full px-4 py-3 border rounded-lg text-gray-900" />
+      <input type="text" name="contactPerson" placeholder="Contact Person" value={formData.contactPerson} onChange={handleChange} required className="w-full px-4 py-3 border rounded-lg text-gray-900" />
+      <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required className="w-full px-4 py-3 border rounded-lg text-gray-900" />
+      <input type="tel" name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} required className="w-full px-4 py-3 border rounded-lg text-gray-900" />
+      <textarea name="cargoDetails" placeholder="Cargo Details" value={formData.cargoDetails} onChange={handleChange} required rows={3} className="w-full px-4 py-3 border rounded-lg text-gray-900"></textarea>
+      <input type="text" name="timeline" placeholder="Timeline" value={formData.timeline} onChange={handleChange} required className="w-full px-4 py-3 border rounded-lg text-gray-900" />
+      <input type="text" name="specialRequirements" placeholder="Special Requirements (optional)" value={formData.specialRequirements} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg text-gray-900" />
+      <button type="submit" disabled={submitting || success} className="w-full bg-emerald-600 text-white font-bold py-4 rounded-lg hover:bg-emerald-700 disabled:opacity-50">{submitting ? "Sending..." : success ? "✓ Sent!" : "📦 Get Quote"}</button>
     </form>
   );
 }
