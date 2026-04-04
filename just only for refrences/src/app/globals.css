@@ -1,0 +1,98 @@
+/* src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --navy:   #1a2a5e;
+    --navy2:  #142047;
+    --navy3:  #0d1535;
+    --fx:     #3ab54a;
+    --fx2:    #2d9e3c;
+  }
+}
+
+@layer components {
+  /* Table card header */
+  .table-header {
+    @apply flex items-center justify-between px-4 py-3
+           bg-[#1a2a5e] border-b-2 border-[#3ab54a];
+  }
+  .table-title {
+    @apply font-condensed font-bold text-sm text-white uppercase tracking-wide;
+  }
+
+  /* Status badges */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px]
+           font-semibold uppercase tracking-wide border;
+  }
+
+  /* Sidebar nav */
+  .nav-item {
+    @apply flex items-center gap-2 px-4 py-2.5 text-white/40 text-sm
+           border-l-[3px] border-transparent cursor-pointer
+           hover:text-white hover:bg-white/5 transition-all;
+  }
+  .nav-item.active {
+    @apply text-white bg-[#3ab54a]/10 border-l-[#3ab54a] font-medium;
+  }
+
+  /* Buttons */
+  .btn-fx {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded
+           bg-[#3ab54a] text-white text-xs font-medium
+           hover:bg-[#2d9e3c] transition-colors;
+  }
+  .btn-navy {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded
+           bg-[#1a2a5e] text-white text-xs font-medium
+           hover:bg-[#142047] transition-colors;
+  }
+  .btn-outline-fx {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded
+           border border-[#3ab54a] text-[#3ab54a] text-xs font-medium
+           hover:bg-[#3ab54a] hover:text-white transition-colors;
+  }
+  .btn-outline-navy {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded
+           border border-[#1a2a5e] text-[#1a2a5e] text-xs font-medium
+           hover:bg-[#1a2a5e] hover:text-white transition-colors;
+  }
+
+  /* Form fields */
+  .field {
+    @apply w-full px-3 py-2 border border-gray-200 rounded text-sm
+           text-navy outline-none bg-gray-50
+           focus:border-[#3ab54a] focus:bg-white transition-colors;
+  }
+  .field-label {
+    @apply block text-[9px] font-semibold uppercase tracking-widest
+           text-gray-500 mb-1;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white rounded border border-gray-200 shadow-sm overflow-hidden;
+  }
+  .card-body {
+    @apply p-4;
+  }
+
+  /* Timeline */
+  .tl-dot {
+    @apply w-2.5 h-2.5 rounded-full bg-[#3ab54a] flex-shrink-0 mt-1
+           ring-2 ring-white ring-offset-0 relative z-10;
+  }
+
+  /* Section title */
+  .section-title {
+    @apply font-condensed font-bold text-xs uppercase tracking-widest
+           text-[#1a2a5e] flex items-center gap-2 mb-2;
+  }
+  .section-title::after {
+    content: '';
+    @apply flex-1 h-px bg-gray-200;
+  }
+}
