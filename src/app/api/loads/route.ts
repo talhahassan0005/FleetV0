@@ -1,97 +1,129 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { getDatabase } from '@/lib/prisma'
+import { ObjectId } from 'mongodb'
 
 /**
- * @swagger
- * /api/loads:
- *   get:
- *     summary: Get all loads
- *     description: Retrieve a list of all freight loads
- *     tags:
- *       - Loads
- *     responses:
- *       200:
- *         description: Successful response
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                       origin:
- *                         type: string
- *                       destination:
- *                         type: string
- *                       status:
- *                         type: string
- *   post:
- *     summary: Create a new load
- *     description: Create a new freight load request
- *     tags:
- *       - Loads
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - origin
- *               - destination
- *               - cargoType
- *             properties:
- *               origin:
- *                 type: string
- *               destination:
- *                 type: string
- *               cargoType:
- *                 type: string
- *               weight:
- *                 type: number
- *     responses:
- *       201:
- *         description: Load created successfully
+ * GET /api/loads - Get all loads with optional filtering
  */
-
-export async function GET(request: NextRequest) {
-  const loads = [
-    {
-      id: '1',
-      origin: 'Johannesburg, South Africa',
-      destination: 'Harare, Zimbabwe',
-      status: 'In Transit',
-      cargoType: 'General Freight',
-      weight: 5000
-    },
-    {
-      id: '2',
-      origin: 'Gaborone, Botswana',
-      destination: 'Lusaka, Zambia',
-      status: 'Pending',
-      cargoType: 'Electronics',
-      weight: 2000
-    }
-  ];
-
-  return NextResponse.json({ success: true, data: loads });
+export async function GET(req: NextRequest) {
+  try {
+    const db = await getDatabase()
+    const searchParams = req.nextUrl.searchParams
+    const status = searchParams.get('status')
+    const clientId = searchParams.get('clientId')
+    
+    const filter: any = {}
+    if (status) filter.status = status
+    if (clientId) filter.clientId = clientId
+    
+    const loads = await db.collection('loads').find(filter).sort({ createdAt: -1 }).limit(50).toArray()
+    
+    return NextResponse.json({ success: true, loads, count: loads.length })
+  } catch (err: any) {
+    console.error('[GetLoads] Error:', err)
+    return NextResponse.json({ error: 'Failed to fetch loads' }, { status: 500 })
+  }
 }
 
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  
-  const newLoad = {
-    id: Date.now().toString(),
-    ...body,
-    status: 'Pending',
-    createdAt: new Date().toISOString()
-  };
+/**
+ * POST /api/loads - Create a new load
+ * Required fields: origin, destination, weight, itemType, description, postedPrice, clientId
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    console.log('[CreateLoad] Request body:', JSON.stringify(body, null, 2))
+    
+    const { origin, destination, weight, itemType, description, postedPrice, clientId, collectionDate, deliveryDate } = body
 
-  return NextResponse.json({ success: true, data: newLoad }, { status: 201 });
+    // Check which fields are missing
+    const missing: string[] = []
+    if (!origin) missing.push('origin')
+    if (!destination) missing.push('destination')
+    if (weight === undefined || weight === null || weight === '') missing.push('weight')
+    if (!itemType) missing.push('itemType')
+    if (!description) missing.push('description')
+    if (postedPrice === undefined || postedPrice === null || postedPrice === '') missing.push('postedPrice')
+    if (!clientId) missing.push('clientId')
+
+    console.log('[CreateLoad] Validation result:', {
+      allPresent: missing.length === 0,
+      missingFields: missing,
+    })
+
+    if (missing.length > 0) {
+      console.log('[CreateLoad] Validation failed, missing:', missing.join(', '))
+      return NextResponse.json(
+        { error: `Missing required fields: ${missing.join(', ')}` },
+        { status: 400 }
+      )
+    }
+
+    const db = await getDatabase()
+    
+    // Generate reference number
+    const ref = `LOAD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+    
+    // Convert clientId from string to ObjectId
+    let clientObjectId: any
+    try {
+      clientObjectId = new ObjectId(clientId)
+    } catch (err) {
+      return NextResponse.json(
+        { error: 'Invalid client ID format' },
+        { status: 400 }
+      )
+    }
+    
+    const result = await db.collection('loads').insertOne({
+      ref,
+      origin,
+      destination,
+      cargoType: itemType,  // Map itemType to cargoType
+      weight,
+      description,
+      finalPrice: postedPrice,  // Map postedPrice to finalPrice
+      currency: 'ZAR',
+      clientId: clientObjectId,
+      status: 'PENDING',
+      collectionDate,
+      deliveryDate,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    console.log('[CreateLoad] Saved load:', {
+      loadId: result.insertedId.toString(),
+      ref,
+      clientId: clientId,
+      clientObjectId: clientObjectId.toString(),
+    })
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: 'Load created successfully',
+        load: { 
+          _id: result.insertedId, 
+          ref,
+          origin, 
+          destination, 
+          cargoType: itemType,
+          weight, 
+          description, 
+          finalPrice: postedPrice,
+          currency: 'ZAR',
+          clientId,
+          status: 'PENDING'
+        },
+      },
+      { status: 201 }
+    )
+  } catch (error: any) {
+    console.error('[CreateLoad] Error:', error)
+    return NextResponse.json(
+      { error: error.message || 'Failed to create load' },
+      { status: 500 }
+    )
+  }
 }

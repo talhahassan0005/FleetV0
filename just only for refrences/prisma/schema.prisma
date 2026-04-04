@@ -1,0 +1,231 @@
+// prisma/schema.prisma
+// FleetXchange Platform — PostgreSQL via Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+  TRANSPORTER
+}
+
+enum LoadStatus {
+  PENDING
+  QUOTING
+  QUOTED
+  APPROVED
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+enum QuoteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+}
+
+enum DocType {
+  COMPANY
+  REGISTRATION
+  CUSTOMS
+  POD
+  INVOICE
+  OTHER
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  role        Role
+  companyName String?
+  contactName String?
+  phone       String?
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  clientLoads       Load[]         @relation("ClientLoads")
+  assignedLoads     Load[]         @relation("AssignedLoads")
+  quotes            Quote[]
+  loadUpdates       LoadUpdate[]
+  documents         Document[]
+  accounts          Account[]
+  sessions          Session[]
+
+  @@map("users")
+}
+
+model Load {
+  id                   String     @id @default(cuid())
+  ref                  String     @unique
+  clientId             String
+  origin               String
+  destination          String
+  cargoType            String?
+  weight               String?
+  collectionDate       String?
+  deliveryDate         String?
+  specialInstructions  String?
+  status               LoadStatus @default(PENDING)
+  assignedTransporterId String?
+  finalPrice           Float?
+  currency             String     @default("ZAR")
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  // Relations
+  client              User         @relation("ClientLoads", fields: [clientId], references: [id])
+  assignedTransporter User?        @relation("AssignedLoads", fields: [assignedTransporterId], references: [id])
+  quotes              Quote[]
+  updates             LoadUpdate[]
+  documents           Document[]
+  trackingLinks       TrackingLink[]
+  invoices            Invoice[]
+
+  @@map("loads")
+}
+
+model Quote {
+  id            String      @id @default(cuid())
+  loadId        String
+  transporterId String
+  price         Float
+  notes         String?
+  status        QuoteStatus @default(PENDING)
+  createdAt     DateTime    @default(now())
+
+  load        Load @relation(fields: [loadId], references: [id], onDelete: Cascade)
+  transporter User @relation(fields: [transporterId], references: [id])
+
+  @@map("quotes")
+}
+
+model LoadUpdate {
+  id           String   @id @default(cuid())
+  loadId       String
+  userId       String?
+  message      String
+  statusChange String?
+  createdAt    DateTime @default(now())
+
+  load Load  @relation(fields: [loadId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("load_updates")
+}
+
+model Document {
+  id             String   @id @default(cuid())
+  userId         String?
+  loadId         String?
+  docType        DocType
+  filename       String   // Cloudinary public_id
+  originalName   String
+  fileUrl        String   // Cloudinary secure_url
+  uploadedByRole Role
+  visibleTo      String   @default("ADMIN") // comma-separated: CLIENT,TRANSPORTER,ADMIN
+  createdAt      DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+  load Load? @relation(fields: [loadId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  loadId        String
+  invoiceNumber String
+  amount        Float
+  currency      String        @default("ZAR")
+  status        InvoiceStatus @default(PENDING)
+  filename      String?       // Cloudinary public_id
+  originalName  String?
+  fileUrl       String?       // Cloudinary secure_url
+  issuedAt      DateTime      @default(now())
+
+  load Load @relation(fields: [loadId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+model TrackingLink {
+  id         String    @id @default(cuid())
+  loadId     String
+  token      String    @unique
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  expiredAt  DateTime?
+
+  // ── TRACKING API INTEGRATION (future) ─────────────────────────────────────
+  // When connecting your tracking company's API, uncomment these fields
+  // and run: npx prisma db push
+  //
+  // trackingProvider    String?   // e.g. 'your_tracking_company'
+  // externalTrackingId  String?   // ID in your tracking system
+  // lastGpsLat          Float?
+  // lastGpsLng          Float?
+  // lastGpsUpdated      DateTime?
+  // ──────────────────────────────────────────────────────────────────────────
+
+  load Load @relation(fields: [loadId], references: [id], onDelete: Cascade)
+
+  @@map("tracking_links")
+}
+
+// NextAuth required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}

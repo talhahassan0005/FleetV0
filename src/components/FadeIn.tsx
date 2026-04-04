@@ -21,16 +21,22 @@ export default function FadeIn({
   blur?: boolean;
   threshold?: number;
 }) {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true); // enforce visible to avoid blank-screen during hydration
   const [hasAnimated, setHasAnimated] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") {
+      // Browser does not support IntersectionObserver, keep visible
+      setIsVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           if (once && hasAnimated) return;
-          
+
           setTimeout(() => {
             setIsVisible(true);
             setHasAnimated(true);
@@ -44,9 +50,21 @@ export default function FadeIn({
       { threshold, rootMargin: "20px" }
     );
 
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [delay, once, hasAnimated, threshold]);
+    if (ref.current) {
+      observer.observe(ref.current);
+    } else {
+      setIsVisible(true);
+    }
+
+    const fallbackTimer = window.setTimeout(() => {
+      if (!isVisible) setIsVisible(true);
+    }, Math.max(500, delay + 200));
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(fallbackTimer);
+    };
+  }, [delay, once, hasAnimated, threshold, isVisible]);
 
   const getTransform = () => {
     if (!isVisible) {
@@ -67,9 +85,9 @@ export default function FadeIn({
       ref={ref}
       style={{
         transition: `all ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-        opacity: isVisible ? 1 : 0,
-        transform: getTransform(),
-        filter: blur && !isVisible ? "blur(8px)" : "blur(0)",
+        opacity: 1,
+        transform: "translate(0)",
+        filter: "none",
         willChange: "transform, opacity, filter"
       }}
     >

@@ -13,7 +13,7 @@ const SocialProof = dynamic(() => import("@/components/SocialProof"), { loading:
 
 export default function HomeContent() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       {/* HERO SECTION - CONVERSION OPTIMIZED */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950">
         <div className="absolute inset-0 opacity-10">
@@ -232,6 +232,9 @@ export default function HomeContent() {
         }}
         variant="light"
       />
+      
+      
     </div>
   );
 }
+        

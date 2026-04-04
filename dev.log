@@ -1,0 +1,27 @@
+
+> mathewv2@0.1.0 dev
+> next dev
+
+  Γû▓ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ Γ£ô Starting...
+ Γ£ô Ready in 6s
+ Γ£ô Compiled /src/middleware in 327ms (72 modules)
+ Γùï Compiling /client ...
+ Γ£ô Compiled /client in 3.6s (624 modules)
+ Γ£ô Compiled in 590ms (316 modules)
+ GET /client 200 in 4278ms
+ ΓÜá Fast Refresh had to perform a full reload due to a runtime error.
+ Γ£ô Compiled in 495ms (624 modules)
+ GET /client 200 in 176ms
+ Γ£ô Compiled in 308ms (316 modules)
+ ΓÜá Fast Refresh had to perform a full reload due to a runtime error.
+ GET /client 200 in 52ms
+ ΓÜá Fast Refresh had to perform a full reload due to a runtime error.
+ Γ£ô Compiled in 667ms (624 modules)
+ GET /client 200 in 278ms
+ Γ£ô Compiled in 749ms (316 modules)
+ ΓÜá Fast Refresh had to perform a full reload due to a runtime error.
+ GET /client 200 in 117ms

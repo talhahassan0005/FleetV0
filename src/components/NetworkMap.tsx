@@ -100,10 +100,7 @@ const NetworkMap = () => {
       }));
     };
 
-    const interval = setInterval(updateShipments, 100);
-
     return () => {
-      clearInterval(interval);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;

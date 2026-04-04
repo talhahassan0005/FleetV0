@@ -8,11 +8,11 @@ export default function Footer() {
     <footer className="bg-[#0f1729] text-gray-300">
       {/* Main Footer Section */}
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Company Info - Column 1 */}
           <div className="space-y-4">
             <div>
-              <Image src="/images/symbol-green.png" alt="FleetXchange" width={180} height={60} className="h-14 w-auto" />
+              <Image src="/images/logo-white.png" alt="FleetXchange" width={180} height={60} className="h-14 w-auto" />
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               Digital freight coordination platform managing cargo movement
@@ -23,14 +23,34 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* South Africa - Column 2 */}
+          {/* Freight Locations - Column 2 */}
+          <div>
+            <h4 className="text-white font-semibold mb-3">South Africa</h4>
+            <div className="space-y-2 text-sm">
+              <Link href="/freight-johannesburg" className="block text-gray-400 hover:text-emerald-500 transition-colors cursor-pointer">→ Johannesburg</Link>
+              <Link href="/freight-cape-town" className="block text-gray-400 hover:text-emerald-500 transition-colors cursor-pointer">→ Cape Town</Link>
+              <Link href="/freight-durban" className="block text-gray-400 hover:text-emerald-500 transition-colors cursor-pointer">→ Durban</Link>
+            </div>
+          </div>
+
+          {/* International Locations - Column 3 */}
+          <div>
+            <h4 className="text-white font-semibold mb-3">International</h4>
+            <div className="space-y-2 text-sm">
+              <Link href="/freight-zambia" className="block text-gray-400 hover:text-emerald-500 transition-colors cursor-pointer">🇿🇲 Lusaka, Zambia</Link>
+              <Link href="/freight-botswana" className="block text-gray-400 hover:text-emerald-500 transition-colors cursor-pointer">🇧🇼 Gaborone, Botswana</Link>
+              <Link href="/freight-zimbabwe" className="block text-gray-400 hover:text-emerald-500 transition-colors cursor-pointer">🇿🇼 Harare, Zimbabwe</Link>
+            </div>
+          </div>
+
+          {/* South Africa Contact - Column 4 */}
           <div>
             <div className="flex items-center space-x-2 mb-3">
               <MapPin className="w-4 h-4 text-emerald-500" />
               <h4 className="text-white font-semibold">South Africa</h4>
             </div>
             <div className="space-y-2 text-sm">
-              <p className="text-gray-400">Johannesburg</p>
+              <p className="text-emerald-400 font-medium">Johannesburg</p>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-emerald-500" />
                 <a
@@ -52,53 +72,58 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Botswana - Column 3 */}
+          {/* Regional Contacts - Column 5 */}
           <div>
-            <div className="flex items-center space-x-2 mb-3">
-              <MapPin className="w-4 h-4 text-emerald-500" />
-              <h4 className="text-white font-semibold">Botswana</h4>
-            </div>
-            <div className="space-y-2 text-sm">
-              <p className="text-gray-400">Botswana</p>
-              <div className="flex items-center space-x-2">
-                <Mail className="w-4 h-4 text-emerald-500" />
-                <a
-                  href="mailto:Info@fleetxchange.africa"
-                  className="hover:text-emerald-500 transition-colors"
-                >
-                    Info@fleetxchange.africa
-
-                </a>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Phone className="w-4 h-4 text-emerald-500" />
-                <a 
-                  href="tel:+26776666598"
-                  className="hover:text-emerald-500 transition-colors"
-                >
-                  +26776666598
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Zambia - Column 4 */}
-          <div>
-            <div className="flex items-center space-x-2 mb-3">
-              <MapPin className="w-4 h-4 text-emerald-500" />
-              <h4 className="text-white font-semibold">Zambia</h4>
-            </div>
-            <div className="space-y-2 text-sm">
-              <p className="text-gray-400">Lusaka</p>
-              <div className="flex items-center space-x-2">
-                <Mail className="w-4 h-4 text-emerald-500" />
-                <a
-                  href="mailto:Info@fleetxchange.africa"
-                  className="hover:text-emerald-500 transition-colors"
-                >
+            <h4 className="text-white font-semibold mb-3">Regional Offices</h4>
+            <div className="space-y-4 text-sm">
+              {/* Botswana */}
+              <div>
+                <p className="text-emerald-400 font-medium mb-2">Botswana</p>
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <Mail className="w-4 h-4 text-emerald-500" />
+                    <a
+                      href="mailto:Info@fleetxchange.africa"
+                      className="hover:text-emerald-500 transition-colors"
+                    >
                       Info@fleetxchange.africa
+                    </a>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Phone className="w-4 h-4 text-emerald-500" />
+                    <a 
+                      href="tel:+27738281478"
+                      className="hover:text-emerald-500 transition-colors"
+                    >
+                      +27738281478
+                    </a>
+                  </div>
+                </div>
+              </div>
 
-                </a>
+              {/* Zambia */}
+              <div>
+                <p className="text-emerald-400 font-medium mb-2">Zambia</p>
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <Mail className="w-4 h-4 text-emerald-500" />
+                    <a
+                      href="mailto:Info@fleetxchange.africa"
+                      className="hover:text-emerald-500 transition-colors"
+                    >
+                      Info@fleetxchange.africa
+                    </a>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Phone className="w-4 h-4 text-emerald-500" />
+                    <a 
+                      href="tel:+27738281478"
+                      className="hover:text-emerald-500 transition-colors"
+                    >
+                      +27738281478
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
