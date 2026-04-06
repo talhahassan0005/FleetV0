@@ -1,6 +1,6 @@
 "use client";
 // src/app/register/page.tsx
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -8,11 +8,6 @@ import { ArrowLeft } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const [role, setRole] = useState<"CLIENT" | "TRANSPORTER">("CLIENT");
   const [companyName, setCompanyName] = useState("");
@@ -71,18 +66,16 @@ export default function RegisterPage() {
       <div className="absolute inset-0 bg-gradient-to-b from-white/12 via-white/8 to-transparent" />
       
       {/* Animated Background Elements - Light Theme */}
-      {isMounted && (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          {/* Orb 1 - Green Accent */}
-          <div className="absolute top-20 left-20 w-96 h-96 bg-gradient-to-br from-[#3ab54a]/15 to-transparent rounded-full filter blur-3xl opacity-40" style={{animation: 'float 8s ease-in-out infinite'}} />
-          
-          {/* Orb 2 - Blue Accent */}
-          <div className="absolute bottom-32 right-20 w-80 h-80 bg-gradient-to-br from-blue-400/12 to-transparent rounded-full filter blur-3xl opacity-30" style={{animation: 'float 10s ease-in-out infinite 1s'}} />
-          
-          {/* Orb 3 - Accent Green */}
-          <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-gradient-to-br from-[#3ab54a]/10 to-transparent rounded-full filter blur-3xl opacity-25" style={{animation: 'float 12s ease-in-out infinite 2s'}} />
-        </div>
-      )}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none" suppressHydrationWarning>
+        {/* Orb 1 - Green Accent */}
+        <div className="absolute top-20 left-20 w-96 h-96 bg-gradient-to-br from-[#3ab54a]/15 to-transparent rounded-full filter blur-3xl opacity-40" style={{animation: 'float 8s ease-in-out infinite'}} />
+        
+        {/* Orb 2 - Blue Accent */}
+        <div className="absolute bottom-32 right-20 w-80 h-80 bg-gradient-to-br from-blue-400/12 to-transparent rounded-full filter blur-3xl opacity-30" style={{animation: 'float 10s ease-in-out infinite 1s'}} />
+        
+        {/* Orb 3 - Accent Green */}
+        <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-gradient-to-br from-[#3ab54a]/10 to-transparent rounded-full filter blur-3xl opacity-25" style={{animation: 'float 12s ease-in-out infinite 2s'}} />
+      </div>
 
       {/* Back Button - Green to match branding */}
       <Link
@@ -100,9 +93,9 @@ export default function RegisterPage() {
           <div className="relative inline-block">
             <div className="absolute inset-0 bg-gradient-to-r from-[#3ab54a]/30 to-blue-500/20 blur-3xl rounded-full" style={{animation: 'logoGlow 3s ease-in-out infinite'}} />
             <div className="absolute -inset-2 bg-gradient-to-r from-[#3ab54a]/15 to-blue-400/10 blur-2xl rounded-full" style={{animation: 'logoPulse 4s ease-in-out infinite'}} />
-            <Image src="/images/logo-green.png" alt="FleetXchange - Africa's Largest Freight Hub" width={200} height={60} className="h-16 w-auto mx-auto mb-4 relative z-10" style={{animation: 'logoPulse 2.5s ease-in-out infinite'}} priority />
+            <Image src="/images/logo.png" alt="FleetXchange - Africa's Largest Freight Hub" width={200} height={60} className="h-16 w-auto mx-auto mb-4 relative z-10" style={{animation: 'logoPulse 2.5s ease-in-out infinite'}} priority />
           </div>
-          <p className="text-sm text-[#3ab54a] font-medium tracking-wider animate-in fade-in duration-700" style={{animationDelay: '0.7s'}}>Premium Freight Management</p>
+          <p className="text-sm text-[#3ab54a] font-medium tracking-wider animate-in fade-in duration-700" style={{animationDelay: '0.7s'}}>Every load has a story. We are telling it</p>
         </div>
 
         {/* Card with Modern Light Glass Styling */}
@@ -326,7 +319,7 @@ export default function RegisterPage() {
         <div className="text-center mt-10 animate-in fade-in duration-500" style={{animationDelay: '0.7s'}}>
           <p className="text-xs text-slate-600 flex items-center justify-center gap-1 font-medium">
             <span className="w-1 h-1 rounded-full bg-[#3ab54a]/70"></span>
-            Premium Freight Management Platform
+            Every load has a story. We are telling it
             <span className="w-1 h-1 rounded-full bg-[#3ab54a]/70"></span>
           </p>
         </div>

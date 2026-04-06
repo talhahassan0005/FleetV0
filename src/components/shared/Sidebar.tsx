@@ -40,15 +40,15 @@ export function Sidebar() {
   const initials = (session?.user?.companyName ?? 'FX').slice(0, 2).toUpperCase()
 
   return (
-    <nav className="w-[210px] bg-[#0d1535] flex flex-col min-h-screen flex-shrink-0">
+    <nav className="w-[210px] bg-white/70 backdrop-blur-3xl border-r border-white/40 flex flex-col min-h-screen flex-shrink-0 relative shadow-[5px_0_30px_rgba(0,0,0,0.08)] z-20" style={{animation: 'cardGlow 3s ease-in-out infinite'}}>
       {/* Logo */}
-      <div className="flex items-center justify-center px-4 py-5 border-b border-white/10">
-        <Image src="/images/logo-white.png" alt="FleetXchange" width={160} height={50} className="h-12 w-auto" priority />
+      <div className="flex items-center justify-center px-4 py-5 border-b border-white/30">
+        <Image src="/images/logo.png" alt="FleetXchange" width={180} height={60} className="h-14 w-auto" priority />
       </div>
 
       {/* Nav */}
       <div className="mt-2">
-        <div className="text-[8px] uppercase tracking-[2px] text-white/40 font-semibold px-4 py-2">
+        <div className="text-[8px] uppercase tracking-[2px] text-slate-600/60 font-semibold px-4 py-2">
           {role === 'ADMIN' ? 'Operations' : role === 'CLIENT' ? 'Client Portal' : 'Transporter Portal'}
         </div>
         {nav.map((item) => {
@@ -57,7 +57,7 @@ export function Sidebar() {
             <Link key={item.href} href={item.href}
               className={`nav-item ${active ? 'active' : ''}`}>
               <span className="w-4 h-4 flex-shrink-0">{item.icon}</span>
-              <span className={`text-sm font-medium ${active ? 'text-white font-semibold' : 'text-white/70'}`}>{item.label}</span>
+              <span className={`text-base font-medium ${active ? 'text-[#1a2a5e] font-semibold' : 'text-slate-700'}`}>{item.label}</span>
             </Link>
           )
         })}
@@ -66,18 +66,20 @@ export function Sidebar() {
       <div className="flex-1" />
 
       {/* User */}
-      <div className="mx-3 mb-3 p-2.5 bg-white/10 rounded-lg border border-white/20 flex items-center gap-2">
-        <div className="w-7 h-7 rounded-full bg-[#1f7a2b] border-2 border-[#3ab54a] flex items-center justify-center font-condensed font-bold text-xs text-white flex-shrink-0">
+      <div className="mx-4 mb-3 p-3 bg-[#3ab54a]/10 hover:bg-[#3ab54a]/15 transition-colors backdrop-blur-md rounded-xl border border-[#3ab54a]/30 flex items-center gap-3 overflow-hidden relative group" style={{animation: 'cardGlow 3s ease-in-out infinite'}}>
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3ab54a]/80 to-[#2d9e3c]/80 border-2 border-white/40 flex items-center justify-center font-condensed font-bold text-xs text-white flex-shrink-0 shadow-lg group-hover:border-[#3ab54a]/60 transition-colors" style={{animation: 'bobbing 3s ease-in-out infinite'}}>
           {initials}
         </div>
         <div className="overflow-hidden">
-          <div className="text-[11px] font-semibold text-white truncate">{session?.user?.companyName ?? 'User'}</div>
-          <div className="text-[9px] text-white/60 uppercase tracking-wide font-medium">{role}</div>
+          <div className="text-[12px] font-bold text-[#1a2a5e] truncate tracking-wide">{session?.user?.companyName ?? 'User'}</div>
+          <div className="text-[9px] text-[#3ab54a] font-bold uppercase tracking-widest">{role}</div>
         </div>
       </div>
       <button
-        onClick={() => signOut({ callbackUrl: '/login' })}
-        className="mx-3 mb-3 text-[10px] text-white/70 hover:text-white font-medium text-center py-1.5 border border-white/20 rounded transition-colors hover:bg-white/10">
+        onClick={async () => {
+          await signOut({ callbackUrl: '/login', redirect: true })
+        }}
+        className="mx-4 mb-5 text-[11px] text-[#1a2a5e]/70 bg-white/60 hover:text-[#1a2a5e] font-semibold text-center py-2 border border-slate-300 rounded-xl transition-all hover:bg-[#3ab54a]/10 hover:border-[#3ab54a]/40 shadow-sm uppercase tracking-widest active:scale-95">
         Sign out
       </button>
     </nav>

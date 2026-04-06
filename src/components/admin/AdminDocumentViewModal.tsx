@@ -71,19 +71,19 @@ export default function AdminDocumentViewModal({
           <div className="bg-gray-50 p-4 rounded">
             <p className="text-xs text-gray-500 mb-2">DOCUMENT DETAILS</p>
             <div className="text-sm space-y-1">
-              <p>
+              <p className="text-gray-900">
                 <span className="font-semibold">Type:</span> {document.docType}
               </p>
-              <p>
+              <p className="text-gray-900">
                 <span className="font-semibold">Uploaded by:</span> {document.uploadedByRole}
               </p>
-              <p>
+              <p className="text-gray-900">
                 <span className="font-semibold">Date:</span>{' '}
                 {new Date(document.createdAt).toLocaleDateString()}
               </p>
             </div>
             <a
-              href={`/api/documents/${document._id}/download`}
+              href={`/api/documents/${document._id}/view`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block mt-3 px-3 py-1.5 rounded text-xs font-semibold bg-[#3ab54a] text-white hover:bg-green-600"
@@ -168,7 +168,7 @@ export default function AdminDocumentViewModal({
                 </button>
                 <button
                   onClick={handleClose}
-                  className="px-4 py-2 rounded text-sm font-semibold border border-gray-300 hover:bg-gray-50"
+                  className="px-4 py-2 rounded text-sm text-gray-600 font-semibold border border-gray-300 hover:bg-gray-50"
                 >
                   Cancel
                 </button>

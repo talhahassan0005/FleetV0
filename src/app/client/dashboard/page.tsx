@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout, StatCard, DashboardCardsSkeleton, ChartSkeleton } from '@/components/ui'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 export default function ClientDashboardPage() {
   const { data: session } = useSession()
@@ -46,7 +46,6 @@ export default function ClientDashboardPage() {
     )
   }
 
-  const COLORS = ['#3ab54a', '#1a2a5e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
   const statusData = stats?.statusBreakdown 
     ? Object.entries(stats.statusBreakdown).map(([name, value]) => ({ name, value }))
     : []
@@ -113,23 +112,13 @@ export default function ClientDashboardPage() {
               <h3 className="font-condensed font-bold text-lg text-[#1a2a5e] uppercase tracking-wide">Load Status</h3>
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {statusData.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
+              <BarChart data={statusData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
                 <Tooltip />
-              </PieChart>
+                <Bar dataKey="value" fill="#3ab54a" radius={[8, 8, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
 

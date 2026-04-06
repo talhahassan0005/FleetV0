@@ -35,9 +35,18 @@ export default function AdminDashboardPage() {
   }
 
   const COLORS = ['#3ab54a', '#1a2a5e', '#f59e0b', '#ef4444', '#8b5cf6']
-  const statusData = stats?.statusBreakdown 
-    ? Object.entries(stats.statusBreakdown).map(([name, value]) => ({ name, value }))
-    : []
+  
+  // Ensure statusData is always an array with proper data
+  const statusData = (() => {
+    if (stats?.statusBreakdown) {
+      const data = Object.entries(stats.statusBreakdown).map(([status, count]: [string, any]) => ({
+        name: status,
+        value: Number(count) || 0
+      }))
+      return data.length > 0 ? data : []
+    }
+    return []
+  })()
 
   return (
     <>
@@ -54,30 +63,27 @@ export default function AdminDashboardPage() {
 
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Status Breakdown */}
+          {/* Status Breakdown - Bar Chart */}
           <div className="card">
             <div className="border-b border-gray-100 pb-3 mb-4">
-              <h3 className="font-condensed font-bold text-lg text-[#1a2a5e] uppercase tracking-wide">Load Status Distribution</h3>
+              <h3 className="font-condensed font-bold text-lg text-[#1a2a5e] uppercase tracking-wide">Load Status Overview</h3>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {statusData.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {statusData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={statusData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="value" fill="#3ab54a" name="Count" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-80 flex items-center justify-center text-gray-400 text-center">
+                <p>No load status data available</p>
+              </div>
+            )}
           </div>
 
           {/* Monthly Trends */}
@@ -85,16 +91,22 @@ export default function AdminDashboardPage() {
             <div className="border-b border-gray-100 pb-3 mb-4">
               <h3 className="font-condensed font-bold text-lg text-[#1a2a5e] uppercase tracking-wide">Platform Value Trend</h3>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={stats?.monthlyData || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => `R${value.toLocaleString()}`} />
-                <Legend />
-                <Line type="monotone" dataKey="value" stroke="#3ab54a" strokeWidth={2} name="Platform Value" />
-              </LineChart>
-            </ResponsiveContainer>
+            {stats?.monthlyData && stats.monthlyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={stats.monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => `R${value.toLocaleString()}`} />
+                  <Legend />
+                  <Line type="monotone" dataKey="value" stroke="#3ab54a" strokeWidth={2} name="Platform Value" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-80 flex items-center justify-center text-gray-400 text-center">
+                <p>No trend data available</p>
+              </div>
+            )}
           </div>
         </div>
 

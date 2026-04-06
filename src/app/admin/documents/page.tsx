@@ -1,42 +1,44 @@
 'use client'
 // src/app/admin/documents/page.tsx
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { Topbar, PageLayout, DocumentsTableSkeleton } from '@/components/ui'
 import AdminDocumentViewModal from '@/components/admin/AdminDocumentViewModal'
 
 export default function AdminDocumentsPage() {
   const [documents, setDocuments] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [isFetching, setIsFetching] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [selectedDoc, setSelectedDoc] = useState<any>(null)
   const [reviewComment, setReviewComment] = useState('')
   const [reviewStatus, setReviewStatus] = useState('APPROVED')
   const [submittingReview, setSubmittingReview] = useState(false)
 
-  const fetchDocuments = useCallback(async () => {
-    // Prevent concurrent fetches
-    if (isFetching || loading) {
-      console.log('[AdminDocuments] Fetch already in progress, skipping...')
-      return
-    }
-
+  const fetchDocuments = async () => {
     try {
-      setIsFetching(true)
       setLoading(true)
+      console.log('[AdminDocuments] Fetching documents...')
       const res = await fetch('/api/documents')
+      
+      if (!res.ok) {
+        const error = await res.json()
+        console.error('[AdminDocuments] API error:', res.status, error)
+        setDocuments([])
+        return
+      }
+      
       const data = await res.json()
+      console.log('[AdminDocuments] Success! Documents:', data.data)
       setDocuments(data.data || [])
     } catch (err) {
-      console.error('Failed to fetch documents:', err)
+      console.error('[AdminDocuments] Fetch failed:', err)
+      setDocuments([])
     } finally {
       setLoading(false)
-      setIsFetching(false)
     }
-  }, [isFetching, loading])
+  }
 
   useEffect(() => {
     fetchDocuments()
-  }, [fetchDocuments])
+  }, [])
 
   const handleSubmitReview = async (comment: string, status: string) => {
     if (!selectedDoc) {
@@ -91,8 +93,15 @@ export default function AdminDocumentsPage() {
       <Topbar title="Document Review" />
       <PageLayout>
         <div className="card">
-          <div className="border-b border-gray-100 pb-4 mb-6">
+          <div className="border-b border-gray-100 pb-4 mb-6 flex items-center justify-between">
             <h3 className="font-condensed font-bold text-lg text-[#1a2a5e] uppercase tracking-wide">All Documents ({documents.length})</h3>
+            <button
+              onClick={fetchDocuments}
+              disabled={loading}
+              className="px-3 py-1.5 rounded text-xs font-semibold bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
+            >
+              {loading ? 'Loading...' : 'Refresh'}
+            </button>
           </div>
 
           {loading ? (

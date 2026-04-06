@@ -1,17 +1,15 @@
 'use client'
 // src/app/client/documents/page.tsx
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout, DocumentsTableSkeleton, DashboardCardsSkeleton } from '@/components/ui'
 import { Skeleton } from '@/components/ui/skeletons'
-import { useRef } from 'react'
 
 export default function ClientDocumentsPage() {
-  const { data: session } = useSession() // Disable automatic session polling
+  const { data: session } = useSession()
   const [documents, setDocuments] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
-  const [isFetching, setIsFetching] = useState(false) // Prevent duplicate fetches
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedType, setSelectedType] = useState('COMPANY')
   const [selectedDoc, setSelectedDoc] = useState<any>(null)
@@ -28,16 +26,9 @@ export default function ClientDocumentsPage() {
     { value: 'OTHER', label: 'Other' },
   ]
 
-  const fetchDocuments = useCallback(async () => {
-    // Prevent concurrent fetches
-    if (isFetching) {
-      console.log('[ClientDocuments] Fetch already in progress, skipping...')
-      return
-    }
-
+  const fetchDocuments = async () => {
     try {
       console.log('[ClientDocuments] Fetching documents...')
-      setIsFetching(true)
       setLoading(true)
       const res = await fetch('/api/documents')
       const data = await res.json()
@@ -45,16 +36,16 @@ export default function ClientDocumentsPage() {
       setDocuments(data.data || [])
     } catch (err) {
       console.error('[ClientDocuments] Failed to fetch documents:', err)
+      setDocuments([])
     } finally {
       setLoading(false)
-      setIsFetching(false)
     }
-  }, [isFetching])
+  }
 
   useEffect(() => {
     console.log('[ClientDocuments] Component mounted, fetching documents...')
     fetchDocuments()
-  }, [fetchDocuments])
+  }, [])
 
   const handleUpload = async (file: File) => {
     if (!file) return
@@ -348,7 +339,7 @@ export default function ClientDocumentsPage() {
                     <p><span className="font-semibold">Date:</span> {new Date(selectedDoc.createdAt).toLocaleDateString()}</p>
                   </div>
                   <a
-                    href={`/api/documents/${selectedDoc._id}/download`}
+                    href={`/api/documents/${selectedDoc._id}/view`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block mt-3 px-3 py-1.5 rounded text-xs font-semibold bg-[#3ab54a] text-white hover:bg-green-600"

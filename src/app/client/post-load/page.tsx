@@ -104,7 +104,7 @@ export default function PostLoadPage() {
       )}
       
       <PageLayout>
-        <div className="max-w-2xl">
+        <div className="w-full">
           <div className="card">
             <div className="table-header"><span className="table-title">Load Details</span></div>
             <div className="card-body">

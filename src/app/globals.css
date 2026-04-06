@@ -130,11 +130,11 @@ body {
 @layer components {
   /* Table card header */
   .table-header {
-    @apply flex items-center justify-between px-4 py-3
-           bg-[#1a2a5e] border-b-2 border-[#3ab54a];
+    @apply flex items-center justify-between px-5 py-4
+           bg-gradient-to-r from-[#1a2a5e]/5 to-[#3ab54a]/5 border-b-2 border-[#3ab54a]/30;
   }
   .table-title {
-    @apply font-condensed font-bold text-sm text-white uppercase tracking-wide;
+    @apply font-condensed font-bold text-base text-[#1a2a5e] uppercase tracking-wide tracking-widest;
   }
 
   /* Status badges */
@@ -142,15 +142,33 @@ body {
     @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px]
            font-semibold uppercase tracking-wide border;
   }
+  .badge.PENDING {
+    @apply bg-orange-100/70 text-orange-700 border border-orange-300;
+  }
+  .badge.APPROVED {
+    @apply bg-green-100/70 text-green-700 border border-green-300;
+  }
+  .badge.REJECTED {
+    @apply bg-red-100/70 text-red-700 border border-red-300;
+  }
+  .badge.ACTIVE {
+    @apply bg-blue-100/70 text-blue-700 border border-blue-300;
+  }
+  .badge.INACTIVE {
+    @apply bg-gray-100/70 text-gray-700 border border-gray-300;
+  }
 
   /* Sidebar nav */
   .nav-item {
-    @apply flex items-center gap-2 px-4 py-2.5 text-white/40 text-sm
+    @apply flex items-center gap-2 px-4 py-2.5 text-slate-700/60 text-sm
            border-l-[3px] border-transparent cursor-pointer
-           hover:text-white hover:bg-white/5 transition-all;
+           transition-all;
+  }
+  .nav-item:hover:not(.active) {
+    @apply text-[#1a2a5e] bg-[#3ab54a]/5;
   }
   .nav-item.active {
-    @apply text-white bg-[#3ab54a]/10 border-l-[#3ab54a] font-medium;
+    @apply text-[#3ab54a] bg-[#3ab54a]/10 border-l-[#3ab54a] font-medium hover:text-[#3ab54a] hover:bg-[#3ab54a]/10;
   }
 
   /* Buttons */
@@ -188,10 +206,10 @@ body {
 
   /* Cards */
   .card {
-    @apply bg-white rounded border border-gray-200 shadow-sm overflow-hidden;
+    @apply bg-white/85 backdrop-blur-3xl rounded-2xl shadow-lg border-2 border-white/60 overflow-hidden relative transition-all duration-300 hover:shadow-xl hover:bg-white/90 hover:-translate-y-1;
   }
   .card-body {
-    @apply p-4;
+    @apply p-6;
   }
 
   /* Timeline */
@@ -211,6 +229,89 @@ body {
   }
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-30px);
+  }
+}
+
+@keyframes logoGlow {
+  0%, 100% {
+    filter: blur(20px);
+    opacity: 0.5;
+  }
+  50% {
+    filter: blur(30px);
+    opacity: 0.8;
+  }
+}
+
+@keyframes logoPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes bobbing {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes cardGlow {
+  0%, 100% {
+    box-shadow: 0 20px 50px rgba(0,0,0,0.12), 0 0 40px rgba(58,181,74,0.1);
+  }
+  50% {
+    box-shadow: 0 25px 60px rgba(0,0,0,0.15), 0 0 50px rgba(58,181,74,0.15);
+  }
+}
+
+@keyframes borderGlow {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes labelGlow {
+  0%, 100% {
+    color: rgba(255, 255, 255, 0.9);
+  }
+  50% {
+    color: rgba(255, 255, 255, 1);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 @layer utilities {
   /* Improved text visibility */
   .text-visible {
@@ -222,30 +323,39 @@ body {
   .text-visible-secondary {
     @apply text-gray-700;
   }
-  
+
   /* Better contrast for labels */
   .label-text {
     @apply text-xs font-semibold uppercase tracking-widest text-gray-700 mb-2 block;
   }
-  
+
   /* Ensure button text is readable */
   button {
     @apply text-base;
   }
-  
+
   /* Link visibility */
   a {
     @apply text-[#3ab54a] font-medium hover:underline;
   }
-  
+
   /* Improve table cell visibility */
   table td {
     @apply text-gray-700;
   }
-  
+
   /* Ensure form labels are readable */
   label {
     @apply text-gray-800 font-medium;
+  }
+  
+  /* Hide scrollbar */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 

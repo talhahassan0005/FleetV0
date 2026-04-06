@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 /**
  * GET /api/loads - Get all loads with optional filtering
@@ -31,6 +33,26 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    // 1. Check user is authenticated
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Please login first' },
+        { status: 401 }
+      )
+    }
+
+    // 2. Check user is verified (either CLIENT or TRANSPORTER)
+    if (!session.user.isVerified) {
+      return NextResponse.json(
+        { 
+          error: 'Account not verified - Please complete account verification before posting loads',
+          code: 'ACCOUNT_NOT_VERIFIED'
+        },
+        { status: 403 }
+      )
+    }
+
     const body = await req.json()
     console.log('[CreateLoad] Request body:', JSON.stringify(body, null, 2))
     

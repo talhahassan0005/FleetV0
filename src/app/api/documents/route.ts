@@ -35,17 +35,11 @@ export async function GET(req: NextRequest) {
       })
     })
     
-    // Simple query: Get documents owned by user OR documents visible to their role
+    // Get documents owned by this user only
+    // CLIENT and TRANSPORTER should only see their own documents
+    // ADMIN can see all documents (filtered separately if needed)
     const documents = await db.collection('documents').find({
-      $or: [
-        // Documents owned by this user
-        { userId: userId },
-        // Documents visible to this user's role (if not owned by them)
-        { 
-          visibleTo: { $regex: userRole, $options: 'i' },
-          userId: { $ne: userId }
-        },
-      ],
+      userId: userId // Only documents uploaded by this user
     }).sort({ createdAt: -1 }).toArray()
 
     console.log('[GetDocuments] Found matching documents:', documents.length)
@@ -119,7 +113,7 @@ export async function POST(req: NextRequest) {
       const base64Data = buffer.toString('base64')
       const mimeType = file.type || 'application/octet-stream'
       publicId = `DATA:${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      fileUrl = `data:${mimeType};base64,${base64Data.substring(0, 200)}...` // Preview
+      fileUrl = `data:${mimeType};base64,${base64Data}` // Full base64
     }
 
     // Ensure document is always visible to uploader + their role + ADMIN

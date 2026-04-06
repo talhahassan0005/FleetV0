@@ -68,30 +68,26 @@ function LoginContent() {
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/35 to-black/45" />
       
       {/* Animated Accent Glows */}
-      {isMounted && (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          {/* Gold Accent Glow */}
-          <div className="absolute top-40 right-32 w-80 h-80 bg-gradient-to-br from-yellow-500/15 to-transparent rounded-full filter blur-3xl opacity-40" style={{animation: 'float 8s ease-in-out infinite'}} />
-          
-          {/* Amber Accent Glow */}
-          <div className="absolute bottom-40 left-20 w-72 h-72 bg-gradient-to-br from-amber-500/12 to-transparent rounded-full filter blur-3xl opacity-30" style={{animation: 'float 10s ease-in-out infinite 1s'}} />
-        </div>
-      )}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none" suppressHydrationWarning>
+        {/* Gold Accent Glow */}
+        <div className="absolute top-40 right-32 w-80 h-80 bg-gradient-to-br from-yellow-500/15 to-transparent rounded-full filter blur-3xl opacity-40" style={{animation: 'float 8s ease-in-out infinite'}} />
+        
+        {/* Amber Accent Glow */}
+        <div className="absolute bottom-40 left-20 w-72 h-72 bg-gradient-to-br from-amber-500/12 to-transparent rounded-full filter blur-3xl opacity-30" style={{animation: 'float 10s ease-in-out infinite 1s'}} />
+      </div>
 
-      {/* Main Glow Effect - Only render if mounted */}
-      {isMounted && (
-        <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_30%_50%,rgba(58,181,74,0.1)_0%,transparent_60%)] pointer-events-none" style={{animation: 'glowPulse 4s ease-in-out infinite'}} />
-      )}
+      {/* Main Glow Effect */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_30%_50%,rgba(58,181,74,0.1)_0%,transparent_60%)] pointer-events-none" style={{animation: 'glowPulse 4s ease-in-out infinite', visibility: isMounted ? 'visible' : 'hidden'}} />
 
-      {/* Back Button - Only render if mounted to avoid hydration error */}
-      {isMounted && (
-        <Link href="/" className="absolute top-6 left-6 z-50 inline-flex items-center justify-center w-11 h-11 rounded-full bg-[#3ab54a] hover:bg-[#2d9e3c] transition-all duration-300 group shadow-lg hover:shadow-[0_0_20px_rgba(58,181,74,0.5)] hover:scale-110 active:scale-95" style={{animation: 'bobbing 3s ease-in-out infinite'}}>
-          <ArrowLeft className="w-6 h-6 text-white transition-transform duration-300" />
-        </Link>
-      )}
+      {/* Back Button - Premium Green */}
+      <Link href="/" className="absolute top-6 left-6 z-50 inline-flex items-center justify-center w-11 h-11 rounded-full bg-[#3ab54a] hover:bg-[#2d9e3c] transition-all duration-300 group shadow-lg hover:shadow-[0_0_20px_rgba(58,181,74,0.6)] hover:scale-110 active:scale-95" 
+        style={{animation: 'bobbing 3s ease-in-out infinite'}}
+      >
+        <ArrowLeft className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-300" />
+      </Link>
 
-      {/* Success Message - Only render if mounted to avoid hydration error */}
-      {isMounted && showSuccess && (
+      {/* Success Message */}
+      {showSuccess && (
         <div className="fixed top-4 left-4 right-4 bg-gradient-to-r from-[#3ab54a] to-[#2d9e3c] text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
           <svg className="w-6 h-6 flex-shrink-0 animate-bounce" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -103,34 +99,25 @@ function LoginContent() {
         </div>
       )}
 
-      {/* Back Button - Premium Gold */}
-      {isMounted && (
-        <Link href="/" className="absolute top-6 left-6 z-50 inline-flex items-center justify-center w-11 h-11 rounded-full bg-yellow-400 hover:bg-yellow-500 transition-all duration-300 group shadow-lg hover:shadow-[0_0_20px_rgba(251,191,36,0.6)] hover:scale-110 active:scale-95" 
-          style={{animation: 'bobbing 3s ease-in-out infinite'}}
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-900 group-hover:scale-110 transition-transform duration-300" />
-        </Link>
-      )}
-
       <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
         {/* Logo with Premium Branding Glow */}
         <div className="text-center mb-12">
           <div className="relative inline-block">
             <div className="absolute inset-0 bg-gradient-to-r from-[#3ab54a]/40 to-[#2d9e3c]/30 blur-3xl rounded-full" style={{animation: 'logoGlow 3s ease-in-out infinite'}} />
             <div className="absolute -inset-2 bg-gradient-to-r from-[#3ab54a]/20 to-[#2d9e3c]/10 blur-2xl rounded-full" style={{animation: 'logoPulse 4s ease-in-out infinite'}} />
-            <Image src="/images/logo-green.png" alt="FleetXchange - Africa's Largest Freight Hub" width={200} height={60} className="h-16 w-auto mx-auto mb-4 relative z-10" style={{animation: 'logoPulse 2.5s ease-in-out infinite'}} priority />
+            <Image src="/images/logo.png" alt="FleetXchange - Africa's Largest Freight Hub" width={200} height={60} className="h-16 w-auto mx-auto mb-4 relative z-10" style={{animation: 'logoPulse 2.5s ease-in-out infinite'}} priority />
           </div>
-          <p className="text-sm text-[#3ab54a]/80 font-medium tracking-wider animate-in fade-in duration-700" style={{animationDelay: '0.7s'}}>Premium Freight Management</p>
+          <p className="text-sm text-[#3ab54a] font-medium tracking-wider animate-in fade-in duration-700" style={{animationDelay: '0.7s'}}>Every load has a story. We are telling it</p>
         </div>
 
         {/* Card with Premium Glassmorphism Styling */}
-        <div className="bg-white/12 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/25 border-t-2 border-t-yellow-300/40 p-8 transition-all duration-300 relative" style={{animation: 'cardGlow 3s ease-in-out infinite', boxShadow: '0 30px 60px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.2), 0 0 40px rgba(251,191,36,0.15)'}}>
+        <div className="bg-white/12 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/25 border-t-2 border-t-[#3ab54a]/40 p-8 transition-all duration-300 relative" style={{animation: 'cardGlow 3s ease-in-out infinite', boxShadow: '0 30px 60px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.2), 0 0 40px rgba(58,181,74,0.15)'}}>
           {/* Premium animated border glow */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400/25 via-amber-400/15 to-yellow-400/20 rounded-3xl -z-10" style={{animation: 'borderGlow 3s ease-in-out infinite'}} />
-          <h2 className="font-condensed font-bold text-4xl bg-gradient-to-r from-white via-white to-yellow-200 bg-clip-text text-transparent uppercase tracking-wider mb-3 animate-in fade-in duration-500 relative" style={{animationDelay: '0.1s'}}>
+          <div className="absolute -inset-1 bg-gradient-to-r from-[#3ab54a]/25 via-green-400/15 to-[#3ab54a]/20 rounded-3xl -z-10" style={{animation: 'borderGlow 3s ease-in-out infinite'}} />
+          <h2 className="font-condensed font-bold text-4xl bg-gradient-to-r from-white via-white to-[#3ab54a] bg-clip-text text-transparent uppercase tracking-wider mb-3 animate-in fade-in duration-500 relative" style={{animationDelay: '0.1s'}}>
             Sign In
           </h2>
-          <div className="h-0.5 w-16 bg-gradient-to-r from-yellow-300 to-transparent mx-auto mb-6 animate-in scale-x-0 duration-500" style={{animationDelay: '0.12s', animation: 'scaleIn 0.5s ease-out 0.12s forwards'}} />
+          <div className="h-0.5 w-16 bg-gradient-to-r from-[#3ab54a] to-transparent mx-auto mb-6 animate-in scale-x-0 duration-500" style={{animationDelay: '0.12s', animation: 'scaleIn 0.5s ease-out 0.12s forwards'}} />
           <p className="text-center text-sm text-white/80 mb-8 animate-in fade-in duration-500 font-light" style={{animationDelay: '0.15s'}}>Welcome back to FleetXchange</p>
 
           {error && (
@@ -155,7 +142,7 @@ function LoginContent() {
                   onChange={e => setEmail(e.target.value)}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
-                  className="relative w-full px-4 py-3 rounded-lg border-2 border-white/20 hover:border-yellow-300/60 focus:border-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-300/40 transition-all duration-300 placeholder:text-white/40 bg-white/10 backdrop-blur-sm text-white font-medium" 
+                  className="relative w-full px-4 py-3 rounded-lg border-2 border-white/20 hover:border-[#3ab54a]/60 focus:border-[#3ab54a] focus:outline-none focus:ring-2 focus:ring-[#3ab54a]/40 transition-all duration-300 placeholder:text-white/40 bg-white/10 backdrop-blur-sm text-white font-medium" 
                   placeholder="you@company.com"
                 />
               </div>
@@ -173,7 +160,7 @@ function LoginContent() {
                   onChange={e => setPassword(e.target.value)}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
-                  className="relative w-full px-4 py-3 pr-12 rounded-lg border-2 border-white/20 hover:border-yellow-300/60 focus:border-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-300/40 transition-all duration-300 placeholder:text-white/40 bg-white/10 backdrop-blur-sm text-white font-medium" 
+                  className="relative w-full px-4 py-3 pr-12 rounded-lg border-2 border-white/20 hover:border-[#3ab54a]/60 focus:border-[#3ab54a] focus:outline-none focus:ring-2 focus:ring-[#3ab54a]/40 transition-all duration-300 placeholder:text-white/40 bg-white/10 backdrop-blur-sm text-white font-medium" 
                   placeholder="••••••••"
                 />
                 
@@ -202,7 +189,7 @@ function LoginContent() {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-500 hover:via-amber-500 hover:to-yellow-600 text-gray-900 font-bold rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-condensed text-base uppercase tracking-widest shadow-xl hover:shadow-2xl active:scale-95 disabled:scale-100 animate-in fade-in duration-500 relative overflow-hidden border border-white/30" style={{animationDelay: '0.4s', animation: 'buttonGlow 2s ease-in-out infinite', boxShadow: '0 10px 30px rgba(251,191,36,0.5), 0 0 20px rgba(251,191,36,0.3)'}}
+              className="w-full py-3 bg-gradient-to-r from-[#3ab54a] via-[#35a140] to-[#2d9e3c] hover:from-[#2d9e3c] hover:via-[#2a8c35] hover:to-[#1f7a2a] text-white font-bold rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-condensed text-base uppercase tracking-widest shadow-xl hover:shadow-2xl active:scale-95 disabled:scale-100 animate-in fade-in duration-500 relative overflow-hidden border border-white/30" style={{animationDelay: '0.4s', animation: 'buttonGlow 2s ease-in-out infinite', boxShadow: '0 10px 30px rgba(58,181,74,0.5), 0 0 20px rgba(58,181,74,0.3)'}}
             >
               <div className="flex items-center justify-center gap-2">
                 {loading ? (
@@ -222,7 +209,7 @@ function LoginContent() {
           {/* Professional Sign in Link */}
           <p className="mt-8 text-center text-sm text-white/80 animate-in fade-in duration-500" style={{animationDelay: '0.5s'}}>
             Don't have an account?{' '}
-            <Link href="/register" className="text-yellow-300 font-bold hover:text-white transition-all duration-200">
+            <Link href="/register" className="text-[#3ab54a] font-bold hover:text-white transition-all duration-200">
               Create one
             </Link>
           </p>
@@ -279,8 +266,8 @@ function LoginContent() {
         }
 
         @keyframes cardGlow {
-          0%, 100% { box-shadow: 0 30px 60px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.15), 0 0 40px rgba(251,191,36,0.15); }
-          50% { box-shadow: 0 40px 80px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.15), 0 0 60px rgba(251,191,36,0.25); }
+          0%, 100% { box-shadow: 0 30px 60px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.15), 0 0 40px rgba(58,181,74,0.15); }
+          50% { box-shadow: 0 40px 80px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.15), 0 0 60px rgba(58,181,74,0.25); }
         }
 
         @keyframes borderGlow {
@@ -300,7 +287,7 @@ function LoginContent() {
 
         @keyframes labelGlow {
           0%, 100% { color: white; text-shadow: none; }
-          50% { color: #fef08a; text-shadow: 0 0 8px rgba(251,191,36,0.4); }
+          50% { color: #86efac; text-shadow: 0 0 8px rgba(58,181,74,0.4); }
         }
 
         @keyframes scaleIn {
@@ -309,8 +296,8 @@ function LoginContent() {
         }
 
         @keyframes buttonGlow {
-          0%, 100% { box-shadow: 0 8px 20px rgba(251,191,36,0.4), 0 0 0 0px rgba(251,191,36,0.3); }
-          50% { box-shadow: 0 12px 30px rgba(251,191,36,0.6), 0 0 25px 5px rgba(251,191,36,0.4); }
+          0%, 100% { box-shadow: 0 8px 20px rgba(58,181,74,0.4), 0 0 0 0px rgba(58,181,74,0.3); }
+          50% { box-shadow: 0 12px 30px rgba(58,181,74,0.6), 0 0 25px 5px rgba(58,181,74,0.4); }
         }
       `}</style>
     </div>

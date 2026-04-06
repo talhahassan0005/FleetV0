@@ -32,13 +32,11 @@ export async function GET(req: NextRequest) {
     // Get registration documents for each user
     const usersWithDocs = await Promise.all(
       pendingUsers.map(async (user: any) => {
+        // Get all documents uploaded by the user during registration process
         const documents = await db.collection('documents').find({
           userId: user._id,
-          uploadedByRole: user.role, // Documents uploaded by user
-          $or: [
-            { docType: { $in: ['REGISTRATION', 'CUSTOMS', 'INSURANCE', 'COMPLIANCE'] } },
-            { documentCategory: 'REGISTRATION' }
-          ]
+          uploadedByRole: user.role // Documents uploaded by user
+          // Removed restrictive docType filter to show all uploaded documents
         }).toArray()
 
         console.log(`[GetPendingVerifications] User ${user.email} has ${documents.length} documents`)
