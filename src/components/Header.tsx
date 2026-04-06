@@ -67,7 +67,7 @@ export default function Header() {
           
           <div>
             <Link href="/login">
-              <button className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-4 py-2 rounded-md shadow-md hover:shadow-lg transition-all duration-300">
+              <button className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-4 py-2 rounded-md shadow-md hover:shadow-lg transition-all duration-300 whitespace-nowrap">
                 Login / Portal
               </button>
             </Link>
@@ -113,7 +113,7 @@ export default function Header() {
             <Link href="/transp" onClick={() => setIsOpen(false)} className={`block px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${pathname === '/transp' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:bg-emerald-50'}`}>For Transporters</Link>
             <Link href="/compliance" onClick={() => setIsOpen(false)} className={`block px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${pathname === '/compliance' ? 'text-white bg-emerald-600/80' : 'text-gray-700 hover:bg-emerald-50'}`}>Compliance</Link>
             <Link href="/login" onClick={() => setIsOpen(false)}>
-              <button className="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-4 py-2 rounded-md shadow-md mt-2">
+              <button className="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-4 py-2 rounded-md shadow-md mt-2 whitespace-nowrap">
                 Login / Portal
               </button>
             </Link>

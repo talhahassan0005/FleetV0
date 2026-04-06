@@ -8,17 +8,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const session = await getServerSession(authOptions)
   if (!session || !session.user || session.user.role !== 'ADMIN') redirect('/login')
   return (
-    <div className="flex min-h-screen relative overflow-hidden bg-slate-50" suppressHydrationWarning style={{
-      backgroundImage: 'url("/registerpagebackground.png")',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundAttachment: 'fixed'
-    }}>
-      {/* Backdrop Blur for Background Image */}
-      <div className="absolute inset-0 backdrop-blur-md pointer-events-none z-0" />
-      
-      {/* Light Overlay for Modern Bright Scene */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/12 via-white/8 to-transparent" />
+    <div className="flex min-h-screen relative overflow-hidden bg-slate-50" suppressHydrationWarning>
+      {/* Simple Light Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50 to-slate-50" />
       
       {/* Animated Background Elements - Light Theme */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">

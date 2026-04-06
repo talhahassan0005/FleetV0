@@ -64,7 +64,7 @@ export default function ClientDashboard() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#1a2a5e]">My Loads</h1>
-        <Link href="/book-a-load" className="px-4 py-2 bg-[#3ab54a] text-white rounded hover:bg-[#2d9e3c] transition-colors text-sm font-semibold">
+        <Link href="/client/post-load" className="px-4 py-2 bg-[#3ab54a] text-white rounded hover:bg-[#2d9e3c] transition-colors text-sm font-semibold">
           + Post Load
         </Link>
       </div>
