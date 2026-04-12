@@ -14,7 +14,18 @@ export default function PostLoadPage() {
   const [form, setForm] = useState({
     origin: '', destination: '', itemType: '', weight: '',
     collectionDate: '', deliveryDate: '', description: '', postedPrice: '0',
+    currency: 'ZAR', country: 'ZA',
   })
+
+  // Currency options
+  const CURRENCY_OPTIONS = [
+    { value: 'ZAR', label: 'ZAR - South African Rand', country: 'ZA', flag: '🇿🇦' },
+    { value: 'BWP', label: 'BWP - Botswana Pula',      country: 'BW', flag: '🇧🇼' },
+    { value: 'USD', label: 'USD - US Dollar',           country: 'US', flag: '🇺🇸' },
+    { value: 'ZWL', label: 'ZWL - Zimbabwe Dollar',    country: 'ZW', flag: '🇿🇼' },
+    { value: 'MZN', label: 'MZN - Mozambican Metical', country: 'MZ', flag: '🇲🇿' },
+    { value: 'ZMW', label: 'ZMW - Zambian Kwacha',     country: 'ZM', flag: '🇿🇲' },
+  ];
 
   function set(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }))
@@ -132,9 +143,26 @@ export default function PostLoadPage() {
                       className="field" placeholder="e.g. 22"/>
                   </div>
                   <div>
-                    <label className="field-label">Posted Price (R) *</label>
+                    <label className="field-label">Posted Price *</label>
                     <input type="number" required step="0.01" value={form.postedPrice} onChange={e => set('postedPrice', e.target.value)}
                       className="field" placeholder="e.g. 5000"/>
+                  </div>
+                  <div>
+                    <label className="field-label">Currency & Country *</label>
+                    <select
+                      value={form.currency}
+                      onChange={(e) => {
+                        const selected = CURRENCY_OPTIONS.find(c => c.value === e.target.value)
+                        setForm(f => ({ ...f, currency: selected?.value || 'ZAR', country: selected?.country || 'ZA' }))
+                      }}
+                      className="field"
+                    >
+                      {CURRENCY_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.flag} {opt.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="field-label">Collection Date *</label>

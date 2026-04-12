@@ -1,64 +1,156 @@
 // src/app/api/admin/invoices/route.ts
+/**
+ * GET all invoices for admin dashboard
+ * Admin can view all transporter and client invoices with payment tracking
+ */
+
+export const dynamic = 'force-dynamic'
+
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import connectToDatabase from '@/lib/db'
-import { Invoice, Load, User } from '@/lib/models'
+import { getDatabase } from '@/lib/prisma'
 
-export async function GET(req: Request) {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.role || session.user.role !== 'ADMIN') {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+export async function GET(req: NextRequest) {
   try {
-    await connectToDatabase()
+    const session = await getServerSession(authOptions)
 
-    const url = new URL(req.url)
-    const statusFilter = url.searchParams.get('status')
-
-    // Build query
-    let query: any = {}
-    if (statusFilter) {
-      query.status = statusFilter
+    if (!session?.user?.id || session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Only admins can view invoices' },
+        { status: 403 }
+      )
     }
 
-    // Fetch invoices
-    const invoices = await Invoice.find(query)
-      .populate('transporterId', 'companyName email')
-      .populate('clientId', 'companyName email')
-      .sort({ createdAt: -1 })
+    const db = await getDatabase()
 
-    // Get load references
-    const invoicesWithLoadRef = await Promise.all(
-      invoices.map(async (invoice) => {
-        const load = await Load.findById(invoice.loadId)
-        return {
-          _id: invoice._id,
-          invoiceNumber: invoice.invoiceNumber,
-          loadRef: load?.ref || 'Unknown',
-          transporterName: invoice.transporterId?.companyName || 'Unknown',
-          clientName: invoice.clientId?.companyName || 'Unknown',
-          amount: invoice.amount,
-          currency: invoice.currency,
-          status: invoice.status,
-          approvedByClient: invoice.approvedByClient,
-          approvedByAdmin: invoice.approvedByAdmin,
-          createdAt: invoice.createdAt,
-          itemDescription: invoice.itemDescription,
-          notes: invoice.notes,
-          dueDate: invoice.dueDate,
+    // Get all invoices with aggregation to get related data
+    const invoices = await db.collection('invoices').aggregate([
+      {
+        $match: {}
+      },
+      {
+        $lookup: {
+          from: 'loads',
+          localField: 'loadId',
+          foreignField: '_id',
+          as: 'load'
         }
-      })
-    )
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'clientId',
+          foreignField: '_id',
+          as: 'client'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'transporterId',
+          foreignField: '_id',
+          as: 'transporter'
+        }
+      },
+      {
+        $lookup: {
+          from: 'documents',
+          localField: 'loadId',
+          foreignField: 'loadId',
+          pipeline: [
+            {
+              $match: { docType: 'INVOICE' }
+            }
+          ],
+          as: 'invoiceDocuments'
+        }
+      },
+      {
+        $unwind: {
+          path: '$load',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $unwind: {
+          path: '$client',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $unwind: {
+          path: '$transporter',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $project: {
+          _id: 1,
+          invoiceNumber: 1,
+          invoiceType: 1,
+          amount: 1,
+          currency: 1,
+          paymentStatus: 1,
+          paymentAmount: 1,
+          paymentNotes: 1,
+          paymentTrackedAt: 1,
+          createdAt: 1,
+          dueDate: 1,
+          loadRef: '$load.ref',
+          tonnage: '$tonnageForThisInvoice',
+          progressPercentage: 1,
+          clientName: '$client.name',
+          clientEmail: '$client.email',
+          transporterName: '$transporter.companyName',
+          transporterEmail: '$transporter.email',
+          podId: 1,
+          linkedTransporterInvoiceId: 1,
+          markupPercentage: 1,
+          markupAmount: 1,
+          qbLink: 1,
+          // Client approval status from documents
+          clientApprovalStatus: {
+            $cond: [
+              { $gt: [{ $size: '$invoiceDocuments' }, 0] },
+              { $arrayElemAt: ['$invoiceDocuments.approved', 0] },
+              null
+            ]
+          },
+          clientRejectionReason: {
+            $cond: [
+              { $gt: [{ $size: '$invoiceDocuments' }, 0] },
+              { $arrayElemAt: ['$invoiceDocuments.rejectionReason', 0] },
+              null
+            ]
+          }
+        }
+      }
+    ]).toArray()
 
-    return Response.json({
+    console.log('[AdminInvoices] ✅ Retrieved', invoices.length, 'invoices')
+
+    return NextResponse.json({
       success: true,
-      invoices: invoicesWithLoadRef,
-      count: invoicesWithLoadRef.length,
+      invoices,
+      stats: {
+        total: invoices.length,
+        unpaid: invoices.filter(i => i.paymentStatus === 'UNPAID').length,
+        partialPaid: invoices.filter(i => i.paymentStatus === 'PARTIAL_PAID').length,
+        paid: invoices.filter(i => i.paymentStatus === 'PAID').length,
+        totalAmount: invoices.reduce((sum, i) => sum + (i.amount || 0), 0),
+        collectedAmount: invoices.reduce((sum, i) => sum + (i.paymentAmount || 0), 0),
+      }
     })
-  } catch (error) {
-    console.error('[AdminInvoices] Error:', error)
-    return Response.json({ error: 'Failed to fetch invoices' }, { status: 500 })
+
+  } catch (error: any) {
+    console.error('[AdminInvoices] 💥 Error:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch invoices', details: error.message },
+      { status: 500 }
+    )
   }
 }

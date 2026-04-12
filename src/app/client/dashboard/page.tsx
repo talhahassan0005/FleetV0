@@ -99,7 +99,7 @@ export default function ClientDashboardPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatCard label="Total Loads" value={stats?.totalLoads || 0} />
-          <StatCard label="Total Spent" value={`R${(stats?.totalSpent || 0).toLocaleString()}`} />
+          <StatCard label="Total Spent" value={`ZAR ${(stats?.totalSpent || 0).toLocaleString()}`} />
           <StatCard label="Pending Quotes" value={stats?.pendingQuotes || 0} />
           <StatCard label="Delivered" value={stats?.statusBreakdown?.DELIVERED || 0} />
         </div>
@@ -132,7 +132,7 @@ export default function ClientDashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip formatter={(value) => `R${value.toLocaleString()}`} />
+                <Tooltip formatter={(value) => `ZAR ${value.toLocaleString()}`} />
                 <Legend />
                 <Line type="monotone" dataKey="spent" stroke="#3ab54a" strokeWidth={2} name="Amount Spent" />
               </LineChart>
@@ -171,7 +171,7 @@ export default function ClientDashboardPage() {
                           {load.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-semibold">R{load.price?.toLocaleString() || '—'}</td>
+                      <td className="px-4 py-3 font-semibold">{load.currency || 'ZAR'} {load.price?.toLocaleString() || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

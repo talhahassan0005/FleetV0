@@ -104,7 +104,7 @@ export default function ClientDashboard() {
                     {load.collectionDate ? new Date(load.collectionDate).toLocaleDateString() : '—'}
                   </td>
                   <td className="px-4 py-3 text-sm font-semibold">
-                    {load.finalPrice ? `R${load.finalPrice.toFixed(2)}` : <span className="text-gray-400">Pending</span>}
+                    {load.finalPrice ? `${load.currency || 'ZAR'} ${load.finalPrice.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}` : <span className="text-gray-400">Pending</span>}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${

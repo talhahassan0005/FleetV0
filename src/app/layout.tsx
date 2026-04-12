@@ -2,6 +2,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from '@/components/shared/Providers'
+import '@/lib/initialize' // Initialize background jobs
 
 export const metadata: Metadata = {
   title: 'FleetXchange | Africa\'s Largest Freight Hub',

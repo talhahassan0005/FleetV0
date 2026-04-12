@@ -9,9 +9,11 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
   ADMIN: [
     { label: 'Dashboard', href: '/admin/dashboard',  icon: <GridIcon /> },
     { label: 'All Loads', href: '/admin/loads',      icon: <TruckIcon /> },
+    { label: 'Invoices', href: '/admin/invoices',    icon: <ReceiptIcon /> },
     { label: 'POD Management', href: '/admin/pod-management-new', icon: <ReceiptIcon /> },
     { label: 'Users',     href: '/admin/users',      icon: <UsersIcon /> },
     { label: 'Documents', href: '/admin/documents',  icon: <DocumentIcon /> },
+    { label: 'QuickBooks', href: '/admin/dashboard/quickbooks', icon: <QBIcon /> },
     { label: 'My Profile', href: '/admin/profile',   icon: <UserIcon /> },
   ],
   CLIENT: [
@@ -42,7 +44,7 @@ export function Sidebar() {
   const initials = (session?.user?.companyName ?? 'FX').slice(0, 2).toUpperCase()
 
   return (
-    <nav className="w-[210px] bg-white/70 backdrop-blur-3xl border-r border-white/40 flex flex-col min-h-screen flex-shrink-0 relative shadow-[5px_0_30px_rgba(0,0,0,0.08)] z-20" style={{animation: 'cardGlow 3s ease-in-out infinite'}}>
+    <nav className="w-[210px] bg-white/70 backdrop-blur-3xl border-r border-white/40 flex flex-col h-screen sticky top-0 overflow-y-auto hide-scrollbar flex-shrink-0 shadow-[5px_0_30px_rgba(0,0,0,0.08)] z-20" style={{animation: 'cardGlow 3s ease-in-out infinite'}}>
       {/* Logo */}
       <div className="flex items-center justify-center px-4 py-5 border-b border-white/30">
         <Image src="/images/logo.png" alt="FleetXchange" width={180} height={60} className="h-14 w-auto" priority />
@@ -118,4 +120,7 @@ function CheckIcon() {
 }
 function ReceiptIcon() {
   return <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-4 h-4"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2-2 2 2 0 0 0 2 2m0 0h2"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+}
+function QBIcon() {
+  return <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-4 h-4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><path d="M7 14h4v7H7z"/><path d="M14 14h7v7h-7z"/></svg>
 }

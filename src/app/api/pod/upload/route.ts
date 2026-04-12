@@ -1,4 +1,6 @@
 // src/app/api/pod/upload/route.ts
+export const dynamic = 'force-dynamic'
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -6,19 +8,14 @@ import { getDatabase } from '@/lib/prisma'
 import { uploadFile } from '@/lib/cloudinary'
 import { ObjectId } from 'mongodb'
 
-interface PODUploadRequest {
-  loadId: string
-  deliveryDate: string
-  deliveryTime: string
-  notes?: string
-}
-
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
+    console.log('[PODUpload] 🚀 Uploaded by:', session?.user?.email, 'Role:', session?.user?.role)
+    
     // Only transporters can upload POD
-    if (!session?.user || session.user.role !== 'TRANSPORTER') {
+    if (!session?.user?.role || session.user.role !== 'TRANSPORTER') {
       return NextResponse.json(
         { error: 'Only transporters can upload POD' },
         { status: 403 }
@@ -28,136 +25,229 @@ export async function POST(req: NextRequest) {
     const db = await getDatabase()
     const form = await req.formData()
 
+    // Debug: Log all form keys
+    const formKeys = Array.from(form.keys())
+    console.log('[PODUpload] 📋 Form keys:', formKeys)
+
     // Parse form data
-    const loadId = form.get('loadId') as string
+    const podFile = form.get('podFile') as File
+    const invoiceFile = form.get('invoiceFile') as File
     const deliveryDate = form.get('deliveryDate') as string
     const deliveryTime = form.get('deliveryTime') as string
     const notes = form.get('notes') as string || ''
-    const podFile = form.get('podFile') as File | null
-    const invoiceFile = form.get('invoiceFile') as File | null
 
-    // Validation
-    if (!loadId || !deliveryDate || !deliveryTime) {
-      return NextResponse.json(
-        { error: 'Missing required fields: loadId, deliveryDate, deliveryTime' },
-        { status: 400 }
-      )
-    }
+    let loadId = form.get('loadId') as string
+    if (!loadId) loadId = form.get('load_id') as string
+
+    console.log('[PODUpload] 📦 POD File:', podFile?.name, 'Size:', podFile?.size)
+    console.log('[PODUpload] 📄 Invoice File:', invoiceFile?.name, 'Size:', invoiceFile?.size)
+    console.log('[PODUpload] 📅 Delivery:', deliveryDate, 'Time:', deliveryTime)
+    console.log('[PODUpload] 📝 Notes:', notes)
 
     if (!podFile) {
+      console.log('[PODUpload] ❌ No POD file found')
       return NextResponse.json(
-        { error: 'POD document is required' },
+        { error: 'POD file is required' },
         { status: 400 }
       )
     }
 
     if (!invoiceFile) {
+      console.log('[PODUpload] ❌ No invoice file found')
       return NextResponse.json(
-        { error: 'Invoice document is required' },
+        { error: 'Invoice file is required' },
         { status: 400 }
       )
     }
 
-    // Verify load exists and belongs to transporter
-    const loadId_obj = new ObjectId(loadId)
+    if (!loadId) {
+      console.log('[PODUpload] ❌ No loadId found')
+      return NextResponse.json(
+        { error: 'Load ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Verify load exists and get details
+    let loadObjectId: ObjectId
+    try {
+      loadObjectId = new ObjectId(loadId)
+    } catch (err) {
+      return NextResponse.json(
+        { error: 'Invalid load ID format' },
+        { status: 400 }
+      )
+    }
+
     const load = await db.collection('loads').findOne({
-      _id: loadId_obj,
-      transporterId: new ObjectId(session.user.id),
-      status: 'ASSIGNED' // Load must be assigned to this transporter
+      _id: loadObjectId
     })
 
     if (!load) {
       return NextResponse.json(
-        { error: 'Load not found or not assigned to you' },
+        { error: 'Load not found' },
         { status: 404 }
       )
     }
 
-    // Upload POD document
-    const podArrayBuffer = await podFile.arrayBuffer()
-    const podBuffer = Buffer.from(podArrayBuffer)
-    const { secureUrl: podUrl } = await uploadFile(
-      podBuffer,
-      podFile.name,
-      `fleetxchange/pods/${loadId}`
+    // Verify transporter is assigned to this load
+    const transporterId = new ObjectId(session.user.id)
+    
+    // Get all quotes for this transporter on this load
+    const allQuotes = await db.collection('quotes').find({
+      loadId: loadObjectId,
+      transporterId: transporterId
+    }).toArray()
+
+    console.log('[PODUpload] 🔍 Found quotes for transporter:', allQuotes.length)
+    allQuotes.forEach((q: any) => {
+      console.log('[PODUpload]   Quote:', {
+        id: q._id.toString(),
+        loadId: q.loadId.toString(),
+        status: q.status,
+        quotedPrice: q.quotedPrice
+      })
+    })
+
+    // Check if transporter has ANY quote (approved or assigned)
+    const quote = allQuotes.find((q: any) => 
+      ['APPROVED', 'ASSIGNED', 'ACCEPTED'].includes(q.status)
     )
 
-    // Upload Invoice document
-    const invoiceArrayBuffer = await invoiceFile.arrayBuffer()
-    const invoiceBuffer = Buffer.from(invoiceArrayBuffer)
-    const { secureUrl: invoiceUrl } = await uploadFile(
-      invoiceBuffer,
-      invoiceFile.name,
-      `fleetxchange/invoices/${loadId}`
-    )
-
-    // Create POD record
-    const podData = {
-      loadId: loadId_obj,
-      transporterId: new ObjectId(session.user.id),
-      clientId: load.clientId,
-      
-      // POD details
-      podDocument: {
-        filename: podFile.name,
-        url: podUrl,
-        mimeType: podFile.type,
-        uploadedAt: new Date()
-      },
-      
-      // Invoice details from transporter
-      transporterInvoice: {
-        filename: invoiceFile.name,
-        url: invoiceUrl,
-        mimeType: invoiceFile.type,
-        uploadedAt: new Date()
-      },
-      
-      deliveryDate: new Date(deliveryDate),
-      deliveryTime: deliveryTime,
-      notes: notes,
-      
-      // Approval status
-      adminApproval: {
-        approved: false,
-        approvedBy: null,
-        approvedAt: null,
-        comments: ''
-      },
-      clientApproval: {
-        approved: false,
-        approvedBy: null,
-        approvedAt: null,
-        comments: ''
-      },
-      
-      status: 'PENDING_ADMIN', // Admin approval is first
-      createdAt: new Date(),
-      updatedAt: new Date()
+    if (!quote) {
+      console.log('[PODUpload] ❌ No valid quote found. Transporter not assigned to this load')
+      return NextResponse.json(
+        { error: 'You are not assigned to this load' },
+        { status: 403 }
+      )
     }
 
-    const result = await db.collection('pods').insertOne(podData)
-    const podId = result.insertedId.toString()
+    console.log('[PODUpload] ✅ Quote found with status:', quote.status)
 
-    // TODO: Send email notifications
-    // - Admin notification: New POD uploaded
-    // - Transporter confirmation: POD uploaded successfully
-    // - Client notification: POD ready for review (after admin approves)
+    // Upload POD document
+    console.log('[PODUpload] 📤 Uploading POD file:', podFile.name)
+    const podArrayBuffer = await podFile.arrayBuffer()
+    const podBuffer = Buffer.from(podArrayBuffer)
+    const { publicId: podPublicId, secureUrl: podUrl } = await uploadFile(
+      podBuffer,
+      podFile.name,
+      'pods'
+    )
+    console.log('[PODUpload] ✅ POD uploaded:', podPublicId)
+
+    // Upload Invoice document
+    console.log('[PODUpload] 📤 Uploading Invoice file:', invoiceFile.name)
+    const invoiceArrayBuffer = await invoiceFile.arrayBuffer()
+    const invoiceBuffer = Buffer.from(invoiceArrayBuffer)
+    const { publicId: invoicePublicId, secureUrl: invoiceUrl } = await uploadFile(
+      invoiceBuffer,
+      invoiceFile.name,
+      'invoices'
+    )
+    console.log('[PODUpload] ✅ Invoice uploaded:', invoicePublicId)
+
+    // Create POD document record
+    const podDocResult = await db.collection('documents').insertOne({
+      userId: transporterId,
+      loadId: loadObjectId,
+      docType: 'POD',
+      filename: podPublicId,
+      originalName: podFile.name,
+      fileUrl: podUrl,
+      fileMimeType: podFile.type || 'application/octet-stream',
+      uploadedByRole: 'TRANSPORTER',
+      visibleTo: 'ADMIN,CLIENT,TRANSPORTER',
+      
+      // NEW: POD approval tracking
+      adminApprovalStatus: 'PENDING_ADMIN', // PENDING_ADMIN -> APPROVED -> FORWARDED_TO_CLIENT
+      adminApprovedAt: null,
+      adminApprovedBy: null,
+      
+      clientApprovalStatus: 'PENDING_CLIENT', // Will be updated when admin forwards
+      clientApprovedAt: null,
+      clientApprovedBy: null,
+      
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    console.log('[PODUpload] 📄 POD document created with admin approval status: PENDING_ADMIN')
+
+    // Create Invoice document record (with POD reference for syncing)
+    const invoiceDocResult = await db.collection('documents').insertOne({
+      userId: transporterId,
+      loadId: loadObjectId,
+      docType: 'INVOICE',
+      filename: invoicePublicId,
+      originalName: invoiceFile.name,
+      fileUrl: invoiceUrl,
+      fileMimeType: invoiceFile.type || 'application/octet-stream',
+      uploadedByRole: 'TRANSPORTER',
+      visibleTo: 'CLIENT,ADMIN,TRANSPORTER',
+      // LINK TO POD: For syncing approvals
+      relatedPodId: podDocResult.insertedId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    console.log('[PODUpload] 📄 Invoice document created:', invoiceDocResult.insertedId.toString())
+
+    // Create load update
+    await db.collection('loadUpdates').insertOne({
+      loadId: loadObjectId,
+      userId: transporterId,
+      message: 'Proof of Delivery (POD) and Invoice uploaded by transporter',
+      createdAt: new Date(),
+    })
+
+    // Mark load as DELIVERED
+    await db.collection('loads').updateOne(
+      { _id: loadObjectId },
+      {
+        $set: {
+          status: 'DELIVERED',
+          deliveredAt: new Date(),
+          updatedAt: new Date(),
+        }
+      }
+    )
+
+    console.log('[PODUpload] ✅ Load marked DELIVERED')
+
+    // Deactivate tracking link
+    await db.collection('trackingLinks').updateMany(
+      { loadId: loadObjectId, isActive: true },
+      { $set: { isActive: false, expiredAt: new Date() } }
+    )
 
     return NextResponse.json({
       success: true,
       message: 'POD and Invoice uploaded successfully',
-      podId: podId,
       data: {
-        ...podData,
-        _id: podId,
-        loadId: loadId,
-        transporterId: session.user.id
+        pod: {
+          _id: podDocResult.insertedId.toString(),
+          loadId: loadId,
+          filename: podPublicId,
+          originalName: podFile.name,
+          fileUrl: podUrl,
+          uploadedAt: new Date().toISOString(),
+        },
+        invoice: {
+          _id: invoiceDocResult.insertedId.toString(),
+          loadId: loadId,
+          filename: invoicePublicId,
+          originalName: invoiceFile.name,
+          fileUrl: invoiceUrl,
+          uploadedAt: new Date().toISOString(),
+        },
+        deliveryDate: deliveryDate,
+        deliveryTime: deliveryTime,
+        notes: notes,
       }
     }, { status: 201 })
 
   } catch (error: any) {
-    console.error('POD upload error:', error)
+    console.error('[PODUpload] 💥 Error:', error)
     return NextResponse.json(
       { error: 'Failed to upload POD', details: error.message },
       { status: 500 }
@@ -176,38 +266,63 @@ export async function GET(req: NextRequest) {
     const userId = new ObjectId(session.user.id)
     const role = session.user.role
 
-    let query: any = {}
+    let query: any = { docType: 'POD' }
 
     // Different filters based on role
     if (role === 'TRANSPORTER') {
       // Transporter sees their own PODs
-      query.transporterId = userId
+      query.userId = userId
     } else if (role === 'CLIENT') {
-      // Client sees PODs for their loads
-      query.clientId = userId
+      // Client sees PODs for their loads (get client's loads first)
+      const clientLoads = await db.collection('loads')
+        .find({ clientId: userId })
+        .project({ _id: 1 })
+        .toArray()
+      const loadIds = clientLoads.map(l => l._id)
+      query.loadId = { $in: loadIds }
     } else if (role === 'ADMIN') {
-      // Admin sees all PODs
-      // No filter
+      // Admin sees all PODs (for approval/management)
+      // Keep only docType filter - no additional filters
     } else {
       return NextResponse.json({ error: 'Invalid role' }, { status: 403 })
     }
 
-    const pods = await db.collection('pods')
+    const pods = await db.collection('documents')
       .find(query)
       .sort({ createdAt: -1 })
       .toArray()
+
+    console.log('[PODUpload-GET] 📦 Found documents:', pods.length, 'for role:', role)
+    if (pods.length > 0) {
+      console.log('[PODUpload-GET] Sample document:', {
+        id: pods[0]._id.toString(),
+        docType: pods[0].docType,
+        adminApprovalStatus: pods[0].adminApprovalStatus,
+        clientApprovalStatus: pods[0].clientApprovalStatus,
+        approved: pods[0].approved
+      })
+    }
 
     // Serialize ObjectIds
     const serializedPods = pods.map((pod: any) => ({
       ...pod,
       _id: pod._id?.toString?.() || pod._id,
+      userId: pod.userId?.toString?.() || pod.userId,
       loadId: pod.loadId?.toString?.() || pod.loadId,
-      transporterId: pod.transporterId?.toString?.() || pod.transporterId,
-      clientId: pod.clientId?.toString?.() || pod.clientId,
+      // Ensure approval status fields are included
+      adminApprovalStatus: pod.adminApprovalStatus || 'PENDING_ADMIN',
+      clientApprovalStatus: pod.clientApprovalStatus || undefined,
+      approved: pod.approved || undefined,
+      rejectionReason: pod.rejectionReason || undefined,
+      adminApprovedAt: pod.adminApprovedAt || undefined,
+      adminApprovedBy: pod.adminApprovedBy?.toString?.() || undefined,
+      clientApprovedAt: pod.clientApprovedAt || undefined,
+      clientApprovedBy: pod.clientApprovedBy?.toString?.() || undefined,
     }))
 
     return NextResponse.json({
       success: true,
+      message: 'PODs retrieved successfully',
       data: serializedPods
     })
 

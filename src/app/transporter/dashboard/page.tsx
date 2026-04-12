@@ -50,7 +50,7 @@ export default function TransporterDashboardPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatCard label="Total Quotes" value={stats?.totalQuotes || 0} />
-          <StatCard label="Total Earnings" value={`R${(stats?.totalEarnings || 0).toLocaleString()}`} />
+          <StatCard label="Total Earnings" value={`ZAR ${(stats?.totalEarnings || 0).toLocaleString()}`} />
           <StatCard label="Accepted Deals" value={stats?.acceptedDeals || 0} />
           <StatCard label="Assigned Loads" value={stats?.assignedLoads || 0} />
         </div>
@@ -93,7 +93,7 @@ export default function TransporterDashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip formatter={(value) => `R${value.toLocaleString()}`} />
+                <Tooltip formatter={(value) => `ZAR ${value.toLocaleString()}`} />
                 <Legend />
                 <Line type="monotone" dataKey="earnings" stroke="#3ab54a" strokeWidth={2} name="Earnings" />
               </LineChart>
@@ -119,7 +119,7 @@ export default function TransporterDashboardPage() {
                 {stats?.recentQuotes?.map((quote: any) => (
                   <tr key={quote.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm">{quote.route}</td>
-                    <td className="px-4 py-3 font-semibold">R{quote.price?.toLocaleString()}</td>
+                    <td className="px-4 py-3 font-semibold">{quote.currency || 'ZAR'} {quote.price?.toLocaleString()}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
                         quote.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' :

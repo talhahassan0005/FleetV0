@@ -129,10 +129,10 @@ export default function AdminLoadsPage() {
                   </td>
                   <td className="px-4 py-3 text-sm font-semibold">
                     <div className="space-y-1">
-                      <div>R{load.finalPrice?.toLocaleString() || '—'}</div>
+                      <div>{load.currency || 'ZAR'} {load.finalPrice?.toLocaleString() || '—'}</div>
                       {load.commission && load.commission > 0 && (
                         <div className="text-xs text-green-600 font-semibold">
-                          +Commission: R{load.commission.toLocaleString()}
+                          +Commission: {load.currency || 'ZAR'} {load.commission.toLocaleString()}
                         </div>
                       )}
                     </div>

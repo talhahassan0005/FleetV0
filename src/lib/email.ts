@@ -507,3 +507,97 @@ export const loadRejectedEmail = (clientName: string, loadRef: string, origin: s
   </div>
 </div>
 `;
+
+export const invoiceGeneratedEmail = (
+  recipientName: string,
+  loadRef: string,
+  invoiceNumber: string,
+  amount: number,
+  currency: string,
+  tonnage: number,
+  progressPercentage: number
+) => `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px; border-radius: 8px;">
+  <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="border-left: 4px solid #3ab54a; padding-left: 15px; margin-bottom: 25px;">
+      <h1 style="margin: 0 0 5px 0; color: #1a2a5e; font-size: 24px;">📄 Invoice Generated</h1>
+      <p style="margin: 0; color: #666; font-size: 14px;">Load: <strong>${loadRef}</strong></p>
+    </div>
+    
+    <div style="background: #f0f8f5; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+      <h3 style="margin: 0 0 15px 0; color: #1a2a5e; font-size: 16px;">Invoice Details</h3>
+      <table style="width: 100%; color: #333; font-size: 14px;">
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #ddd;"><strong>Invoice #:</strong></td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #ddd; text-align: right;"><strong>${invoiceNumber}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #ddd;"><strong>Amount Due:</strong></td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #ddd; text-align: right; color: #3ab54a;"><strong>${currency} ${amount.toLocaleString()}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #ddd;"><strong>Tonnage:</strong></td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #ddd; text-align: right;">${tonnage} tons</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0;"><strong>Load Progress:</strong></td>
+          <td style="padding: 8px 0; text-align: right;">${progressPercentage}% Complete</td>
+        </tr>
+      </table>
+    </div>
+    
+    <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
+      A new invoice has been generated and is ready for payment. Please review the details above and proceed with payment at your earliest convenience.
+    </p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="http://localhost:3000/client/invoices" style="background-color: #3ab54a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+        View Invoice
+      </a>
+    </div>
+    
+    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+    <p style="color: #999; font-size: 12px;">
+      If you have any questions about this invoice, please contact FleetXChange support.
+    </p>
+    <p style="color: #999; font-size: 12px;">Best regards,<br><strong>FleetXChange Team</strong></p>
+  </div>
+</div>
+`;
+
+export const podApprovedByAdminEmail = (
+  recipientName: string,
+  loadRef: string,
+  comments?: string
+) => `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px; border-radius: 8px;">
+  <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="border-left: 4px solid #3ab54a; padding-left: 15px; margin-bottom: 25px;">
+      <h1 style="margin: 0 0 5px 0; color: #1a2a5e; font-size: 24px;">✅ POD Approved</h1>
+      <p style="margin: 0; color: #666; font-size: 14px;">Your Proof of Delivery has been approved</p>
+    </div>
+    
+    <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
+      Hello ${recipientName},
+    </p>
+    
+    <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
+      Your Proof of Delivery (POD) for load <strong>${loadRef}</strong> has been approved by FleetXChange admin. The POD has been forwarded to the client for their review and approval.
+    </p>
+    
+    ${comments ? `
+      <div style="background: #f0f8f5; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        <p style="margin: 0 0 10px 0; color: #1a2a5e;"><strong>Admin Comments:</strong></p>
+        <p style="margin: 0; color: #555;">${comments}</p>
+      </div>
+    ` : ''}
+    
+    <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
+      Once the client approves, invoices will be generated and you can track payment status.
+    </p>
+    
+    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+    <p style="color: #999; font-size: 12px;">Best regards,<br><strong>FleetXChange Team</strong></p>
+  </div>
+</div>
+`;

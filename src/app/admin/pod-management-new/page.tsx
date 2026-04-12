@@ -1,37 +1,39 @@
 'use client'
-// src/app/admin/pod-management/page.tsx
+// src/app/admin/pod-management-new/page.tsx
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
-import { CheckCircle, AlertCircle, Clock, FileText, Download } from 'lucide-react'
+import { CheckCircle, AlertCircle, Clock, FileText, Download, MessageSquare } from 'lucide-react'
 
 interface POD {
   _id: string
   loadId: string
-  transporterId: string
-  clientId: string
-  podDocument: {
-    filename: string
-    url: string
-  }
-  transporterInvoice: {
-    filename: string
-    url: string
-  }
-  deliveryDate: string
-  deliveryTime: string
-  notes: string
-  adminApproval: {
-    approved: boolean
-    approvedAt?: string
-  }
-  clientApproval: {
-    approved: boolean
-    approvedAt?: string
-  }
-  status: string
+  userId?: string
+  originalName: string
+  fileUrl: string
+  docType: string
   createdAt: string
+  adminApprovalStatus?: 'PENDING_ADMIN' | 'APPROVED'
+  adminApprovedAt?: string | null
+  adminComments?: string
+  clientApprovalStatus?: 'PENDING_CLIENT' | 'APPROVED' | 'REJECTED'
+  clientApprovedAt?: string | null
+  // Enriched fields (optional)
+  loadRef?: string
+  origin?: string
+  destination?: string
+  route?: string
+  loadStatus?: string
+  finalPrice?: number
+  currency?: string
+  tonnes?: number
+  transporterId?: string
+  transporterName?: string
+  transporterEmail?: string
+  transporterPhone?: string
+  clientName?: string
+  clientEmail?: string
 }
 
 interface ApprovalState {
@@ -49,6 +51,8 @@ export default function PODManagementPage() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('all')
   const [error, setError] = useState('')
   const [approvingId, setApprovingId] = useState<ApprovalState | null>(null)
+  const [selectedPodId, setSelectedPodId] = useState<string | null>(null)
+  const [comments, setComments] = useState('')
 
   // Auth check
   useEffect(() => {
@@ -62,57 +66,154 @@ export default function PODManagementPage() {
     const fetchPODs = async () => {
       try {
         setLoading(true)
-        const res = await fetch('/api/pod/upload')
-        if (!res.ok) throw new Error('Failed to fetch PODs')
+        setError('')
+        console.log('[AdminPODs] Starting fetch with session:', session?.user?.role)
+        
+        // Quick auth check
+        if (!session?.user?.id || session.user.role !== 'ADMIN') {
+          console.log('[AdminPODs] Not admin, redirecting...')
+          setError('Admin access required')
+          setLoading(false)
+          return
+        }
+
+        console.log('[AdminPODs] Fetching PODs from /api/pod/upload')
+        
+        // Fetch PODs with timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+        
+        const res = await fetch('/api/pod/upload', {
+          signal: controller.signal
+        })
+        clearTimeout(timeoutId)
+        
+        console.log('[AdminPODs] Response status:', res.status)
+        
+        if (!res.ok) {
+          throw new Error(`API returned ${res.status}`)
+        }
 
         const data = await res.json()
-        setPods(data.data || [])
+        console.log('[AdminPODs] Got PODs:', data.data?.length || 0)
+        
+        // For now, just set PODs without enrichment to debug
+        const podsWithDefaults = (data.data || []).map((pod: any) => ({
+          ...pod,
+          loadRef: 'Load',
+          origin: 'Origin',
+          destination: 'Destination',
+          route: 'Route',
+          loadStatus: 'Status',
+          finalPrice: 0,
+          currency: 'ZAR',
+          tonnes: 0,
+          clientName: 'Client',
+        }))
+        
+        setPods(podsWithDefaults)
         setError('')
-      } catch (err) {
-        setError('Failed to load PODs')
-        console.error(err)
+      } catch (err: any) {
+        console.error('[AdminPODs] Error:', err)
+        if (err.name === 'AbortError') {
+          setError('Request timeout - server took too long')
+        } else {
+          setError(`Failed: ${err.message}`)
+        }
+        setPods([])
       } finally {
         setLoading(false)
       }
     }
 
-    if (session?.user) {
+    if (session?.user?.id) {
       fetchPODs()
     }
   }, [session])
 
-  // Filter PODs
+  // Filter PODs - fixed to use correct field names
   const filteredPods = pods.filter(pod => {
-    if (filter === 'pending') return pod.status === 'PENDING_ADMIN'
-    if (filter === 'approved') return pod.adminApproval.approved
+    const status = pod.adminApprovalStatus || 'PENDING_ADMIN'
+    if (filter === 'pending') return status === 'PENDING_ADMIN'
+    if (filter === 'approved') return status === 'APPROVED'
     return true
   })
 
   async function approvePOD(podId: string) {
-    if (!approvingId?.podId || !approvingId.comments.trim()) {
+    if (!comments.trim()) {
       alert('Please add comments before approving')
       return
     }
 
     try {
-      setApprovingId({ ...approvingId, submitting: true })
-      const res = await fetch(`/api/pod/${podId}/approve`, {
+      setApprovingId({ podId, comments, submitting: true })
+      const res = await fetch(`/api/admin/pods/${podId}/approve`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          approvalType: 'admin',
-          comments: approvingId.comments
+          comments: comments
         })
       })
 
       if (!res.ok) throw new Error('Failed to approve POD')
 
-      const data = await res.json()
-      // Update local POD
-      setPods(pods.map(p => p._id === podId ? data.data : p))
-      setApprovingId(null)
-    } catch (err) {
-      alert('Failed to approve POD')
+      // Refresh PODs - use same fetch logic as initial load
+      const refreshRes = await fetch('/api/pod/upload')
+      if (refreshRes.ok) {
+        const data = await refreshRes.json()
+        
+        // Filter out invalid fileUrls
+        const validPods = (data.data || []).filter((pod: any) => {
+          if (!pod.fileUrl) return true
+          if (typeof pod.fileUrl !== 'string') return false
+          if (pod.fileUrl.includes('LOCAL:pods/') || pod.fileUrl.includes('/documents/LOCAL')) {
+            return false
+          }
+          return true
+        })
+        
+        // Re-enrich with load details
+        const enrichedPods = await Promise.all(
+          validPods.map(async (pod: any) => {
+            try {
+              const loadRes = await fetch(`/api/loads/${pod.loadId}`)
+              let loadData: any = null
+              if (loadRes.ok) {
+                const loadJson = await loadRes.json()
+                loadData = loadJson.data || loadJson
+              }
+              return {
+                ...pod,
+                loadRef: loadData?.ref || 'Unknown',
+                origin: loadData?.origin || 'Unknown',
+                destination: loadData?.destination || 'Unknown',
+                route: loadData ? `${loadData.origin} → ${loadData.destination}` : 'Unknown Route',
+                loadStatus: loadData?.status || 'Unknown',
+                finalPrice: loadData?.finalPrice || 0,
+                currency: loadData?.currency || 'ZAR',
+                tonnes: loadData?.tonnes || 0,
+                clientName: loadData?.clientName || 'Unknown',
+              }
+            } catch (err) {
+              return {
+                ...pod,
+                loadRef: 'Error',
+                route: 'Unable to load details',
+                finalPrice: 0,
+                currency: 'ZAR',
+              }
+            }
+          })
+        )
+        
+        setPods(enrichedPods)
+      }
+      
+      setComments('')
+      setSelectedPodId(null)
+      alert('✅ POD approved and forwarded to client!')
+    } catch (err: any) {
+      alert(`Failed to approve POD: ${err.message}`)
       console.error(err)
     } finally {
       setApprovingId(null)
@@ -120,13 +221,15 @@ export default function PODManagementPage() {
   }
 
   function getStatusBadge(pod: POD) {
-    if (pod.adminApproval.approved) {
-      return <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">✓ Admin Approved</span>
+    const status = pod.adminApprovalStatus || 'PENDING_ADMIN'
+    
+    if (status === 'APPROVED') {
+      return <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Admin Approved</span>
     }
-    if (pod.status === 'PENDING_ADMIN') {
-      return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">⏳ Pending Admin</span>
+    if (status === 'PENDING_ADMIN') {
+      return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full flex items-center gap-1"><Clock className="w-4 h-4" /> Pending Admin</span>
     }
-    return <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full">{pod.status}</span>
+    return <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full">{status}</span>
   }
 
   if (loading) {
@@ -178,107 +281,145 @@ export default function PODManagementPage() {
           {filteredPods.length > 0 ? (
             <div className="space-y-4">
               {filteredPods.map(pod => (
-                <div key={pod._id} className="bg-white/85 backdrop-blur-3xl rounded-2xl border-2 border-white/60 p-6 shadow-lg">
+                <div key={pod._id} className="bg-white rounded-lg border border-gray-200 p-6 shadow hover:shadow-lg transition-shadow">
+                  {/* Header with Load Ref and Status */}
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <p className="text-sm text-gray-500">Load ID: {pod.loadId}</p>
-                      <p className="text-lg font-semibold text-gray-900 mt-1">
-                        Transporter ID: {pod.transporterId}
-                      </p>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Load Reference</p>
+                      <p className="text-2xl font-bold text-gray-900">{pod.loadRef || 'Loading...'}</p>
+                      <p className="text-sm text-gray-600 mt-1">{pod.route || 'Unknown Route'}</p>
                     </div>
                     {getStatusBadge(pod)}
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-gray-200">
+                  {/* Load and Transporter Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 py-4 mb-4 border-y border-gray-200">
                     <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide">Delivery Date</p>
-                      <p className="font-semibold text-gray-900">{new Date(pod.deliveryDate).toLocaleDateString()}</p>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Transporter</p>
+                      <p className="font-semibold text-gray-900">{pod.transporterName || 'Unknown'}</p>
+                      <p className="text-xs text-gray-600">{pod.transporterEmail || ''}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide">Delivery Time</p>
-                      <p className="font-semibold text-gray-900">{pod.deliveryTime}</p>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Amount</p>
+                      <p className="text-lg font-bold text-green-600">{pod.currency || 'ZAR'} {(pod.finalPrice || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Tonnes</p>
+                      <p className="font-semibold text-gray-900">{pod.tonnes || 0} T</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 uppercase tracking-wide">Uploaded</p>
                       <p className="font-semibold text-gray-900">{new Date(pod.createdAt).toLocaleDateString()}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide">Client Approval</p>
-                      <p className="font-semibold">
-                        {pod.clientApproval.approved ? (
-                          <span className="text-green-600">✓ Approved</span>
-                        ) : (
-                          <span className="text-yellow-600">⏳ Pending</span>
-                        )}
-                      </p>
+                  </div>
+
+                  {/* Document Section */}
+                  <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-blue-500" />
+                        <div>
+                          <p className="text-sm text-gray-600">POD Document</p>
+                          <p className="font-semibold text-gray-900">{pod.originalName}</p>
+                        </div>
+                      </div>
+                      {pod.fileUrl && typeof pod.fileUrl === 'string' && pod.fileUrl.startsWith('http') ? (
+                        <a
+                          href={pod.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-semibold border border-blue-200"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download
+                        </a>
+                      ) : (
+                        <button
+                          disabled
+                          title="File URL unavailable"
+                          className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-400 rounded-lg text-sm font-semibold border border-gray-200 cursor-not-allowed"
+                        >
+                          <Download className="w-4 h-4" />
+                          File Unavailable
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  {/* Documents */}
-                  <div className="mt-4 flex gap-4">
-                    <a
-                      href={pod.podDocument.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm font-semibold"
-                    >
-                      <FileText className="w-4 h-4" />
-                      View POD
-                    </a>
-                    <a
-                      href={pod.transporterInvoice.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors text-sm font-semibold"
-                    >
-                      <Download className="w-4 h-4" />
-                      View Invoice
-                    </a>
+                  {/* Client Info */}
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs text-blue-700 font-semibold">Client to Review</p>
+                    <p className="text-sm text-blue-900">{pod.clientName || 'Unknown Client'}</p>
                   </div>
 
-                  {/* Notes */}
-                  {pod.notes && (
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-600 font-semibold mb-1">Delivery Notes:</p>
-                      <p className="text-sm text-gray-800">{pod.notes}</p>
+                  {/* Admin Comments (if already approved) */}
+                  {pod.adminApprovedAt && (
+                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
+                      <p className="text-xs text-green-700 font-semibold mb-1">Admin Approval:</p>
+                      <p className="text-sm text-green-800">{pod.adminComments || '(No additional comments)'}</p>
+                      <p className="text-xs text-green-600 mt-1">Approved on {new Date(pod.adminApprovedAt).toLocaleDateString()}</p>
                     </div>
                   )}
 
                   {/* Approval Section */}
-                  {!pod.adminApproval.approved && (
-                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  {(pod.adminApprovalStatus !== 'APPROVED') && (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        Admin Approval Comments
+                        Admin Verification Comments
                       </label>
+                      <p className="text-xs text-gray-600 mb-2">Review POD details and add verification notes before forwarding to client</p>
                       <textarea
-                        value={approvingId?.podId === pod._id ? approvingId.comments : ''}
+                        value={selectedPodId === pod._id ? comments : ''}
                         onChange={(e) => {
-                          if (!approvingId || approvingId.podId !== pod._id) {
-                            setApprovingId({ podId: pod._id, comments: e.target.value, submitting: false })
-                          } else {
-                            setApprovingId({ ...approvingId, comments: e.target.value })
-                          }
+                          setSelectedPodId(pod._id)
+                          setComments(e.target.value)
                         }}
-                        placeholder="Add verification comments before approving..."
-                        rows={2}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 text-sm mb-3"
+                        placeholder="e.g., Verified load details, documents in order, ready for client review..."
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 text-sm mb-3 resize-none"
                       />
                       <button
-                        onClick={() => approvePOD(pod._id)}
-                        disabled={approvingId?.podId !== pod._id || !approvingId?.comments.trim() || approvingId.submitting}
-                        className="w-full px-4 py-2 bg-[#3ab54a] text-white font-semibold rounded-lg hover:bg-[#2d9e3c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        onClick={() => {
+                          setSelectedPodId(pod._id)
+                          approvePOD(pod._id)
+                        }}
+                        disabled={approvingId?.submitting || !comments.trim()}
+                        className="w-full px-4 py-3 bg-[#3ab54a] text-white font-semibold rounded-lg hover:bg-[#2d9e3c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                       >
-                        {approvingId?.podId === pod._id && approvingId.submitting ? '✓ Approving...' : '✓ Approve POD'}
+                        {approvingId?.submitting ? (
+                          <>
+                            <Clock className="w-4 h-4 animate-spin" />
+                            Approving & Forwarding...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-4 h-4" />
+                            Approve & Forward to Client
+                          </>
+                        )}
                       </button>
                     </div>
                   )}
 
-                  {pod.adminApproval.approved && (
-                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  {pod.adminApprovalStatus === 'APPROVED' && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-1" />
                       <div>
-                        <p className="font-semibold text-green-900">Admin Approved</p>
-                        <p className="text-sm text-green-800">Waiting for client approval to proceed with invoice creation</p>
+                        <p className="font-semibold text-green-900">✓ Admin Approved & Forwarded</p>
+                        <p className="text-sm text-green-800 mt-1">
+                          Client Approval Status: <span className={`font-semibold ${
+                            pod.clientApprovalStatus === 'APPROVED' ? 'text-green-600' :
+                            pod.clientApprovalStatus === 'REJECTED' ? 'text-red-600' :
+                            'text-yellow-600'
+                          }`}>
+                            {pod.clientApprovalStatus === 'APPROVED' ? '✓ Client Approved' :
+                             pod.clientApprovalStatus === 'REJECTED' ? '✕ Client Rejected' :
+                             '⏳ Awaiting Client'}
+                          </span>
+                        </p>
+                        {pod.clientApprovedAt && (
+                          <p className="text-xs text-green-700 mt-1">Client approved on {new Date(pod.clientApprovedAt).toLocaleDateString()}</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -286,9 +427,14 @@ export default function PODManagementPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No PODs found for this filter</p>
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 font-medium">No PODs found</p>
+              <p className="text-sm text-gray-400 mt-1">
+                {filter === 'pending' && 'All PODs have been reviewed'}
+                {filter === 'approved' && 'No approved PODs yet'}
+                {filter === 'all' && 'No PODs uploaded yet'}
+              </p>
             </div>
           )}
         </div>

@@ -131,7 +131,8 @@ export async function POST(req: NextRequest) {
     }
     const finalVisibleTo = Array.from(roles).join(',')
     
-    const docResult = await db.collection('documents').insertOne({
+    // Prepare document object with approval fields for PODs
+    const docObject: any = {
       userId:         new ObjectId(session.user.id),
       loadId:         loadId ? new ObjectId(loadId) : undefined,
       docType:        docType,
@@ -144,7 +145,21 @@ export async function POST(req: NextRequest) {
       visibleTo:      finalVisibleTo,
       createdAt:      new Date(),
       updatedAt:      new Date(),
-    })
+    }
+    
+    // Add approval status fields for PODs
+    if (docType === 'POD') {
+      docObject.adminApprovalStatus = 'PENDING_ADMIN'
+      docObject.clientApprovalStatus = 'PENDING_ADMIN' // Will be set to PENDING_CLIENT after admin approves
+      docObject.adminApprovedAt = null
+      docObject.adminApprovedBy = null
+      docObject.adminComments = ''
+      docObject.clientApprovedAt = null
+      docObject.clientApprovedBy = null
+      docObject.clientComments = ''
+    }
+    
+    const docResult = await db.collection('documents').insertOne(docObject)
 
     console.log('[PostDocument] Saved document:', {
       docId: docResult.insertedId.toString(),

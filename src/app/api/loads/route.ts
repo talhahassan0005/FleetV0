@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     console.log('[CreateLoad] Request body:', JSON.stringify(body, null, 2))
     
-    const { origin, destination, weight, itemType, description, postedPrice, clientId, collectionDate, deliveryDate } = body
+    const { origin, destination, weight, itemType, description, postedPrice, clientId, collectionDate, deliveryDate, currency, country } = body
 
     // Check which fields are missing
     const missing: string[] = []
@@ -68,6 +68,8 @@ export async function POST(req: NextRequest) {
     if (!description) missing.push('description')
     if (postedPrice === undefined || postedPrice === null || postedPrice === '') missing.push('postedPrice')
     if (!clientId) missing.push('clientId')
+    if (!currency) missing.push('currency')
+    if (!country) missing.push('country')
 
     console.log('[CreateLoad] Validation result:', {
       allPresent: missing.length === 0,
@@ -106,7 +108,8 @@ export async function POST(req: NextRequest) {
       weight,
       description,
       finalPrice: postedPrice,  // Map postedPrice to finalPrice
-      currency: 'ZAR',
+      currency: currency || 'ZAR',  // Use client-selected currency
+      country: country || 'ZA',     // Use client-selected country
       clientId: clientObjectId,
       status: 'PENDING',
       collectionDate,
@@ -152,7 +155,7 @@ export async function POST(req: NextRequest) {
             origin,
             destination,
             postedPrice,
-            'ZAR'
+            currency || 'ZAR'
           )
           
           console.log(`[CreateLoad] 🚀 Sending email to ${transporter.email}...`)
@@ -162,11 +165,11 @@ export async function POST(req: NextRequest) {
             emailContent
           )
           
-          if (result.success) {
+          if (result) {
             console.log(`[CreateLoad] ✅ Email SENT to ${transporter.email}`)
             emailsSent++
           } else {
-            console.error(`[CreateLoad] ❌ Email FAILED for ${transporter.email}:`, result.error)
+            console.error(`[CreateLoad] ❌ Email FAILED for ${transporter.email}`)
             emailsFailed++
           }
         } catch (emailErr) {
@@ -187,7 +190,7 @@ export async function POST(req: NextRequest) {
             origin,
             destination,
             postedPrice,
-            'ZAR'
+            currency || 'ZAR'
           )
           const result = await sendEmail(
             session.user.email,

@@ -1,8 +1,10 @@
 // src/app/api/client/loads-with-pods/route.ts
+export const dynamic = 'force-dynamic'
+
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import connectToDatabase from '@/lib/db'
-import { Load, POD, Invoice, User } from '@/lib/models'
+import { getDatabase } from '@/lib/prisma'
+import { ObjectId } from 'mongodb'
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions)
@@ -12,21 +14,44 @@ export async function GET(req: Request) {
   }
 
   try {
-    await connectToDatabase()
+    const db = await getDatabase()
+    const clientId = new ObjectId(session.user.id)
+
+    console.log('[ClientLoadsWithPODs] 📦 Fetching loads for client:', session.user.email)
 
     // Get all loads for this client
-    const loads = await Load.find({
-      clientId: session.user.id,
-    }).sort({ createdAt: -1 })
+    const loads = await db.collection('loads').find({
+      clientId: clientId,
+    }).sort({ createdAt: -1 }).toArray()
 
-    // For each load, fetch POD and Invoice data
+    console.log('[ClientLoadsWithPODs] Found', loads.length, 'loads')
+
+    // For each load, fetch POD and Invoice data from documents collection
     const loadsWithDetails = await Promise.all(
       loads.map(async (load) => {
-        const pod = await POD.findOne({ loadId: load._id })
-        const invoice = await Invoice.findOne({ loadId: load._id })
+        // Get POD documents that client needs to approve (admin already approved them)
+        const podDocs = await db.collection('documents').find({
+          loadId: load._id,
+          docType: 'POD',
+          adminApprovalStatus: 'APPROVED', // Only PODs that admin has approved
+          clientApprovalStatus: { $ne: 'APPROVED' } // Exclude already approved by client
+        }).toArray()
+
+        console.log(`[ClientLoadsWithPODs] Load ${load.ref}: PODs pending client approval = ${podDocs.length}`)
+        
+        if (podDocs.length > 0) {
+          console.log(`[ClientLoadsWithPODs]   POD details:`, podDocs.map(doc => ({
+            id: doc._id.toString(),
+            name: doc.originalName,
+            uploadedBy: doc.uploadedByRole,
+            adminApprovalStatus: doc.adminApprovalStatus,
+            clientApprovalStatus: doc.clientApprovalStatus,
+            createdAt: doc.createdAt,
+          })))
+        }
 
         return {
-          _id: load._id,
+          _id: load._id.toString(),
           ref: load.ref,
           origin: load.origin,
           destination: load.destination,
@@ -36,23 +61,25 @@ export async function GET(req: Request) {
           currency: load.currency,
           status: load.status,
           collectionDate: load.collectionDate,
-          pod: pod ? {
-            _id: pod._id,
-            status: pod.status,
-            deliveryDate: pod.deliveryDate,
-          } : null,
-          invoice: invoice ? {
-            _id: invoice._id,
-            invoiceNumber: invoice.invoiceNumber,
-            amount: invoice.amount,
-            status: invoice.status,
-            approvedByClient: invoice.approvedByClient,
-            approvedByAdmin: invoice.approvedByAdmin,
-            createdAt: invoice.createdAt,
-          } : null,
+          invoices: podDocs.map(doc => ({
+            _id: doc._id.toString(),
+            filename: doc.originalName,
+            fileUrl: doc.fileUrl,
+            uploadedAt: doc.createdAt,
+            uploadedBy: doc.uploadedByRole,
+            approved: doc.clientApprovalStatus === 'APPROVED',
+            clientApprovalStatus: doc.clientApprovalStatus,
+            rejectionReason: doc.rejectionReason,
+          })),
+          invoiceCount: podDocs.length, // Count of PODs pending client approval
         }
       })
     )
+
+    console.log('[ClientLoadsWithPODs] 📊 Summary:')
+    console.log('[ClientLoadsWithPODs]   Total loads:', loadsWithDetails.length)
+    console.log('[ClientLoadsWithPODs]   Loads with invoices:', loadsWithDetails.filter(l => l.invoiceCount > 0).length)
+    console.log('[ClientLoadsWithPODs]   Total invoices:', loadsWithDetails.reduce((acc, l) => acc + l.invoiceCount, 0))
 
     return Response.json({
       success: true,

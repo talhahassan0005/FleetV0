@@ -54,12 +54,6 @@ export async function GET(req: NextRequest) {
       })
     })
 
-    // Get loads that are PENDING or QUOTING status
-    const pendingLoads = await db.collection('loads')
-      .find({ status: { $in: ['PENDING', 'QUOTING'] } })
-      .toArray()
-    console.log('[AvailableLoads] Pending/Quoting loads:', pendingLoads.length)
-
     // Get quotes from this transporter
     const myQuotes = await db.collection('quotes')
       .find({ transporterId: new ObjectId(session.user.id) })
@@ -70,10 +64,11 @@ export async function GET(req: NextRequest) {
     const quotedLoadIds = myQuotes.map(q => q.loadId?.toString?.() || q.loadId)
     console.log('[AvailableLoads] Quoted load IDs:', quotedLoadIds)
 
-    // Get final available loads
+    // Get final available loads - ONLY APPROVED loads are visible to transporters
+    console.log('[AvailableLoads] 🔍 IMPORTANT: Showing ONLY APPROVED loads to transporters (not PENDING)')
     const loads = await db.collection('loads')
       .find({
-        status: { $in: ['PENDING', 'QUOTING', 'APPROVED'] }, // Include APPROVED by admin
+        status: 'APPROVED', // Only APPROVED loads - transporter cannot see PENDING loads until admin approves
         _id: { $nin: quotedLoadIds.map(id => new ObjectId(id)) }
       })
       .sort({ createdAt: -1 })

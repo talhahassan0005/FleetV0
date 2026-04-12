@@ -46,9 +46,53 @@ const userSchema = new mongoose.Schema(
     companyName: { type: String },
     contactName: { type: String },
     phone: { type: String },
+    address: {
+      street: { type: String },
+      city: { type: String },
+      province: { type: String },
+      postalCode: { type: String },
+      country: { type: String },
+    },
+    bankAccount: { type: String },
     isVerified: { type: Boolean, default: false },
     verificationStatus: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'], default: 'PENDING' },
     rejectionReason: { type: String },
+    // QuickBooks Integration Fields
+    quickbooksAccounts: [
+      {
+        country: { type: String, required: true },      // 'ZA', 'BW', 'ZW', etc.
+        currency: { type: String, required: true },      // 'ZAR', 'BWP', 'USD', etc.
+        realmId: { type: String, required: true },
+        accessToken: { type: String },
+        refreshToken: { type: String },
+        tokenExpiresAt: { type: Date },
+        connectedAt: { type: Date },
+        isConnected: { type: Boolean, default: false },
+        label: { type: String },                         // e.g. 'South Africa', 'Botswana'
+        customerId: { type: String }, // QB Customer ID
+        customerSyncToken: { type: String },
+        customerSyncedAt: { type: Date },
+        vendorId: { type: String }, // QB Vendor ID
+        vendorSyncToken: { type: String },
+        vendorSyncedAt: { type: Date },
+      }
+    ],
+    // Keep old quickbooks field for backward compatibility but mark deprecated
+    quickbooks: {
+      isConnected: { type: Boolean, default: false },
+      realmId: { type: String },
+      accessToken: { type: String }, // Encrypt in production!
+      refreshToken: { type: String }, // Encrypt in production!
+      tokenExpiresAt: { type: Date },
+      customerId: { type: String }, // QB Customer ID (for clients)
+      customerSyncToken: { type: String },
+      customerSyncedAt: { type: Date },
+      vendorId: { type: String }, // QB Vendor ID (for transporters)
+      vendorSyncToken: { type: String },
+      vendorSyncedAt: { type: Date },
+      connectedAt: { type: Date },
+      disconnectedAt: { type: Date },
+    },
   },
   { timestamps: true }
 );
@@ -68,6 +112,7 @@ const loadSchema = new mongoose.Schema(
     assignedTransporterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     finalPrice: { type: Number },
     currency: { type: String, default: 'ZAR' },
+    country: { type: String, default: 'ZA' },
   },
   { timestamps: true }
 );
@@ -146,6 +191,8 @@ const invoiceSchema = new mongoose.Schema(
       sentVia: { type: String, enum: ['quickbooks', 'email'], default: 'quickbooks' },
     },
     paymentStatus: { type: String, enum: ['UNPAID', 'PARTIAL_PAID', 'PAID'], default: 'UNPAID' },
+    totalPaidAmount: { type: Number, default: 0 },
+    remainingBalance: { type: Number },
     paymentTrackedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     paymentNotes: { type: String },
     comments: { type: String },
@@ -154,6 +201,17 @@ const invoiceSchema = new mongoose.Schema(
     originalName: { type: String },
     fileUrl: { type: String },
     issuedAt: { type: Date, default: Date.now },
+    // QuickBooks Integration
+    qb_sync: {
+      invoiceId: { type: String }, // QB Invoice ID
+      invoiceSyncToken: { type: String },
+      billId: { type: String }, // QB Bill ID (for transporter)
+      billSyncToken: { type: String },
+      paymentStatus: { type: String }, // QB payment status
+      createdAt: { type: Date },
+      lastSyncedAt: { type: Date },
+      syncErrors: { type: String },
+    },
   },
   { timestamps: true }
 );
@@ -205,6 +263,17 @@ const trackingLinkSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+const qbCountryConfigSchema = new mongoose.Schema({
+  country: { type: String, required: true, unique: true },
+  label: { type: String, required: true },
+  currency: { type: String, required: true },
+  flag: { type: String, required: true },
+  isActive: { type: Boolean, default: true },
+  sortOrder: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
 export const User = mongoose.models.User || mongoose.model('User', userSchema);
 export const Load = mongoose.models.Load || mongoose.model('Load', loadSchema);
 export const Quote = mongoose.models.Quote || mongoose.model('Quote', quoteSchema);
@@ -213,3 +282,4 @@ export const Document = mongoose.models.Document || mongoose.model('Document', d
 export const Invoice = mongoose.models.Invoice || mongoose.model('Invoice', invoiceSchema);
 export const POD = mongoose.models.POD || mongoose.model('POD', podSchema);
 export const TrackingLink = mongoose.models.TrackingLink || mongoose.model('TrackingLink', trackingLinkSchema);
+export const QBCountryConfig = mongoose.models.QBCountryConfig || mongoose.model('QBCountryConfig', qbCountryConfigSchema);

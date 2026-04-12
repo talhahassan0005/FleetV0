@@ -13,13 +13,13 @@ interface POD {
 
 interface Invoice {
   _id: string
-  invoiceNumber: string
-  loadRef: string
-  amount: number
-  status: 'DRAFT' | 'SENT' | 'PENDING_PAYMENT' | 'PAID'
-  createdAt: string
-  approvedByClient?: boolean
-  approvedByAdmin?: boolean
+  filename: string
+  fileUrl: string
+  uploadedAt: string
+  uploadedBy?: string
+  approved?: boolean
+  rejectionReason?: string
+  clientApprovalStatus: 'PENDING_CLIENT' | 'APPROVED' | 'REJECTED'
 }
 
 interface LoadForInvoice {
@@ -34,25 +34,36 @@ interface LoadForInvoice {
   status: string
   collectionDate?: string
   pod?: POD
-  invoice?: Invoice
+  invoices: Invoice[]
+  invoiceCount: number
+}
+
+interface QBInvoice {
+  _id: string
+  invoiceNumber: string
+  invoiceType: 'TRANSPORTER_INVOICE' | 'CLIENT_INVOICE'
+  amount: number
+  currency: string
+  paymentStatus: 'UNPAID' | 'PARTIAL_PAID' | 'PAID'
+  paymentAmount?: number
+  createdAt: string
+  dueDate?: string
+  loadRef?: string
+  clientApprovalStatus?: boolean | null
 }
 
 export default function ClientInvoicesPage() {
   const { data: session } = useSession()
   const router = useRouter()
   const [loads, setLoads] = useState<LoadForInvoice[]>([])
+  const [qbInvoices, setQbInvoices] = useState<QBInvoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [tab, setTab] = useState<'deliverable' | 'invoices'>('deliverable')
-  const [selectedLoadId, setSelectedLoadId] = useState<string | null>(null)
-  const [creatingInvoice, setCreatingInvoice] = useState(false)
-  const [invoiceFormData, setInvoiceFormData] = useState({
-    loadId: '',
-    amount: 0,
-    currency: 'ZAR',
-    itemDescription: '',
-    notes: '',
-  })
+  const [tab, setTab] = useState<'pods' | 'invoices' | 'history'>('pods')
+  const [approvingId, setApprovingId] = useState<string | null>(null)
+  const [rejectingId, setRejectingId] = useState<string | null>(null)
+  const [viewingUrl, setViewingUrl] = useState<string | null>(null)
+
 
   useEffect(() => {
     if (!session?.user?.id) {
@@ -61,6 +72,7 @@ export default function ClientInvoicesPage() {
     }
 
     fetchLoads()
+    fetchQBInvoices()
   }, [session, router])
 
   const fetchLoads = async () => {
@@ -71,11 +83,21 @@ export default function ClientInvoicesPage() {
 
       if (!res.ok) {
         const errorData = await res.json()
+        console.error('[ClientInvoices] API Error:', errorData)
         setError(errorData.error || 'Failed to fetch loads')
         return
       }
 
       const data = await res.json()
+      console.log('[ClientInvoices] 📦 Fetched data:', data)
+      console.log('[ClientInvoices] Total loads:', data.loads?.length)
+      
+      if (data.loads) {
+        data.loads.forEach((load: LoadForInvoice) => {
+          console.log(`[ClientInvoices] Load ${load.ref}: statusAmount=${load.status}, invoices=${load.invoiceCount}`)
+        })
+      }
+      
       if (data.success && Array.isArray(data.loads)) {
         setLoads(data.loads)
       }
@@ -87,62 +109,80 @@ export default function ClientInvoicesPage() {
     }
   }
 
-  const handleCreateInvoice = async (loadId: string) => {
-    const load = loads.find(l => l._id === loadId)
-    if (!load) return
-
-    setSelectedLoadId(loadId)
-    setInvoiceFormData({
-      loadId,
-      amount: load.finalPrice,
-      currency: load.currency,
-      itemDescription: `${load.cargoType || 'Freight'} from ${load.origin} to ${load.destination}`,
-      notes: '',
-    })
-  }
-
-  const handleSubmitInvoice = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!invoiceFormData.loadId) {
-      setError('Please select a load')
-      return
-    }
-
+  const fetchQBInvoices = async () => {
     try {
-      setCreatingInvoice(true)
-      setError('')
-
-      const res = await fetch('/api/client/invoices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(invoiceFormData),
-      })
+      const res = await fetch('/api/client/invoices')
 
       if (!res.ok) {
-        const errorData = await res.json()
-        setError(errorData.error || 'Failed to create invoice')
-        setCreatingInvoice(false)
+        console.error('[ClientInvoices] QB Invoice fetch error:', await res.json())
+        // Don't set error - gracefully handle missing endpoint
         return
       }
 
       const data = await res.json()
-      alert(`✓ Invoice ${data.invoiceNumber} created successfully!`)
-      setSelectedLoadId(null)
-      setInvoiceFormData({
-        loadId: '',
-        amount: 0,
-        currency: 'ZAR',
-        itemDescription: '',
-        notes: '',
-      })
-      setCreatingInvoice(false)
-      fetchLoads()
-      setTab('invoices')
+      console.log('[ClientInvoices] 💰 QB Invoices:', data.invoices)
+      
+      if (data.success && Array.isArray(data.invoices)) {
+        setQbInvoices(data.invoices)
+      }
     } catch (err) {
-      console.error('[ClientInvoices] Error creating invoice:', err)
-      setError('Failed to create invoice. Please try again.')
-      setCreatingInvoice(false)
+      console.error('[ClientInvoices] Error fetching QB invoices:', err)
+      // Silently fail - endpoint might not exist yet
+    }
+  }
+
+  const handleCreateInvoice = async (loadId: string) => {
+    // Invoices are now submitted by transporters, no client creation needed
+  }
+
+  const handleSubmitInvoice = async (e: React.FormEvent) => {
+    e.preventDefault()
+    // Invoices are now submitted by transporters
+  }
+
+  const handleApproveInvoice = async (invoiceId: string) => {
+    try {
+      setApprovingId(invoiceId)
+      const res = await fetch(`/api/documents/${invoiceId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved: true })
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to approve invoice')
+      }
+
+      alert('✅ Invoice approved!')
+      fetchLoads() // Refresh
+    } catch (err: any) {
+      alert(`Error: ${err.message}`)
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
+  const handleRejectInvoice = async (invoiceId: string) => {
+    try {
+      setRejectingId(invoiceId)
+      const res = await fetch(`/api/documents/${invoiceId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved: false, rejectionReason: 'Rejected by client' })
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to reject invoice')
+      }
+
+      alert('❌ Invoice rejected!')
+      fetchLoads() // Refresh
+    } catch (err: any) {
+      alert(`Error: ${err.message}`)
+    } finally {
+      setRejectingId(null)
     }
   }
 
@@ -162,7 +202,7 @@ export default function ClientInvoicesPage() {
   if (loading) {
     return (
       <>
-        <Topbar title="Invoices & PODs" />
+        <Topbar title="Portal" />
         <PageLayout>
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3ab54a]"></div>
@@ -172,12 +212,9 @@ export default function ClientInvoicesPage() {
     )
   }
 
-  const deliverableLoads = loads.filter(l => l.status === 'DELIVERED' && l.pod && l.pod.status === 'APPROVED')
-  const invoicedLoads = loads.filter(l => l.invoice)
-
   return (
     <>
-      <Topbar title="Invoices & Proof of Delivery" />
+      <Topbar title="Portal" />
       <PageLayout>
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 border-l-4 border-l-red-500 rounded text-red-800 text-sm">
@@ -189,14 +226,14 @@ export default function ClientInvoicesPage() {
         <div className="mb-6 border-b border-gray-200">
           <div className="flex gap-8">
             <button
-              onClick={() => setTab('deliverable')}
+              onClick={() => setTab('pods')}
               className={`pb-3 px-1 font-semibold transition-colors border-b-2 ${
-                tab === 'deliverable'
+                tab === 'pods'
                   ? 'border-[#3ab54a] text-[#3ab54a]'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Ready to Invoice ({deliverableLoads.length})
+              POD Management ({loads.filter(l => l.invoiceCount > 0).length})
             </button>
             <button
               onClick={() => setTab('invoices')}
@@ -206,62 +243,27 @@ export default function ClientInvoicesPage() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              My Invoices ({invoicedLoads.length})
+              Invoices ({qbInvoices.length})
+            </button>
+            <button
+              onClick={() => setTab('history')}
+              className={`pb-3 px-1 font-semibold transition-colors border-b-2 ${
+                tab === 'history'
+                  ? 'border-[#3ab54a] text-[#3ab54a]'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              All Loads
             </button>
           </div>
         </div>
 
-        {/* Tab: Ready to Invoice */}
-        {tab === 'deliverable' && (
+        {/* Tab: POD Management */}
+        {tab === 'pods' && (
           <div>
-            {deliverableLoads.length === 0 ? (
+            {loads.length === 0 ? (
               <div className="p-8 bg-gray-50 rounded-lg text-center border border-gray-200">
-                <p className="text-gray-600">No delivered loads with approved PODs ready for invoicing.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {deliverableLoads.map(load => (
-                  <div key={load._id} className="bg-white rounded-lg shadow p-6 border-l-4 border-l-[#3ab54a]">
-                    <div className="grid md:grid-cols-4 gap-4 mb-4">
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Reference</p>
-                        <p className="font-bold text-[#1a2a5e]">{load.ref}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Route</p>
-                        <p className="text-sm">{load.origin} → {load.destination}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Amount</p>
-                        <p className="text-lg font-bold text-green-600">{load.currency} {load.finalPrice.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">POD Status</p>
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(load.pod?.status || 'PENDING')}`}>
-                          {load.pod?.status}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleCreateInvoice(load._id)}
-                      className="px-4 py-2 bg-[#3ab54a] text-white rounded font-semibold hover:bg-[#2d9e3c] transition-colors text-sm"
-                    >
-                      Create Invoice
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tab: My Invoices */}
-        {tab === 'invoices' && (
-          <div>
-            {invoicedLoads.length === 0 ? (
-              <div className="p-8 bg-gray-50 rounded-lg text-center border border-gray-200">
-                <p className="text-gray-600">No invoices yet. Create one from the "Ready to Invoice" tab.</p>
+                <p className="text-gray-600">No loads found.</p>
               </div>
             ) : (
               <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -269,42 +271,35 @@ export default function ClientInvoicesPage() {
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Invoice #</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Load</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Load Ref</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Route</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Amount</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Client Approval</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Admin Approval</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Invoices</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {invoicedLoads.map(load => (
+                      {loads.map(load => (
                         <tr key={load._id} className="border-b hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3 font-bold text-[#1a2a5e]">{load.invoice?.invoiceNumber}</td>
-                          <td className="px-4 py-3 text-sm">{load.ref}</td>
-                          <td className="px-4 py-3 font-semibold text-green-600">{load.currency} {load.invoice?.amount.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-sm">
-                            {load.invoice?.approvedByClient ? (
-                              <span className="text-green-600 font-semibold">✓ Approved</span>
-                            ) : (
-                              <span className="text-yellow-600 font-semibold">⏳ Pending</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            {load.invoice?.approvedByAdmin ? (
-                              <span className="text-green-600 font-semibold">✓ Approved</span>
-                            ) : (
-                              <span className="text-yellow-600 font-semibold">⏳ Pending</span>
-                            )}
-                          </td>
+                          <td className="px-4 py-3 font-bold text-[#1a2a5e]">{load.ref}</td>
+                          <td className="px-4 py-3 text-sm">{load.origin} → {load.destination}</td>
+                          <td className="px-4 py-3 font-semibold text-green-600">{load.currency} {load.finalPrice.toLocaleString()}</td>
                           <td className="px-4 py-3">
-                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(load.invoice?.status || 'DRAFT')}`}>
-                              {load.invoice?.status}
+                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                              load.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
+                              load.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-800' :
+                              load.status === 'APPROVED' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {load.status}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {load.invoice?.createdAt ? new Date(load.invoice.createdAt).toLocaleDateString() : '-'}
+                          <td className="px-4 py-3 text-sm font-semibold">
+                            {load.invoiceCount > 0 ? (
+                              <span className="text-green-600">✓ {load.invoiceCount}</span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -316,107 +311,226 @@ export default function ClientInvoicesPage() {
           </div>
         )}
 
-        {/* Invoice Creation Modal */}
-        {selectedLoadId && (
+        {/* Tab: My Invoices */}
+        {tab === 'pods' && (
+          <div>
+            {loads.filter(l => l.invoiceCount > 0).length === 0 ? (
+              <div className="p-8 bg-gray-50 rounded-lg text-center border border-gray-200">
+                <p className="text-gray-600">No PODs to approve yet. PODs will appear here when the admin approves them.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {loads.filter(l => l.invoiceCount > 0).map(load => (
+                  <div key={load._id} className="bg-white rounded-lg shadow p-6 border-l-4 border-l-[#3ab54a]">
+                    <div className="grid md:grid-cols-4 gap-4 mb-4">
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Reference</p>
+                        <p className="font-bold text-[#1a2a5e]">{load.ref}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Route</p>
+                        <p className="text-sm">{load.origin} → {load.destination}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Load Amount</p>
+                        <p className="text-lg font-bold text-green-600">{load.currency} {load.finalPrice.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">POD Count</p>
+                        <p className="text-2xl font-bold text-[#3ab54a]">{load.invoiceCount}</p>
+                      </div>
+                    </div>
+
+                    {/* Invoices List */}
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-sm font-semibold text-gray-700 mb-3">Uploaded PODs:</p>
+                      <div className="space-y-2">
+                        {load.invoices.map((invoice, idx) => (
+                          <div key={invoice._id} className="flex items-center justify-between bg-gray-50 p-3 rounded">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-sm font-medium text-gray-800">
+                                  📄 POD {idx + 1}: {invoice.filename}
+                                </p>
+                                {invoice.clientApprovalStatus === 'APPROVED' && (
+                                  <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">
+                                    ✓ Approved
+                                  </span>
+                                )}
+                                {invoice.clientApprovalStatus === 'REJECTED' && (
+                                  <span className="inline-block px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">
+                                    ✕ Rejected
+                                  </span>
+                                )}
+                                {invoice.clientApprovalStatus !== 'APPROVED' && invoice.clientApprovalStatus !== 'REJECTED' && (
+                                  <span className="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold">
+                                    ⏳ Pending
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500">
+                                Uploaded: {new Date(invoice.uploadedAt).toLocaleDateString()} at{' '}
+                                {new Date(invoice.uploadedAt).toLocaleTimeString()}
+                              </p>
+                              {invoice.uploadedBy && (
+                                <p className="text-xs text-gray-500">
+                                  ✓ Submitted by {invoice.uploadedBy === 'TRANSPORTER' ? 'Transporter' : invoice.uploadedBy}
+                                </p>
+                              )}
+                              {invoice.rejectionReason && (
+                                <p className="text-xs text-red-600 mt-1">
+                                  Rejection reason: {invoice.rejectionReason}
+                                </p>
+                              )}
+                            </div>
+                            <div className="ml-4 flex gap-2">
+                              {/* View Button */}
+                              <button
+                                onClick={() => setViewingUrl(invoice.fileUrl)}
+                                className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
+                              >
+                                View
+                              </button>
+                              
+                              {/* Approve Button */}
+                              <button
+                                onClick={() => handleApproveInvoice(invoice._id)}
+                                disabled={approvingId === invoice._id || invoice.clientApprovalStatus === 'APPROVED' || invoice.clientApprovalStatus === 'REJECTED'}
+                                className="px-3 py-1 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {approvingId === invoice._id ? '...' : invoice.clientApprovalStatus === 'APPROVED' ? '✓ Approved' : '✓ Approve'}
+                              </button>
+                              
+                              {/* Reject Button */}
+                              <button
+                                onClick={() => handleRejectInvoice(invoice._id)}
+                                disabled={rejectingId === invoice._id || invoice.clientApprovalStatus === 'REJECTED' || invoice.clientApprovalStatus === 'APPROVED'}
+                                className="px-3 py-1 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {rejectingId === invoice._id ? '...' : invoice.clientApprovalStatus === 'REJECTED' ? '✕ Rejected' : '✕ Reject'}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab: QB Invoices */}
+        {tab === 'invoices' && (
+          <div>
+            {qbInvoices.length === 0 ? (
+              <div className="p-8 bg-gray-50 rounded-lg text-center border border-gray-200">
+                <p className="text-gray-600">No invoices yet. Invoices will appear here once the admin generates them from approved PODs.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Invoice #</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Load Ref</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Amount</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Payment Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Due Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {qbInvoices.map(invoice => (
+                        <tr key={invoice._id} className="border-b hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 font-bold text-[#1a2a5e]">{invoice.invoiceNumber}</td>
+                          <td className="px-4 py-3 text-sm">{invoice.loadRef || '-'}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                              invoice.invoiceType === 'CLIENT_INVOICE' ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'
+                            }`}>
+                              {invoice.invoiceType === 'CLIENT_INVOICE' ? 'Client' : 'Transporter'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-green-600">{invoice.currency} {invoice.amount.toLocaleString()}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                              invoice.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
+                              invoice.paymentStatus === 'PARTIAL_PAID' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {invoice.paymentStatus === 'PAID' ? '✅ Paid' :
+                               invoice.paymentStatus === 'PARTIAL_PAID' ? '⏳ Partial' :
+                               '❌ Unpaid'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{new Date(invoice.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab: All Loads */}
+        {tab === 'history' && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b p-6 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-[#1a2a5e]">Create Invoice</h2>
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+              <div className="sticky top-0 bg-gray-100 border-b p-4 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900">Invoice Preview</h3>
                 <button
-                  onClick={() => setSelectedLoadId(null)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  onClick={() => setViewingUrl(null)}
+                  className="text-gray-600 hover:text-gray-900 font-bold text-xl"
                 >
-                  ×
+                  ✕
                 </button>
               </div>
-
-              <form onSubmit={handleSubmitInvoice} className="p-6 space-y-4">
-                {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 border-l-4 border-l-red-500 rounded text-red-800 text-sm">
-                    {error}
-                  </div>
+              
+              <div className="p-4">
+                {viewingUrl && viewingUrl.includes('.pdf') ? (
+                  <iframe
+                    src={viewingUrl}
+                    className="w-full h-[600px] border rounded"
+                    title="Invoice PDF"
+                  />
+                ) : viewingUrl ? (
+                  <img
+                    src={viewingUrl}
+                    alt="Invoice"
+                    className="w-full h-auto border rounded"
+                  />
+                ) : null}
+              </div>
+              
+              <div className="bg-gray-50 border-t p-4 flex gap-2 justify-end">
+                <button
+                  onClick={() => setViewingUrl(null)}
+                  className="px-4 py-2 bg-gray-300 text-gray-900 rounded font-semibold hover:bg-gray-400"
+                >
+                  Close
+                </button>
+                {viewingUrl && (
+                  <a
+                    href={viewingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-[#3ab54a] text-white rounded font-semibold hover:bg-[#2d9e3c]"
+                  >
+                    Download
+                  </a>
                 )}
-
-                {/* Amount */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Invoice Amount ({invoiceFormData.currency})
-                  </label>
-                  <input
-                    type="number"
-                    value={invoiceFormData.amount}
-                    onChange={(e) =>
-                      setInvoiceFormData(prev => ({
-                        ...prev,
-                        amount: parseFloat(e.target.value),
-                      }))
-                    }
-                    step="0.01"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab54a]/50 text-lg font-semibold"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Auto-filled from load price (editable if needed)</p>
-                </div>
-
-                {/* Item Description */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <input
-                    type="text"
-                    value={invoiceFormData.itemDescription}
-                    onChange={(e) =>
-                      setInvoiceFormData(prev => ({
-                        ...prev,
-                        itemDescription: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab54a]/50"
-                    required
-                  />
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Notes/Terms
-                  </label>
-                  <textarea
-                    value={invoiceFormData.notes}
-                    onChange={(e) =>
-                      setInvoiceFormData(prev => ({
-                        ...prev,
-                        notes: e.target.value,
-                      }))
-                    }
-                    rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab54a]/50 resize-none"
-                    placeholder="Payment terms, due date, special conditions..."
-                  />
-                </div>
-
-                {/* Buttons */}
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="submit"
-                    disabled={creatingInvoice}
-                    className="flex-1 px-4 py-2 bg-[#3ab54a] text-white rounded-lg font-semibold hover:bg-[#2d9e3c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {creatingInvoice ? 'Creating...' : 'Create Invoice'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedLoadId(null)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
+
       </PageLayout>
     </>
   )

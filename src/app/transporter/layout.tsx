@@ -8,9 +8,9 @@ export default async function TransporterLayout({ children }: { children: React.
   const session = await getServerSession(authOptions)
   if (!session?.user || session.user.role !== 'TRANSPORTER') redirect('/login')
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar />
-      <div className="flex flex-col flex-1 min-h-screen">{children}</div>
+      <div className="flex flex-col flex-1 h-full overflow-y-auto">{children}</div>
     </div>
   )
 }

@@ -12,8 +12,14 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Allow both ADMIN and CLIENT to approve documents
+    const role = session.user.role
+    if (!['ADMIN', 'CLIENT'].includes(role)) {
+      return NextResponse.json({ error: 'Only admins and clients can approve documents' }, { status: 403 })
     }
 
     const { approved, visibleTo, rejectionReason } = await req.json()
@@ -36,6 +42,10 @@ export async function POST(
           visibleTo: approved ? visibleTo || 'CLIENT,TRANSPORTER' : 'ADMIN',
           approved: approved || false,
           rejectionReason: !approved ? rejectionReason : undefined,
+          // Update client approval status (for invoices and PODs)
+          clientApprovalStatus: approved ? 'APPROVED' : 'REJECTED',
+          clientApprovedAt: new Date(),
+          clientApprovedBy: new ObjectId(session.user.id),
         },
       },
       { returnDocument: 'after' }
@@ -43,11 +53,66 @@ export async function POST(
 
     const updatedDocument = (result as any).value || result
     
+    console.log('[ApproveDocument] 📋 Document updated:', {
+      documentId: params.id,
+      docType: updatedDocument?.docType,
+      approved: updatedDocument?.approved,
+      clientApprovalStatus: updatedDocument?.clientApprovalStatus,
+      role: role
+    })
+
     if (!updatedDocument) {
       return NextResponse.json(
         { error: 'Document not found' },
         { status: 404 }
       )
+    }
+
+    // SYNC POD AND INVOICE: If this is an invoice, also update related POD
+    if (updatedDocument.docType === 'INVOICE') {
+      console.log('[ApproveDocument] 🔗 Syncing POD status with invoice approval...')
+      try {
+        // Try using relatedPodId first, then fallback to finding by loadId
+        const podUpdateQuery = updatedDocument.relatedPodId 
+          ? { _id: updatedDocument.relatedPodId, docType: 'POD' }
+          : { loadId: updatedDocument.loadId, docType: 'POD' }
+          
+        const podUpdateResult = await db.collection('documents').updateOne(
+          podUpdateQuery,
+          {
+            $set: {
+              clientApprovalStatus: approved ? 'APPROVED' : 'REJECTED',
+              clientApprovedAt: new Date(),
+              clientApprovedBy: new ObjectId(session.user.id),
+            }
+          }
+        )
+        console.log('[ApproveDocument] ✅ POD synced - Modified:', podUpdateResult.modifiedCount)
+      } catch (podSyncErr) {
+        console.warn('[ApproveDocument] ⚠️  Could not sync POD:', podSyncErr)
+        // Don't fail the approval if sync fails
+      }
+    }
+    
+    // ALSO: If this is a POD, find and update related INVOICE
+    if (updatedDocument.docType === 'POD') {
+      console.log('[ApproveDocument] 🔗 Syncing INVOICE status with POD approval...')
+      try {
+        const invoiceUpdateResult = await db.collection('documents').updateOne(
+          { relatedPodId: updatedDocument._id, docType: 'INVOICE' },
+          {
+            $set: {
+              clientApprovalStatus: approved ? 'APPROVED' : 'REJECTED',
+              clientApprovedAt: new Date(),
+              clientApprovedBy: new ObjectId(session.user.id),
+            }
+          }
+        )
+        console.log('[ApproveDocument] ✅ INVOICE synced - Modified:', invoiceUpdateResult.modifiedCount)
+      } catch (invoiceSyncErr) {
+        console.warn('[ApproveDocument] ⚠️  Could not sync INVOICE:', invoiceSyncErr)
+        // Don't fail the approval if sync fails
+      }
     }
 
     // Send email notification to document owner
