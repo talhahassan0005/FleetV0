@@ -3,6 +3,7 @@ import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { sendEmail, loadPostedEmail } from '@/lib/email'
 
 /**
  * GET /api/loads - Get all loads with optional filtering
@@ -120,6 +121,88 @@ export async function POST(req: NextRequest) {
       clientId: clientId,
       clientObjectId: clientObjectId.toString(),
     })
+
+    // Send email notification to all verified transporters
+    try {
+      console.log('[CreateLoad] 🔍 Starting transporter email send...')
+      const transporters = await db.collection('users').find({ role: 'TRANSPORTER', isVerified: true }).toArray()
+      console.log(`[CreateLoad] 📊 Found ${transporters.length} verified transporters in database`)
+      
+      if (transporters.length === 0) {
+        console.warn('[CreateLoad] ⚠️  NO VERIFIED TRANSPORTERS FOUND IN DATABASE!')
+      }
+      
+      let emailsSent = 0
+      let emailsFailed = 0
+      
+      for (const transporter of transporters) {
+        try {
+          console.log(`[CreateLoad] 👤 Processing transporter: ${transporter.companyName} (ID: ${transporter._id})`)
+          
+          if (!transporter.email) {
+            console.warn(`[CreateLoad] ❌ Transporter has NO EMAIL: ${transporter.companyName}`)
+            emailsFailed++
+            continue
+          }
+          
+          console.log(`[CreateLoad] 📧 Preparing email for: ${transporter.email}`)
+          const emailContent = loadPostedEmail(
+            transporter.companyName || 'Transporter',
+            ref,
+            origin,
+            destination,
+            postedPrice,
+            'ZAR'
+          )
+          
+          console.log(`[CreateLoad] 🚀 Sending email to ${transporter.email}...`)
+          const result = await sendEmail(
+            transporter.email,
+            `📬 New Load Available: ${ref}`,
+            emailContent
+          )
+          
+          if (result.success) {
+            console.log(`[CreateLoad] ✅ Email SENT to ${transporter.email}`)
+            emailsSent++
+          } else {
+            console.error(`[CreateLoad] ❌ Email FAILED for ${transporter.email}:`, result.error)
+            emailsFailed++
+          }
+        } catch (emailErr) {
+          console.error(`[CreateLoad] 💥 Exception sending email to ${transporter.email}:`, emailErr)
+          emailsFailed++
+        }
+      }
+      
+      console.log(`[CreateLoad] 📈 FINAL RESULT: ${emailsSent} emails sent, ${emailsFailed} failed`)
+      
+      // Also send email to the client who posted the load
+      try {
+        if (session.user?.email) {
+          console.log(`[CreateLoad] 📧 Sending confirmation email to client: ${session.user.email}`)
+          const clientEmailContent = loadPostedEmail(
+            session.user.companyName || 'Client',
+            ref,
+            origin,
+            destination,
+            postedPrice,
+            'ZAR'
+          )
+          const result = await sendEmail(
+            session.user.email,
+            `✅ Your Load Posted: ${ref}`,
+            clientEmailContent
+          )
+          console.log(`[CreateLoad] ✅ Client confirmation email sent:`, result)
+        }
+      } catch (clientEmailErr) {
+        console.error('[CreateLoad] ⚠️  Failed to send confirmation email to client:', clientEmailErr)
+      }
+    } catch (emailErr) {
+      console.error('[CreateLoad] 💥 CRITICAL ERROR in email sending block:', emailErr)
+      // Don't fail the load creation if emails fail
+    }
 
     return NextResponse.json(
       {

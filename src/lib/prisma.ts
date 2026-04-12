@@ -45,6 +45,8 @@ export const db = {
   quotes: async () => (await getDatabase()).collection('quotes'),
   documents: async () => (await getDatabase()).collection('documents'),
   invoices: async () => (await getDatabase()).collection('invoices'),
+  pods: async () => (await getDatabase()).collection('pods'),
+  partialDeliveries: async () => (await getDatabase()).collection('partial_deliveries'),
   loadUpdates: async () => (await getDatabase()).collection('load_updates'),
   trackingLinks: async () => (await getDatabase()).collection('tracking_links'),
 }

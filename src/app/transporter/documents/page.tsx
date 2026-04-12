@@ -6,8 +6,7 @@ import { useRef } from 'react'
 
 export default function TransporterDocumentsPage() {
   const [documents, setDocuments] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [isFetching, setIsFetching] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedType, setSelectedType] = useState('REGISTRATION')
@@ -21,30 +20,39 @@ export default function TransporterDocumentsPage() {
     { value: 'OTHER', label: 'Other' },
   ]
 
-  const fetchDocuments = useCallback(async () => {
-    // Prevent concurrent fetches
-    if (isFetching || loading) {
-      console.log('[TransporterDocuments] Fetch already in progress, skipping...')
-      return
-    }
-
+  const fetchDocuments = async () => {
     try {
-      setIsFetching(true)
       setLoading(true)
+      console.log('[TransporterDocuments] Starting fetch...')
+      
       const res = await fetch('/api/documents')
+      console.log('[TransporterDocuments] Got response:', res.status, res.ok)
+      
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`)
+      }
+      
       const data = await res.json()
-      setDocuments(data.data || [])
+      console.log('[TransporterDocuments] Received data:', data)
+      
+      const docs = data.data || []
+      console.log('[TransporterDocuments] Setting documents:', docs.length, 'docs')
+      
+      setDocuments(docs)
+      
+      console.log('[TransporterDocuments] ✅ Fetch complete')
     } catch (err) {
-      console.error('Failed to fetch documents:', err)
+      console.error('[TransporterDocuments] Fetch error:', err)
+      setDocuments([])
     } finally {
       setLoading(false)
-      setIsFetching(false)
     }
-  }, [isFetching, loading])
+  }
 
   useEffect(() => {
+    console.log('[TransporterDocuments] Component mounted, fetching documents...')
     fetchDocuments()
-  }, [fetchDocuments])
+  }, [])
 
   const handleUpload = async (file: File) => {
     if (!file) return

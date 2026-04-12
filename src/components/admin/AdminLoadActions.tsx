@@ -1,6 +1,6 @@
 'use client'
 // src/components/admin/AdminLoadActions.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 type Props = {
@@ -22,6 +22,12 @@ type Props = {
 export function AdminLoadActions({ loadId, invoiceId, action, label, className = '', transporterId, transporters, currentId, currentStatus, currency = 'ZAR', token, initialStatus, onSuccess }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [approveLoading, setApproveLoading] = useState(false)
+  const [commissionLoading, setCommissionLoading] = useState(false)
+  const [rejectLoading, setRejectLoading] = useState(false)
+  const [documentsLoading, setDocumentsLoading] = useState(false)
+  const [documents, setDocuments] = useState<any[]>([])
+  const [selectedDoc, setSelectedDoc] = useState<any>(null)
   const [selectedTransporter, setSelectedTransporter] = useState(currentId ?? '')
   const [status, setStatus]   = useState(currentStatus ?? 'PENDING')
   const [message, setMessage] = useState('')
@@ -33,6 +39,29 @@ export function AdminLoadActions({ loadId, invoiceId, action, label, className =
   const [visibleTo, setVisibleTo]   = useState('CLIENT,ADMIN')
   const [rejectionReason, setRejectionReason] = useState('')
   const [commission, setCommission] = useState('')
+
+  // Fetch documents for this load
+  useEffect(() => {
+    if (action === 'loadManagement' && loadId) {
+      fetchDocuments()
+    }
+  }, [action, loadId])
+
+  async function fetchDocuments() {
+    try {
+      setDocumentsLoading(true)
+      const res = await fetch('/api/documents')
+      const data = await res.json()
+      // Filter documents by loadId on client side
+      const filtered = (data.data || []).filter((doc: any) => doc.loadId === loadId)
+      console.log(`[AdminLoadActions] Filtered ${filtered.length} documents for load ${loadId} from total ${data.data?.length || 0}`)
+      setDocuments(filtered)
+    } catch (err) {
+      console.error('Error fetching documents:', err)
+    } finally {
+      setDocumentsLoading(false)
+    }
+  }
 
   async function callApi(body: object) {
     setLoading(true)
@@ -211,49 +240,25 @@ export function AdminLoadActions({ loadId, invoiceId, action, label, className =
   )
 
   if (action === 'loadManagement') return (
-    <div className="space-y-6">
-      {/* Approve Load */}
-      <div className="border border-green-200 bg-green-50 p-4 rounded">
-        <h4 className="font-bold text-green-900 mb-3">✓ Approve Load</h4>
-        <button 
-          onClick={async () => {
-            if (confirm('Approve this load?')) {
-              setLoading(true)
-              try {
-                const res = await fetch(`/api/admin/loads/${loadId}`, {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ action: 'approve' })
-                })
-                if (res.ok) {
-                  alert('Load approved successfully!')
-                  onSuccess?.()
-                }
-              } finally {
-                setLoading(false)
-              }
-            }
-          }}
-          disabled={loading}
-          className="w-full px-4 py-2 bg-green-600 text-white rounded font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Approving...' : 'Approve Load'}
-        </button>
-      </div>
-
+    <div className="space-y-4">
       {/* Add Commission */}
       <div className="border border-blue-200 bg-blue-50 p-4 rounded">
-        <h4 className="font-bold text-blue-900 mb-3">$ Add Commission</h4>
-        <div className="space-y-3">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xl">$</span>
+          <h4 className="font-bold text-blue-900">Add Commission</h4>
+        </div>
+        <div className="space-y-2">
           <div>
-            <label className="field-label">Commission Amount (R)</label>
+            <label className="field-label">Commission Amount (ZAR)</label>
             <input 
               type="number" 
               step="0.01" 
+              min="0"
               value={commission} 
               onChange={e => setCommission(e.target.value)}
               className="field w-full"
-              placeholder="0.00"
+              placeholder="Enter commission amount"
+              disabled={commissionLoading}
             />
           </div>
           <button 
@@ -263,7 +268,7 @@ export function AdminLoadActions({ loadId, invoiceId, action, label, className =
                 return
               }
               if (confirm(`Add R${parseFloat(commission).toFixed(2)} commission?`)) {
-                setLoading(true)
+                setCommissionLoading(true)
                 try {
                   const res = await fetch(`/api/admin/loads/${loadId}`, {
                     method: 'PATCH',
@@ -281,30 +286,68 @@ export function AdminLoadActions({ loadId, invoiceId, action, label, className =
                     alert('Failed to add commission')
                   }
                 } finally {
-                  setLoading(false)
+                  setCommissionLoading(false)
                 }
               }
             }}
-            disabled={loading || !commission}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+            disabled={commissionLoading || !commission}
+            className="w-full px-3 py-2 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
           >
-            {loading ? 'Adding...' : 'Add Commission'}
+            {commissionLoading ? 'Adding Commission...' : 'Add Commission'}
           </button>
         </div>
       </div>
 
+      {/* Approve Load */}
+      <div className="border border-green-200 bg-green-50 p-4 rounded">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xl">✓</span>
+          <h4 className="font-bold text-green-900">Approve Load</h4>
+        </div>
+        <button 
+          onClick={async () => {
+            if (confirm('Approve this load?')) {
+              setApproveLoading(true)
+              try {
+                const res = await fetch(`/api/admin/loads/${loadId}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'approve' })
+                })
+                if (res.ok) {
+                  alert('Load approved successfully!')
+                  onSuccess?.()
+                } else {
+                  alert('Failed to approve load')
+                }
+              } finally {
+                setApproveLoading(false)
+              }
+            }
+          }}
+          disabled={approveLoading}
+          className="w-full px-3 py-2 bg-green-600 text-white rounded font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 text-sm"
+        >
+          {approveLoading ? 'Approving Load...' : 'Approve Load'}
+        </button>
+      </div>
+
       {/* Reject Load */}
       <div className="border border-red-200 bg-red-50 p-4 rounded">
-        <h4 className="font-bold text-red-900 mb-3">✗ Reject Load</h4>
-        <div className="space-y-3">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xl">✗</span>
+          <h4 className="font-bold text-red-900">Reject Load</h4>
+        </div>
+        <div className="space-y-2">
           <div>
             <label className="field-label">Reason for Rejection</label>
             <textarea 
               value={rejectionReason} 
               onChange={e => setRejectionReason(e.target.value)}
               className="field w-full resize-none"
-              rows={3}
+              rows={2}
               placeholder="Explain why this load is being rejected..."
+              disabled={rejectLoading}
             />
           </div>
           <button 
@@ -314,7 +357,7 @@ export function AdminLoadActions({ loadId, invoiceId, action, label, className =
                 return
               }
               if (confirm('Reject this load? This action cannot be undone.')) {
-                setLoading(true)
+                setRejectLoading(true)
                 try {
                   const res = await fetch(`/api/admin/loads/${loadId}`, {
                     method: 'PATCH',
@@ -332,16 +375,62 @@ export function AdminLoadActions({ loadId, invoiceId, action, label, className =
                     alert('Failed to reject load')
                   }
                 } finally {
-                  setLoading(false)
+                  setRejectLoading(false)
                 }
               }
             }}
-            disabled={loading || !rejectionReason.trim()}
-            className="w-full px-4 py-2 bg-red-600 text-white rounded font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
+            disabled={rejectLoading || !rejectionReason.trim()}
+            className="w-full px-3 py-2 bg-red-600 text-white rounded font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 text-sm"
           >
-            {loading ? 'Rejecting...' : 'Reject Load'}
+            {rejectLoading ? 'Rejecting Load...' : 'Reject Load'}
           </button>
         </div>
+      </div>
+
+      {/* View Documents */}
+      <div className="border border-purple-200 bg-purple-50 p-4 rounded">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xl">📄</span>
+          <h4 className="font-bold text-purple-900">Load Documents</h4>
+        </div>
+        {documentsLoading ? (
+          <div className="text-center py-4">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+          </div>
+        ) : documents.length === 0 ? (
+          <p className="text-sm text-gray-600 text-center py-3">No documents uploaded for this load yet</p>
+        ) : (
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {documents.map((doc) => (
+              <div
+                key={doc._id}
+                className="p-3 bg-white border border-purple-100 rounded hover:border-purple-300 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-purple-900 truncate">📋 {doc.originalName}</p>
+                    <p className="text-xs text-gray-500">Type: {doc.docType} • {new Date(doc.createdAt).toLocaleDateString()}</p>
+                    {doc.reviews && doc.reviews.length > 0 && (
+                      <p className="text-xs text-purple-600 mt-1">
+                        {doc.reviews.length} review(s)
+                        {doc.reviews.some((r: any) => r.status === 'APPROVED') && ' • ✓ Approved'}
+                        {doc.reviews.some((r: any) => r.status === 'REJECTED') && ' • ✗ Rejected'}
+                      </p>
+                    )}
+                  </div>
+                  <a
+                    href={doc.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2 py-1 bg-purple-600 text-white rounded text-xs font-semibold hover:bg-purple-700 transition-colors flex-shrink-0 whitespace-nowrap"
+                  >
+                    Open
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

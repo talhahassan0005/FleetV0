@@ -122,14 +122,75 @@ const documentSchema = new mongoose.Schema(
 const invoiceSchema = new mongoose.Schema(
   {
     loadId: { type: mongoose.Schema.Types.ObjectId, ref: 'Load', required: true },
+    transporterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    podId: { type: mongoose.Schema.Types.ObjectId, ref: 'POD' },
     invoiceNumber: { type: String, required: true },
     amount: { type: Number, required: true },
     currency: { type: String, default: 'ZAR' },
-    status: { type: String, enum: Object.values(InvoiceStatus), default: InvoiceStatus.PENDING },
+    tonnageForThisInvoice: { type: Number }, // For partial invoices
+    totalLoadTonnage: { type: Number },
+    tonnageDeliveredSoFar: { type: Number },
+    transporterInvoice: {
+      invoiceNumber: { type: String },
+      amount: { type: Number },
+      date: { type: Date },
+      pdfUrl: { type: String },
+    },
+    clientInvoice: {
+      invoiceNumber: { type: String },
+      amount: { type: Number },
+      date: { type: Date },
+      markup: { type: Number },
+      markupPercentage: { type: Number },
+      sentVia: { type: String, enum: ['quickbooks', 'email'], default: 'quickbooks' },
+    },
+    paymentStatus: { type: String, enum: ['UNPAID', 'PARTIAL_PAID', 'PAID'], default: 'UNPAID' },
+    paymentTrackedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    paymentNotes: { type: String },
+    comments: { type: String },
+    status: { type: String, enum: ['PENDING_ADMIN_APPROVAL', 'SENT_TO_CLIENT', 'AWAITING_PAYMENT', 'PAID', 'REJECTED', 'DRAFT'], default: 'DRAFT' },
     filename: { type: String },
     originalName: { type: String },
     fileUrl: { type: String },
     issuedAt: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
+
+const podSchema = new mongoose.Schema(
+  {
+    loadId: { type: mongoose.Schema.Types.ObjectId, ref: 'Load', required: true },
+    transporterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    podDocument: {
+      filename: { type: String },
+      url: { type: String },
+      mimeType: { type: String },
+      uploadedAt: { type: Date },
+    },
+    transporterInvoice: {
+      filename: { type: String },
+      url: { type: String },
+      mimeType: { type: String },
+      uploadedAt: { type: Date },
+    },
+    deliveryDate: { type: Date },
+    deliveryTime: { type: String },
+    notes: { type: String },
+    adminApproval: {
+      approved: { type: Boolean, default: false },
+      approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      approvedAt: { type: Date },
+      comments: { type: String },
+    },
+    clientApproval: {
+      approved: { type: Boolean, default: false },
+      approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      approvedAt: { type: Date },
+      comments: { type: String },
+    },
+    status: { type: String, enum: ['PENDING_ADMIN', 'PENDING_CLIENT', 'APPROVED', 'REJECTED'], default: 'PENDING_ADMIN' },
   },
   { timestamps: true }
 );
@@ -150,4 +211,5 @@ export const Quote = mongoose.models.Quote || mongoose.model('Quote', quoteSchem
 export const LoadUpdate = mongoose.models.LoadUpdate || mongoose.model('LoadUpdate', loadUpdateSchema);
 export const Document = mongoose.models.Document || mongoose.model('Document', documentSchema);
 export const Invoice = mongoose.models.Invoice || mongoose.model('Invoice', invoiceSchema);
+export const POD = mongoose.models.POD || mongoose.model('POD', podSchema);
 export const TrackingLink = mongoose.models.TrackingLink || mongoose.model('TrackingLink', trackingLinkSchema);

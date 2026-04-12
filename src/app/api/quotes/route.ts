@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { z } from 'zod'
+import { sendEmail, quoteReceivedEmail } from '@/lib/email'
 
 const schema = z.object({
   loadId: z.string(),
@@ -43,6 +44,29 @@ export async function POST(req: NextRequest) {
       message: `Quote submitted by ${user?.companyName}: ${load.currency} ${body.price.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`,
       createdAt: new Date(),
     })
+
+    // Send email to client notifying them of the new quote
+    try {
+      const client = await db.collection('users').findOne({ _id: load.clientId })
+      if (client && client.email) {
+        const emailContent = quoteReceivedEmail(
+          client.companyName || 'Client',
+          user?.companyName || 'Transporter',
+          load.ref,
+          body.price,
+          load.currency || 'ZAR'
+        )
+        await sendEmail(
+          client.email,
+          `📬 New Quote Received: ${load.ref}`,
+          emailContent
+        )
+        console.log('[CreateQuote] ✅ Quote received email sent to client')
+      }
+    } catch (emailErr) {
+      console.error('[CreateQuote] ⚠️  Error sending quote email:', emailErr)
+      // Don't fail the quote creation if email fails
+    }
 
     return NextResponse.json({ _id: result.insertedId, loadId: body.loadId, transporterId: session.user.id, price: body.price, notes: body.notes }, { status: 201 })
   } catch (err: any) {

@@ -35,19 +35,27 @@ export async function GET(req: NextRequest) {
       })
     })
     
-    // Get documents owned by this user only
-    // CLIENT and TRANSPORTER should only see their own documents
-    // ADMIN can see all documents (filtered separately if needed)
-    const documents = await db.collection('documents').find({
-      userId: userId // Only documents uploaded by this user
-    }).sort({ createdAt: -1 }).toArray()
+    // Build query based on user role
+    let query: any = {}
+    
+    if (userRole === 'ADMIN') {
+      // ADMIN can see ALL documents
+      console.log('[GetDocuments] ADMIN user - fetching ALL documents')
+      query = {} // Empty query = all documents
+    } else {
+      // CLIENT and TRANSPORTER see only their own documents
+      console.log('[GetDocuments] Regular user - fetching only own documents')
+      query = { userId: userId }
+    }
+    
+    // Get documents based on query
+    const documents = await db.collection('documents').find(query).sort({ createdAt: -1 }).toArray()
 
-    console.log('[GetDocuments] Found matching documents:', documents.length)
+    console.log('[GetDocuments] Found matching documents:', documents.length, 'with query:', query)
     documents.forEach((doc: any) => {
       console.log('[GetDocuments] Result Doc:', {
         id: doc._id?.toString?.(),
         userId: doc.userId?.toString?.(),
-        owned: doc.userId?.toString?.() === userId.toString(),
         uploadedByRole: doc.uploadedByRole,
         visibleTo: doc.visibleTo,
       })

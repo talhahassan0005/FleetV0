@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
+import { sendEmail, quoteApprovedEmail, quoteRejectedEmail } from '@/lib/email'
 
 export async function PUT(
   req: NextRequest,
@@ -106,6 +107,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Failed to update quote' }, { status: 500 })
     }
 
+    // Get transporter and load info for emails
+    const transporter = await db.collection('users').findOne({ _id: quote.transporterId })
+    const loadRef = load.ref
+
     // If quote is accepted, reject all other quotes for this load
     if (status === 'ACCEPTED') {
       await db.collection('quotes').updateMany(
@@ -124,6 +129,69 @@ export async function PATCH(
           }
         }
       )
+
+      // Send approval email to accepted transporter
+      if (transporter && transporter.email) {
+        try {
+          const emailContent = quoteApprovedEmail(
+            transporter.companyName || 'Transporter',
+            loadRef
+          )
+          await sendEmail(
+            transporter.email,
+            `✅ Quote Approved: ${loadRef}`,
+            emailContent
+          )
+          console.log('[UpdateQuote] ✅ Quote approved email sent to transporter')
+        } catch (emailErr) {
+          console.error('[UpdateQuote] ⚠️  Error sending approval email:', emailErr)
+        }
+      }
+
+      // Send rejection emails to other transporters whose quotes were auto-rejected
+      try {
+        const rejectedQuotes = await db.collection('quotes').find({
+          loadId: quote.loadId,
+          _id: { $ne: quoteId },
+          status: 'AUTO_REJECTED'
+        }).toArray()
+
+        for (const rejQuote of rejectedQuotes) {
+          const rejectedTransporter = await db.collection('users').findOne({ _id: rejQuote.transporterId })
+          if (rejectedTransporter && rejectedTransporter.email) {
+            const emailContent = quoteRejectedEmail(
+              rejectedTransporter.companyName || 'Transporter',
+              loadRef
+            )
+            await sendEmail(
+              rejectedTransporter.email,
+              `❌ Quote Rejected: ${loadRef}`,
+              emailContent
+            )
+          }
+        }
+        console.log(`[UpdateQuote] ✅ Quote rejected emails sent to ${rejectedQuotes.length} transporters`)
+      } catch (emailErr) {
+        console.error('[UpdateQuote] ⚠️  Error sending rejection emails:', emailErr)
+      }
+    } else if (status === 'REJECTED') {
+      // Send rejection email to transporter
+      if (transporter && transporter.email) {
+        try {
+          const emailContent = quoteRejectedEmail(
+            transporter.companyName || 'Transporter',
+            loadRef
+          )
+          await sendEmail(
+            transporter.email,
+            `❌ Quote Rejected: ${loadRef}`,
+            emailContent
+          )
+          console.log('[UpdateQuote] ✅ Quote rejected email sent to transporter')
+        } catch (emailErr) {
+          console.error('[UpdateQuote] ⚠️  Error sending rejection email:', emailErr)
+        }
+      }
     }
 
     return NextResponse.json({

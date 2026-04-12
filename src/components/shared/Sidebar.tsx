@@ -9,8 +9,8 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
   ADMIN: [
     { label: 'Dashboard', href: '/admin/dashboard',  icon: <GridIcon /> },
     { label: 'All Loads', href: '/admin/loads',      icon: <TruckIcon /> },
+    { label: 'POD Management', href: '/admin/pod-management-new', icon: <ReceiptIcon /> },
     { label: 'Users',     href: '/admin/users',      icon: <UsersIcon /> },
-    { label: 'Verification', href: '/admin/verification', icon: <CheckIcon /> },
     { label: 'Documents', href: '/admin/documents',  icon: <DocumentIcon /> },
     { label: 'My Profile', href: '/admin/profile',   icon: <UserIcon /> },
   ],
@@ -18,6 +18,7 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
     { label: 'Dashboard',  href: '/client/dashboard',      icon: <GridIcon /> },
     { label: 'My Loads',   href: '/client',                icon: <TruckIcon /> },
     { label: 'Post Load',  href: '/client/post-load',      icon: <PlusCircleIcon /> },
+    { label: 'Invoices',   href: '/client/invoices',       icon: <ReceiptIcon /> },
     { label: 'Documents',  href: '/client/documents',      icon: <DocumentIcon /> },
     { label: 'Chat',       href: '/client/chat',           icon: <ChatIcon /> },
     { label: 'My Profile', href: '/client/profile',        icon: <UserIcon /> },
@@ -26,6 +27,7 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
     { label: 'Dashboard',  href: '/transporter/dashboard',  icon: <GridIcon /> },
     { label: 'Available Loads', href: '/transporter/loads', icon: <TruckIcon /> },
     { label: 'My Quotes',  href: '/transporter/quotes',     icon: <QuoteIcon /> },
+    { label: 'Upload POD', href: '/transporter/upload-pod', icon: <ReceiptIcon /> },
     { label: 'Documents',  href: '/transporter/documents',  icon: <DocumentIcon /> },
     { label: 'Chat',       href: '/transporter/chat',       icon: <ChatIcon /> },
     { label: 'My Profile', href: '/transporter/profile',    icon: <UserIcon /> },
@@ -113,4 +115,7 @@ function QuoteIcon() {
 }
 function CheckIcon() {
   return <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-4 h-4"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+}
+function ReceiptIcon() {
+  return <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-4 h-4"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2-2 2 2 0 0 0 2 2m0 0h2"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
 }

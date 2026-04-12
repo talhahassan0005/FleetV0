@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
+import { sendEmail, loadApprovedEmail, loadApprovedNotificationEmail, loadRejectedEmail } from '@/lib/email'
 
 export async function GET(
   req: NextRequest,
@@ -109,6 +110,12 @@ export async function PATCH(
 
     // Handle different actions
     if (action === 'approve') {
+      // First fetch the full load to get clientId and details
+      const load = await db.collection('loads').findOne({ _id: loadObjectId })
+      if (!load) {
+        return NextResponse.json({ error: 'Load not found' }, { status: 404 })
+      }
+
       const result = await db.collection('loads').updateOne(
         { _id: loadObjectId },
         {
@@ -127,6 +134,83 @@ export async function PATCH(
 
       console.log('[AdminLoadAction] Load approved:', loadId)
 
+      // Send approval email to client
+      try {
+        const clientId = load.clientId
+        if (clientId) {
+          const client = await db.collection('users').findOne({ _id: clientId })
+          if (client && client.email) {
+            console.log('[AdminLoadAction] Sending approval email to client:', client.email)
+            const emailContent = loadApprovedEmail(
+              client.companyName || 'Client',
+              load.ref,
+              load.origin,
+              load.destination,
+              load.finalPrice || 0,
+              load.commission || 0,
+              load.currency || 'ZAR'
+            )
+            const emailResult = await sendEmail(
+              client.email,
+              `✅ Your Load Approved: ${load.ref}`,
+              emailContent
+            )
+            console.log('[AdminLoadAction] ✅ Approval email sent to client:', emailResult)
+          }
+        }
+      } catch (emailErr) {
+        console.error('[AdminLoadAction] ⚠️  Error sending approval email to client:', emailErr)
+        // Don't fail the approval if email fails
+      }
+
+      // Send notification to all verified transporters
+      try {
+        console.log('[AdminLoadAction] 🔍 Starting transporter notification...')
+        const transporters = await db.collection('users').find({
+          role: 'TRANSPORTER',
+          isVerified: true,
+          email: { $exists: true, $ne: null }
+        }).toArray()
+        
+        console.log('[AdminLoadAction] 📊 Found', transporters.length, 'verified transporters')
+        
+        let successCount = 0
+        let failCount = 0
+        
+        for (const transporter of transporters) {
+          try {
+            console.log('[AdminLoadAction] 👤 Processing transporter:', transporter.companyName, '(ID:', transporter._id, ')')
+            console.log('[AdminLoadAction] 📧 Preparing notification for:', transporter.email)
+            
+            const emailContent = loadApprovedNotificationEmail(
+              transporter.companyName || 'Transporter',
+              load.ref,
+              load.origin,
+              load.destination,
+              load.finalPrice || 0,
+              load.currency || 'ZAR'
+            )
+            
+            console.log('[AdminLoadAction] 🚀 Sending notification to', transporter.email, '...')
+            const emailResult = await sendEmail(
+              transporter.email,
+              `🎯 Load Approved & Available: ${load.ref}`,
+              emailContent
+            )
+            console.log('[AdminLoadAction] ✅ Notification sent to', transporter.email)
+            successCount++
+          } catch (err) {
+            console.error('[AdminLoadAction] ❌ Failed to send notification to', transporter.email, ':', err)
+            failCount++
+          }
+        }
+        
+        console.log('[AdminLoadAction] 📈 Transporter notification RESULT:', successCount, 'sent,', failCount, 'failed')
+      } catch (err) {
+        console.error('[AdminLoadAction] 💥 Error in transporter notification process:', err)
+        // Don't fail the approval if transporter notifications fail
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Load approved successfully',
@@ -139,6 +223,12 @@ export async function PATCH(
           { error: 'Rejection reason is required' },
           { status: 400 }
         )
+      }
+
+      // First fetch the full load to get clientId and details
+      const load = await db.collection('loads').findOne({ _id: loadObjectId })
+      if (!load) {
+        return NextResponse.json({ error: 'Load not found' }, { status: 404 })
       }
 
       const result = await db.collection('loads').updateOne(
@@ -159,6 +249,33 @@ export async function PATCH(
       }
 
       console.log('[AdminLoadAction] Load rejected:', loadId, 'Reason:', rejectionReason)
+
+      // Send rejection email to client
+      try {
+        const clientId = load.clientId
+        if (clientId) {
+          const client = await db.collection('users').findOne({ _id: clientId })
+          if (client && client.email) {
+            console.log('[AdminLoadAction] 📧 Sending rejection email to client:', client.email)
+            const emailContent = loadRejectedEmail(
+              client.companyName || 'Client',
+              load.ref,
+              load.origin,
+              load.destination,
+              rejectionReason.trim()
+            )
+            const emailResult = await sendEmail(
+              client.email,
+              `❌ Your Load Rejected: ${load.ref}`,
+              emailContent
+            )
+            console.log('[AdminLoadAction] ✅ Rejection email sent:', emailResult)
+          }
+        }
+      } catch (emailErr) {
+        console.error('[AdminLoadAction] ⚠️  Error sending rejection email:', emailErr)
+        // Don't fail the rejection if email fails
+      }
 
       return NextResponse.json({
         success: true,
@@ -182,21 +299,21 @@ export async function PATCH(
         )
       }
 
-      // Get current load to calculate new price
+      // Get current load
       const load = await db.collection('loads').findOne({ _id: loadObjectId })
       if (!load) {
         return NextResponse.json({ error: 'Load not found' }, { status: 404 })
       }
 
-      const currentFinalPrice = load.finalPrice || 0
-      const newFinalPrice = currentFinalPrice + commissionAmount
+      // Commission is stored SEPARATELY from finalPrice
+      // finalPrice stays the same, commission is added to separate field
+      const totalCommission = (load.commission || 0) + commissionAmount
 
       const result = await db.collection('loads').updateOne(
         { _id: loadObjectId },
         {
           $set: {
-            finalPrice: newFinalPrice,
-            commission: (load.commission || 0) + commissionAmount,
+            commission: totalCommission,
             commissionAddedAt: new Date(),
             commissionAddedBy: session.user.id,
             updatedAt: new Date(),
@@ -210,14 +327,15 @@ export async function PATCH(
 
       console.log('[AdminLoadAction] Commission added:', {
         loadId,
-        amount: commissionAmount,
-        newFinalPrice,
+        amountAdded: commissionAmount,
+        totalCommission,
+        basePrice: load.finalPrice,
       })
 
       return NextResponse.json({
         success: true,
         message: 'Commission added successfully',
-        newFinalPrice,
+        totalCommission,
       })
     }
 

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { getDatabase } from '@/lib/prisma'
 import { uploadFile } from '@/lib/cloudinary'
+import { sendEmail, welcomeEmail } from '@/lib/email'
 import { z } from 'zod'
 import { ObjectId } from 'mongodb'
 
@@ -165,6 +166,22 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[Register] Registration successful, returning 201')
+    
+    // Send welcome email to new user
+    try {
+      const loginUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login`
+      const emailContent = welcomeEmail(data.companyName, data.role, loginUrl)
+      await sendEmail(
+        data.email,
+        '🎉 Welcome to FleetXChange!',
+        emailContent
+      )
+      console.log('[Register] ✅ Welcome email sent to:', data.email)
+    } catch (emailErr) {
+      console.error('[Register] ⚠️  Error sending welcome email:', emailErr)
+      // Don't fail registration if email fails
+    }
+    
     return NextResponse.json(
       {
         id: userId,
