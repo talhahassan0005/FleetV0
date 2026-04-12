@@ -54,7 +54,7 @@ function BookALoadContent() {
               </div>
             </div>
 
-            <a href="/contact?type=shipper&source=book-a-load" className="inline-block">
+            <a href="/login?type=shipper&source=book-a-load" className="inline-block">
               <button className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-8 py-4 rounded-lg text-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
                 📦 Post Your Load Now
               </button>
@@ -118,7 +118,7 @@ function BookALoadContent() {
           <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
             Post your load in 2 minutes. Get quotes from verified transporters in 5 minutes. Save time and money.
           </p>
-          <a href="/contact?type=shipper&source=book-a-load" className="inline-block">
+          <a href="/login?type=shipper&source=book-a-load" className="inline-block">
             <button className="bg-white text-blue-600 font-bold px-8 py-4 rounded-lg hover:bg-gray-100 transition-colors text-lg shadow-lg">
               📦 Post Your Load Now
             </button>

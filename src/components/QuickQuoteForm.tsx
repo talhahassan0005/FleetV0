@@ -103,7 +103,7 @@ export default function QuickQuoteForm() {
                   value={formData.company}
                   onChange={handleChange}
                   placeholder="Your Company"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-slate-400"
                 />
               </div>
 
@@ -119,7 +119,7 @@ export default function QuickQuoteForm() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="your@email.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-slate-400"
                 />
               </div>
             </div>
@@ -137,7 +137,7 @@ export default function QuickQuoteForm() {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="+27 73 828 1478"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-slate-400"
                 />
               </div>
 
@@ -153,7 +153,7 @@ export default function QuickQuoteForm() {
                   value={formData.description}
                   onChange={handleChange}
                   placeholder="e.g., Electronics, FMCG, etc."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-gray-900 placeholder:text-slate-400"
                 />
               </div>
             </div>

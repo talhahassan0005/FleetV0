@@ -13,6 +13,61 @@ export default function AboutPage() {
         badge="About FleetXchange"
       />
       
+      {/* EVERY LOAD HAS A STORY SECTION */}
+      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="space-y-6 sm:space-y-8 leading-relaxed text-base sm:text-lg">
+            <FadeIn direction="up" delay={0} duration={800} blur={true} distance={30}>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-center mb-8 sm:mb-12">
+                Every load has a story.
+                <br />
+                <span className="text-emerald-400">Most people never hear it.</span>
+              </h2>
+            </FadeIn>
+
+            <FadeIn direction="up" delay={200} duration={900} blur={true} distance={20}>
+              <p className="text-gray-300 text-sm sm:text-base">
+                They see a truck on the highway and think nothing of it. But behind that truck is a business owner who needed someone they could trust, a driver who left home before dawn, and a client whose operation depends on that delivery going right.
+              </p>
+            </FadeIn>
+
+            <FadeIn direction="up" delay={300} duration={900} blur={true} distance={20}>
+              <p className="text-gray-300 text-sm sm:text-base">
+                We saw that story. And we saw that nobody was managing it.
+              </p>
+            </FadeIn>
+
+            <FadeIn direction="up" delay={400} duration={900} blur={true} distance={20}>
+              <p className="text-gray-300 text-sm sm:text-base">
+                Southern Africa's freight market was full of trucks, full of loads — and full of chaos in between. Brokers who vanished after the deal. Transporters with no accountability. Clients with no visibility. A system that ran on luck more than logistics.
+              </p>
+            </FadeIn>
+
+            <FadeIn direction="up" delay={500} duration={900} blur={true} distance={20}>
+              <p className="text-gray-300 font-semibold text-base sm:text-lg">
+                So we built FleetXchange.
+              </p>
+            </FadeIn>
+
+            <FadeIn direction="up" delay={600} duration={900} blur={true} distance={20}>
+              <p className="text-gray-300 text-sm sm:text-base">
+                Southern Africa's managed freight brokerage. We don't just connect loads to trucks — we own the process. We vet the transporters. We track the loads. We show up when things go wrong — because in freight, something always does.
+              </p>
+            </FadeIn>
+
+            <FadeIn direction="up" delay={700} duration={900} blur={true} distance={20}>
+              <div className="pt-6 sm:pt-8 border-t border-emerald-400/30">
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-emerald-400 text-center">
+                  We don't just move freight.
+                  <br />
+                  We tell the story.
+                </p>
+              </div>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+      
       {/* OUR STORY SECTION */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -55,6 +55,24 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://fleetxchange.africa/freight-zambia</loc>
+    <lastmod>2026-03-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://fleetxchange.africa/freight-botswana</loc>
+    <lastmod>2026-03-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://fleetxchange.africa/freight-zimbabwe</loc>
+    <lastmod>2026-03-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
     <loc>https://fleetxchange.africa/how-it-works</loc>
     <lastmod>2026-03-28</lastmod>
     <changefreq>monthly</changefreq>
