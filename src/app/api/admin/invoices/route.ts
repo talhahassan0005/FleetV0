@@ -1,15 +1,10 @@
-// src/app/api/admin/invoices/route.ts
-/**
- * GET all invoices for admin dashboard
- * Admin can view all transporter and client invoices with payment tracking
- */
-
-export const dynamic = 'force-dynamic'
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
+import { generateQBInvoiceLink, generateQBBillLink } from '@/lib/quickbooks'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   try {
@@ -114,16 +109,37 @@ export async function GET(req: NextRequest) {
           qbLink: 1,
           qbInvoiceId: 1,
           clientApprovalStatus: 1,
-          rejectionReason: 1
+          // FIX BUG 1: Clear rejection reason if status is PENDING (defensive against corrupted data)
+          rejectionReason: {
+            $cond: [
+              { $eq: ['$clientApprovalStatus', 'PENDING_CLIENT_APPROVAL'] },
+              null,  // Return null for pending invoices - should never have rejection reason
+              '$rejectionReason'  // Keep original for APPROVED/REJECTED invoices
+            ]
+          }
         }
       }
     ]).toArray()
 
     console.log('[AdminInvoices] ✅ Retrieved', invoices.length, 'invoices')
 
+    // FIX BUG 2: Fallback - regenerate QB links if missing but qbInvoiceId exists
+    const invoicesWithQBLinks = invoices.map(invoice => {
+      if ((!invoice.qbLink || invoice.qbLink === '') && invoice.qbInvoiceId) {
+        // Regenerate the QB link from the invoice ID
+        const isProduction = process.env.QUICKBOOKS_ENVIRONMENT === 'PRODUCTION';
+        const baseURL = isProduction 
+          ? 'https://qbo.intuit.com'
+          : 'https://app.sandbox.qbo.intuit.com';
+        invoice.qbLink = `${baseURL}/app/invoice?txnId=${invoice.qbInvoiceId}`;
+        console.log(`[AdminInvoices] 🔗 Regenerated QB link for invoice ${invoice.invoiceNumber}: ${invoice.qbLink}`);
+      }
+      return invoice;
+    });
+
     return NextResponse.json({
       success: true,
-      invoices,
+      invoices: invoicesWithQBLinks,
       stats: {
         total: invoices.length,
         unpaid: invoices.filter(i => i.paymentStatus === 'UNPAID').length,
