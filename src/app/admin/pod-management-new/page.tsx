@@ -323,26 +323,15 @@ export default function PODManagementPage() {
                           <p className="font-semibold text-gray-900">{pod.originalName}</p>
                         </div>
                       </div>
-                      {pod.fileUrl && typeof pod.fileUrl === 'string' && pod.fileUrl.startsWith('http') ? (
-                        <a
-                          href={pod.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-semibold border border-blue-200"
-                        >
-                          <Download className="w-4 h-4" />
-                          Download
-                        </a>
-                      ) : (
-                        <button
-                          disabled
-                          title="File URL unavailable"
-                          className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-400 rounded-lg text-sm font-semibold border border-gray-200 cursor-not-allowed"
-                        >
-                          <Download className="w-4 h-4" />
-                          File Unavailable
-                        </button>
-                      )}
+                      <a
+                        href={`/api/pod/${pod._id}/view`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-semibold border border-blue-200"
+                      >
+                        <Download className="w-4 h-4" />
+                        View Document
+                      </a>
                     </div>
                   </div>
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
+import ClientInvoiceViewModal from '@/components/client/ClientInvoiceViewModal'
 
 interface POD {
   _id: string
@@ -50,6 +51,7 @@ interface QBInvoice {
   dueDate?: string
   loadRef?: string
   clientApprovalStatus?: boolean | null
+  qbLink?: string
 }
 
 export default function ClientInvoicesPage() {
@@ -63,6 +65,7 @@ export default function ClientInvoicesPage() {
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [viewingUrl, setViewingUrl] = useState<string | null>(null)
+  const [selectedInvoice, setSelectedInvoice] = useState<QBInvoice | null>(null)
 
 
   useEffect(() => {
@@ -441,11 +444,16 @@ export default function ClientInvoicesPage() {
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Payment Status</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Due Date</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Created</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {qbInvoices.map(invoice => (
-                        <tr key={invoice._id} className="border-b hover:bg-gray-50 transition-colors">
+                        <tr 
+                          key={invoice._id} 
+                          className="border-b hover:bg-blue-50 transition-colors cursor-pointer"
+                          onClick={() => setSelectedInvoice(invoice)}
+                        >
                           <td className="px-4 py-3 font-bold text-[#1a2a5e]">{invoice.invoiceNumber}</td>
                           <td className="px-4 py-3 text-sm">{invoice.loadRef || '-'}</td>
                           <td className="px-4 py-3 text-sm">
@@ -469,6 +477,17 @@ export default function ClientInvoicesPage() {
                           </td>
                           <td className="px-4 py-3 text-sm">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '-'}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{new Date(invoice.createdAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedInvoice(invoice)
+                              }}
+                              className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-200 transition-colors"
+                            >
+                              View
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -530,6 +549,12 @@ export default function ClientInvoicesPage() {
             </div>
           </div>
         )}
+
+        {/* Invoice View Modal */}
+        <ClientInvoiceViewModal
+          invoice={selectedInvoice}
+          onClose={() => setSelectedInvoice(null)}
+        />
 
       </PageLayout>
     </>

@@ -1,35 +1,73 @@
+// src/app/api/transporter/invoices/route.ts
+/**
+ * Get invoices for a transporter
+ * Returns both TRANSPORTER_INVOICE (what transporter receives)
+ * and their related CLIENT_INVOICE (what client pays)
+ */
+
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getDatabase } from '@/lib/prisma'
-import mongoose from 'mongoose'
-import { NextResponse } from 'next/server'
+import connectToDatabase from '@/lib/db'
+import { Invoice } from '@/lib/models'
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions)
+
   if (!session?.user?.id || session.user.role !== 'TRANSPORTER') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const db = await getDatabase()
+  try {
+    await connectToDatabase()
 
-  const invoices = await db.collection('invoices').find({
-    $or: [
-      { transporterId: new mongoose.Types.ObjectId(session.user.id) },
-      { transporterId: session.user.id },
-    ],
-    invoiceType: 'TRANSPORTER_INVOICE',
-  })
-  .project({
-    invoiceNumber: 1,
-    loadId: 1,
-    paymentStatus: 1,
-    amount: 1,
-    currency: 1,
-    createdAt: 1,
-    qbLink: 1,
-  })
-  .sort({ createdAt: -1 })
-  .toArray()
+    console.log('[TransporterInvoice] 📊 Fetching invoices for transporter:', session.user.id)
 
-  return NextResponse.json({ success: true, invoices })
+    // Get all TRANSPORTER_INVOICE records for this transporter
+    const invoices = await Invoice.find({
+      transporterId: session.user.id,
+      invoiceType: 'TRANSPORTER_INVOICE'
+    })
+      .populate({
+        path: 'loadId',
+        select: 'ref origin destination currency'
+      })
+      .populate({
+        path: 'clientId',
+        select: 'companyName email'
+      })
+      .sort({ createdAt: -1 })
+      .lean()
+
+    console.log('[TransporterInvoice] ✅ Found', invoices.length, 'invoices for transporter')
+
+    // Map to response format
+    const mappedInvoices = invoices.map((inv: any) => ({
+      _id: inv._id,
+      loadId: inv.loadId?._id,
+      invoiceNumber: inv.invoiceNumber,
+      invoiceType: inv.invoiceType || 'TRANSPORTER_INVOICE',
+      amount: inv.amount,
+      currency: inv.currency,
+      paymentStatus: inv.paymentStatus || 'UNPAID',
+      paymentAmount: inv.paymentAmount || 0,
+      createdAt: inv.createdAt,
+      dueDate: inv.dueDate,
+      loadRef: inv.loadId?.ref || null,
+      status: inv.status,
+      qbLink: inv.qbLink || null,
+      clientCompanyName: inv.clientId?.companyName || 'Unknown Client'
+    }))
+
+    return Response.json({
+      success: true,
+      invoices: mappedInvoices,
+      count: mappedInvoices.length
+    })
+  } catch (error) {
+    console.error('[TransporterInvoice] ❌ Error fetching invoices:', error)
+    return Response.json(
+      { error: 'Failed to fetch invoices', details: String(error) },
+      { status: 500 }
+    )
+  }
 }

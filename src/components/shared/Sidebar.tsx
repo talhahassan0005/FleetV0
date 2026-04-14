@@ -13,6 +13,7 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
     { label: 'POD Management', href: '/admin/pod-management-new', icon: <ReceiptIcon /> },
     { label: 'Users',     href: '/admin/users',      icon: <UsersIcon /> },
     { label: 'Documents', href: '/admin/documents',  icon: <DocumentIcon /> },
+    { label: 'Chat Monitor', href: '/admin/chat',    icon: <EyeIcon /> },
     { label: 'QuickBooks', href: '/admin/dashboard/quickbooks', icon: <QBIcon /> },
     { label: 'My Profile', href: '/admin/profile',   icon: <UserIcon /> },
   ],
@@ -123,4 +124,7 @@ function ReceiptIcon() {
 }
 function QBIcon() {
   return <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-4 h-4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><path d="M7 14h4v7H7z"/><path d="M14 14h7v7h-7z"/></svg>
+}
+function EyeIcon() {
+  return <svg fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className="w-4 h-4"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
 }

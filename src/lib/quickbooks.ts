@@ -21,6 +21,31 @@ const QB_API_BASE_URL =
     : 'https://quickbooks.api.intuit.com/v3/company';
 
 /**
+ * Generate QB dashboard URL based on environment
+ */
+export function getQBDashboardURL(): string {
+  return QB_ENVIRONMENT === 'SANDBOX'
+    ? 'https://app.sandbox.qbo.intuit.com'
+    : 'https://qbo.intuit.com';
+}
+
+/**
+ * Generate QB Invoice Link
+ */
+export function generateQBInvoiceLink(invoiceId: string): string {
+  const baseURL = getQBDashboardURL();
+  return `${baseURL}/app/invoice?txnId=${invoiceId}`;
+}
+
+/**
+ * Generate QB Bill Link
+ */
+export function generateQBBillLink(billId: string): string {
+  const baseURL = getQBDashboardURL();
+  return `${baseURL}/app/bill?txnId=${billId}`;
+}
+
+/**
  * Generate OAuth authorization URL
  */
 export function generateQBAuthURL(state: string): string {
@@ -243,6 +268,16 @@ export async function makeQBAPICall(
   const separator = endpoint.includes('?') ? '&' : '?';
   const url = `${QB_API_BASE_URL}/${realmId}${endpoint}${separator}minorversion=65`;
 
+  // Log the actual JSON body being sent
+  if (body) {
+    console.log('[QB API Call] 📤 Sending to QB:', {
+      method,
+      endpoint,
+      url,
+      bodyJson: JSON.stringify(body, null, 2)
+    });
+  }
+
   const response = await fetch(url, {
     method,
     headers: {
@@ -256,6 +291,9 @@ export async function makeQBAPICall(
   if (!response.ok) {
     const errorBody = await response.text();
     console.error('[QB API Error] Status:', response.status, '| Body:', errorBody, '| URL:', url);
+    if (body) {
+      console.error('[QB API Error] Sent payload was:', JSON.stringify(body, null, 2));
+    }
     throw new Error(`QB API Error: ${errorBody || response.statusText}`);
   }
 
@@ -353,9 +391,6 @@ export async function makeQBAPICallWithRefresh(
 
           console.log('[QB Refresh Wrapper] 💾 New tokens saved to database');
           console.log('[QB Refresh Wrapper] 🔁 Retrying API call with refreshed token...');
-          return await makeQBAPICall(endpoint, method, newTokens.accessToken, realmId, body);
-
-          // Retry the API call with new token
           return await makeQBAPICall(endpoint, method, newTokens.accessToken, realmId, body);
         } catch (refreshError) {
           console.error('[QB Refresh Wrapper] ❌ Token refresh failed:', refreshError);
@@ -592,36 +627,92 @@ export async function createQBInvoice(
     ? async (endpoint: string, method: any, body?: any) => makeQBAPICall(endpoint, method, accessToken, realmId, body)
     : async (endpoint: string, method: any, body?: any) => makeQBAPICallWithRefresh(endpoint, method, realmId, body, currency);
 
-  // Get account ID for income (default income account)
+  // Get income account for line items - but we'll use Services item instead
+  // According to QB docs, minimum required is SalesItemLineDetail, not AccountBasedLineDetail
   let incomeAccountId = '1';
   try {
     const encodedQuery = encodeURIComponent(`SELECT * FROM Account WHERE AccountType = 'Income' MAXRESULTS 1`);
     const accountsResult = await makeCall(`/query?query=${encodedQuery}`, 'GET');
-    incomeAccountId = accountsResult.QueryResponse?.Account?.[0]?.Id || '1';
+    if (accountsResult.QueryResponse?.Account?.[0]?.Id) {
+      incomeAccountId = accountsResult.QueryResponse.Account[0].Id;
+      console.log('[QB Invoice] 📊 Using income account:', incomeAccountId);
+    }
   } catch (e) {
-    console.log('[QB] Using default income account ID');
+    console.log('[QB Invoice] ⚠️ Could not fetch income account, using default');
   }
 
-  const lines = invoiceData.lineItems.map((item: any, index: number) => ({
-    Id: String(index + 1),
-    LineNum: index + 1,
-    Description: item.description || 'Freight Service',
-    Amount: Number(item.unitPrice || item.amount) || 0,
-    DetailType: 'SalesItemLineDetail',
-    SalesItemLineDetail: {
-      ItemRef: { value: '1', name: 'Services' },
-      Qty: Number(item.quantity) || 1,
-      UnitPrice: Number(item.unitPrice || item.amount) || 0,
-    },
-  }));
+  // Build line items using SalesItemLineDetail (as per QB official documentation)
+  // Use Services item (ID: 1) which exists in all QB companies
+  const lines = invoiceData.lineItems.map((item: any, index: number) => {
+    const amount = Number(item.amount) || 0;
+    return {
+      DetailType: 'SalesItemLineDetail',
+      Amount: amount,
+      SalesItemLineDetail: {
+        ItemRef: {
+          name: 'Services', // REQUIRED: name field must be included
+          value: '1' // Services item - exists in all QB companies
+        }
+      },
+      Description: item.description || 'Freight Service',
+      LineNum: index + 1,
+    };
+  });
 
-  const payload = {
-    CustomerRef: { value: String(invoiceData.customerId) },
+  // **PER QB OFFICIAL DOCUMENTATION**: Minimum required fields are ONLY:
+  // 1. CustomerRef (with value)
+  // 2. Line (with SalesItemLineDetail)
+  // NO TxnDate, NO DocNumber, NO Memo, NO DueDate
+  
+  const payload: any = {
+    CustomerRef: {
+      value: String(invoiceData.customerId)
+    },
     Line: lines,
-    DueDate: invoiceData.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   };
+  
+  console.log('[Invoice] 📦 QB Invoice Payload (OFFICIAL MINIMUM):', JSON.stringify(payload, null, 2));
 
   const result = await makeCall('/invoice', 'POST', payload);
+
+  // Log the FULL response from QB
+  console.log('[QB Invoice] 📥 FULL QB Response:', JSON.stringify(result, null, 2));
+
+  // Validate QB response
+  if (!result?.Invoice?.Id) {
+    console.error('[QB Invoice] ❌ Invalid QB response - no Invoice ID returned:', JSON.stringify(result, null, 2));
+    throw new Error('QB Invoice creation returned invalid response: ' + JSON.stringify(result));
+  }
+
+  console.log('[QB Invoice] 📊 Full response:', {
+    invoiceId: result.Invoice.Id,
+    docNumber: result.Invoice.DocNumber,
+    customerRef: result.Invoice.CustomerRef,
+    syncToken: result.Invoice.SyncToken,
+    status: result.Invoice.status,
+    emailStatus: result.Invoice.EmailStatus,
+    totalAmt: result.Invoice.TotalAmt,
+  });
+
+  // **CRITICAL**: Verify invoice was actually created by fetching it back
+  try {
+    console.log('[QB Invoice] 🔄 Verifying invoice was created in QB...');
+    const verifyResult = await makeCall(`/invoice/${result.Invoice.Id}`, 'GET');
+    if (verifyResult?.Invoice?.Id) {
+      console.log('[QB Invoice] ✅ Verification SUCCESS - Invoice exists in QB');
+      console.log('[QB Invoice] 📋 Fetched Invoice Details:', {
+        invoiceId: verifyResult.Invoice.Id,
+        status: verifyResult.Invoice.status,
+        emailStatus: verifyResult.Invoice.EmailStatus,
+        totalAmt: verifyResult.Invoice.TotalAmt,
+        docNumber: verifyResult.Invoice.DocNumber,
+      });
+    } else {
+      console.warn('[QB Invoice] ⚠️ Verification WARNING - Invoice fetch returned empty or missing ID');
+    }
+  } catch (verifyErr: any) {
+    console.error('[QB Invoice] ⚠️ Verification failed (non-critical):', verifyErr.message);
+  }
 
   return {
     invoiceId: result.Invoice.Id,
@@ -675,25 +766,56 @@ export async function createQBBill(
     console.log('[QB] Using default expense account ID');
   }
 
-  const lines = billData.lineItems.map((item: any, index: number) => ({
-    Id: String(index + 1),
-    LineNum: index + 1,
-    Description: item.description || 'Freight Service',
-    Amount: Number(item.amount) || 0,
-    DetailType: 'AccountBasedExpenseLineDetail',
-    AccountBasedExpenseLineDetail: {
-      AccountRef: { value: String(expenseAccountId) },
-      BillableStatus: 'NotBillable',
-    },
-  }));
+  // Build line items with proper QB API structure for bills
+  const lines = billData.lineItems.map((item: any, index: number) => {
+    const amount = Number(item.amount) || 0;
+    return {
+      LineNum: index + 1,
+      Description: item.description || 'Freight Service',
+      DetailType: 'AccountBasedExpenseLineDetail',
+      AccountBasedExpenseLineDetail: {
+        AccountRef: {
+          value: String(expenseAccountId)
+        }
+      },
+      Amount: amount,
+    };
+  });
 
+  const nowDate = new Date().toISOString().split('T')[0];
+  const dueDate = billData.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  // Build minimal QB bill payload
   const payload = {
-    VendorRef: { value: String(billData.vendorId) },
+    TxnDate: nowDate,
+    VendorRef: {
+      value: String(billData.vendorId)
+    },
     Line: lines,
-    DueDate: billData.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   };
+  
+  if (dueDate !== nowDate) {
+    (payload as any).DueDate = dueDate;
+  }
+  
+  if (billData.billNumber) {
+    (payload as any).DocNumber = billData.billNumber;
+  }
+  if (billData.memo) {
+    (payload as any).Memo = billData.memo;
+  }
+  
+  console.log('[Bill] 📦 Final QB Bill Payload:', JSON.stringify(payload, null, 2));
 
   const result = await makeCall('/bill', 'POST', payload);
+
+  // Validate QB response
+  if (!result?.Bill?.Id) {
+    console.error('[QB Bill] ❌ Invalid QB response - no Bill ID returned:', JSON.stringify(result, null, 2));
+    throw new Error('QB Bill creation returned invalid response: ' + JSON.stringify(result));
+  }
+
+  console.log('[QB Bill] ✅ Bill created:', result.Bill.Id);
 
   return {
     billId: result.Bill.Id,

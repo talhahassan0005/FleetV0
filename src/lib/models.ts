@@ -201,6 +201,8 @@ const invoiceSchema = new mongoose.Schema(
     originalName: { type: String },
     fileUrl: { type: String },
     issuedAt: { type: Date, default: Date.now },
+    qbLink: { type: String },       // QB Invoice/Bill URL
+    qbInvoiceId: { type: String },   // QB Invoice/Bill ID
     // QuickBooks Integration
     qb_sync: {
       invoiceId: { type: String }, // QB Invoice ID

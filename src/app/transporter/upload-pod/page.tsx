@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
 import { AlertCircle, CheckCircle, Upload, FileText, Eye, Clock, CheckCircle2, Loader } from 'lucide-react'
+import PODViewModal from '@/components/transporter/PODViewModal'
 
 interface Load {
   _id: string
@@ -14,6 +15,17 @@ interface Load {
   status: string
   weightInTons?: number
   tonnage?: number
+}
+
+interface Invoice {
+  _id: string
+  loadId: string
+  invoiceNumber: string
+  amount: number
+  currency: string
+  paymentStatus: 'UNPAID' | 'PARTIAL_PAID' | 'PAID'
+  status: string
+  qbLink?: string
 }
 
 interface SubmittedPOD {
@@ -47,10 +59,9 @@ export default function UploadPODPage() {
   const [submittedPODs, setSubmittedPODs] = useState<SubmittedPOD[]>([])
   const [podsLoading, setPodsLoading] = useState(false)
   const [selectedPOD, setSelectedPOD] = useState<SubmittedPOD | null>(null)
-  const [showPODDetails, setShowPODDetails] = useState(false)
-
-  // Invoice tracking state
-  const [transporterInvoices, setTransporterInvoices] = useState<any[]>([])
+  
+  // Invoices state
+  const [invoices, setInvoices] = useState<Invoice[]>([])
 
   // UI states
   const [loading, setLoading] = useState(true)
@@ -158,26 +169,30 @@ export default function UploadPODPage() {
       }
     }
 
-    // Fetch transporter invoices
-    const fetchTransporterInvoices = async () => {
+    if (session?.user) {
+      fetchSubmittedPODs()
+    }
+  }, [session, success])
+
+  // Fetch invoices
+  useEffect(() => {
+    const fetchInvoices = async () => {
       try {
         const res = await fetch('/api/transporter/invoices')
-        if (!res.ok) {
-          console.error('Failed to fetch transporter invoices')
-          return
-        }
+        if (!res.ok) throw new Error('Failed to fetch invoices')
+        
         const data = await res.json()
-        setTransporterInvoices(data.invoices || [])
+        setInvoices(data.invoices || [])
       } catch (err) {
-        console.error('Failed to fetch transporter invoices:', err)
+        console.error('[UploadPOD] Failed to fetch invoices:', err)
+        // Silently fail - invoices endpoint might not exist yet
       }
     }
 
     if (session?.user) {
-      fetchSubmittedPODs()
-      fetchTransporterInvoices()
+      fetchInvoices()
     }
-  }, [session, success])
+  }, [session])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -262,9 +277,11 @@ export default function UploadPODPage() {
     }
   }
 
-  // Helper to get invoice for a specific load
-  const getInvoiceForLoad = (loadId: string) => 
-    transporterInvoices.find(inv => inv.loadId === loadId || inv.loadId?.toString() === loadId)
+  const getInvoiceForLoad = (loadId: string) =>
+    invoices.find(inv => 
+      inv.loadId === loadId || 
+      inv.loadId?.toString() === loadId?.toString()
+    )
 
   if (loading) {
     return (
@@ -487,8 +504,8 @@ export default function UploadPODPage() {
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Route</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Document</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Invoice #</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Payment</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Invoice #</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Payment</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Submitted</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Action</th>
                     </tr>
@@ -510,29 +527,38 @@ export default function UploadPODPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(pod)}
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-6 py-4 text-sm">
                           {(() => {
                             const inv = getInvoiceForLoad(pod.loadId)
-                            return inv ? (
+                            if (!inv) return <span className="text-gray-300 text-xs">—</span>
+                            return (
                               <span className="text-blue-600 font-medium text-xs">{inv.invoiceNumber}</span>
-                            ) : (
-                              <span className="text-gray-400 text-xs">Pending</span>
                             )
                           })()}
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-6 py-4 text-sm">
                           {(() => {
                             const inv = getInvoiceForLoad(pod.loadId)
-                            if (!inv) return <span className="text-gray-400 text-xs">—</span>
-                            const colors: Record<string, string> = {
-                              'PAID': 'bg-green-100 text-green-700',
-                              'PARTIAL_PAID': 'bg-yellow-100 text-yellow-700',
-                              'UNPAID': 'bg-red-100 text-red-700',
+                            if (!inv) return (
+                              <span className="px-2 py-1 bg-gray-100 text-gray-400 rounded text-xs">No Invoice</span>
+                            )
+                            const statusConfig: any = {
+                              'PAID':         { bg: 'bg-green-100',  text: 'text-green-700',  label: '✓ Paid' },
+                              'PARTIAL_PAID': { bg: 'bg-yellow-100', text: 'text-yellow-700', label: '⏳ Partial' },
+                              'UNPAID':       { bg: 'bg-red-100',    text: 'text-red-700',    label: '⚠ Unpaid' },
                             }
+                            const config = statusConfig[inv.paymentStatus] || statusConfig['UNPAID']
                             return (
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${colors[inv.paymentStatus as keyof typeof colors] || 'bg-gray-100 text-gray-600'}`}>
-                                {inv.paymentStatus?.replace('_', ' ') || 'UNPAID'}
-                              </span>
+                              <div>
+                                <span className={`px-2 py-1 ${config.bg} ${config.text} rounded text-xs font-medium`}>
+                                  {config.label}
+                                </span>
+                                {inv.amount && (
+                                  <p className="text-xs text-gray-400 mt-0.5">
+                                    {inv.currency || 'ZAR'} {inv.amount?.toLocaleString()}
+                                  </p>
+                                )}
+                              </div>
                             )
                           })()}
                         </td>
@@ -547,14 +573,11 @@ export default function UploadPODPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
-                            onClick={() => {
-                              setSelectedPOD(pod)
-                              setShowPODDetails(true)
-                            }}
+                            onClick={() => setSelectedPOD(pod)}
                             className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-semibold"
                           >
                             <Eye className="w-4 h-4" />
-                            Details
+                            View Details
                           </button>
                         </td>
                       </tr>
@@ -567,154 +590,10 @@ export default function UploadPODPage() {
         </div>
 
         {/* POD Details Modal */}
-        {showPODDetails && selectedPOD && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              {/* Header */}
-              <div className="border-b border-gray-200 px-6 py-6 flex items-center justify-between bg-gray-50">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">POD Details</h2>
-                  <p className="text-sm text-gray-600 mt-1">Load: {selectedPOD.loadRef}</p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowPODDetails(false)
-                    setSelectedPOD(null)
-                  }}
-                  className="text-gray-400 hover:text-gray-600 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="p-6 space-y-6">
-                {/* Load Info */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Load Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                    <div>
-                      <p className="text-xs text-gray-600 uppercase font-semibold">Load Reference</p>
-                      <p className="text-lg font-bold text-gray-900 mt-1">{selectedPOD.loadRef}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 uppercase font-semibold">Route</p>
-                      <p className="text-sm text-gray-800 mt-1">{selectedPOD.route}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 uppercase font-semibold">Submitted Date</p>
-                      <p className="text-sm text-gray-800 mt-1">
-                        {new Date(selectedPOD.createdAt).toLocaleDateString('en-US', {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 uppercase font-semibold">Document</p>
-                      <p className="text-sm text-gray-800 mt-1 truncate" title={selectedPOD.originalName}>
-                        {selectedPOD.originalName}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Approval Status */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Approval Status</h3>
-                  <div className="space-y-3">
-                    {/* Admin Status */}
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="font-semibold text-gray-900">Admin Approval</p>
-                        {selectedPOD.adminApprovalStatus === 'APPROVED' ? (
-                          <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                            <CheckCircle2 className="w-4 h-4" />
-                            Approved
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
-                            <Loader className="w-4 h-4 animate-spin" />
-                            Pending
-                          </div>
-                        )}
-                      </div>
-                      {selectedPOD.adminApprovedAt && (
-                        <p className="text-xs text-gray-600">
-                          Approved on {new Date(selectedPOD.adminApprovedAt).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Client Status */}
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="font-semibold text-gray-900">Client Approval</p>
-                        {selectedPOD.clientApprovalStatus === 'APPROVED' ? (
-                          <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                            <CheckCircle2 className="w-4 h-4" />
-                            Approved
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                            <Clock className="w-4 h-4" />
-                            Awaiting
-                          </div>
-                        )}
-                      </div>
-                      {selectedPOD.clientApprovedAt && (
-                        <p className="text-xs text-gray-600">
-                          Approved on {new Date(selectedPOD.clientApprovedAt).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Document Link */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Document</h3>
-                  {selectedPOD.fileUrl && typeof selectedPOD.fileUrl === 'string' && selectedPOD.fileUrl.startsWith('http') ? (
-                    <a
-                      href={selectedPOD.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                    >
-                      <FileText className="w-5 h-5 text-blue-600" />
-                      <div className="flex-1">
-                        <p className="font-semibold text-blue-900">{selectedPOD.originalName}</p>
-                        <p className="text-xs text-blue-700 mt-1">Click to download or view</p>
-                      </div>
-                      <CheckCircle className="w-5 h-5 text-blue-600" />
-                    </a>
-                  ) : (
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                      <p className="text-gray-600 text-sm">Document file is not available</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
-                <button
-                  onClick={() => {
-                    setShowPODDetails(false)
-                    setSelectedPOD(null)
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <PODViewModal
+          pod={selectedPOD}
+          onClose={() => setSelectedPOD(null)}
+        />
       </PageLayout>
     </>
   )

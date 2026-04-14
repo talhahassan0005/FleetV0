@@ -14,7 +14,8 @@ import {
   Clock,
   Eye,
   Edit2,
-  RefreshCw
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react'
 
 interface Invoice {
@@ -34,7 +35,8 @@ interface Invoice {
   tonnage?: number
   progressPercentage?: number
   podId?: string
-  clientApprovalStatus?: boolean | null
+  clientApprovalStatus?: string | boolean | null
+  rejectionReason?: string | null
   clientRejectionReason?: string
   qbLink?: string
 }
@@ -431,12 +433,19 @@ export default function AdminInvoicesPage() {
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <div className="flex items-center gap-2">
+                          <a
+                            href={`/admin/invoices/${invoice._id}`}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition font-medium text-xs"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View
+                          </a>
                           <button
                             onClick={() => openPaymentModal(invoice)}
                             className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition font-medium text-xs"
                           >
                             <Edit2 className="w-4 h-4" />
-                            Update Payment
+                            Update
                           </button>
                           {invoice.qbLink && (
                             <a
@@ -446,15 +455,9 @@ export default function AdminInvoicesPage() {
                               className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition font-medium text-xs"
                               title="View in QuickBooks"
                             >
-                              <Eye className="w-4 h-4" />
-                              View in QB
+                              <ExternalLink className="w-4 h-4" />
+                              QB
                             </a>
-                          )}
-                          {!invoice.qbLink && (
-                            <span className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-400 rounded-lg font-medium text-xs" title="No QBLink - created before QB integration">
-                              <Eye className="w-4 h-4" />
-                              No QB Link
-                            </span>
                           )}
                         </div>
                       </td>
