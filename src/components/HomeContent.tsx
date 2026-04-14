@@ -13,7 +13,7 @@ const SocialProof = dynamic(() => import("@/components/SocialProof"), { loading:
 
 export default function HomeContent() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       {/* HERO SECTION - CONVERSION OPTIMIZED */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950">
         <div className="absolute inset-0 opacity-10">
@@ -42,7 +42,7 @@ export default function HomeContent() {
             
             <FadeIn direction="up" delay={450} duration={800} distance={20}>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-6">
-                <a href="/contact">
+                <a href="/login?type=shipper&source=home-hero" className="inline-block">
                   <button className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold px-7 py-3 rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 group text-base">
                     <Truck className="h-5 w-5" />
                     Book Your Load
@@ -232,6 +232,9 @@ export default function HomeContent() {
         }}
         variant="light"
       />
+      
+      
     </div>
   );
 }
+        

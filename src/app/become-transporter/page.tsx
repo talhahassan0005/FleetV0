@@ -4,7 +4,7 @@ import { Truck, CheckCircle2, MapPin, Award, BarChart3, Phone, MessageCircle } f
 import { useState, useRef } from 'react';
 import FadeIn from "@/components/FadeIn";
 
-export default function BecomeTransporterPage() {
+function BecomeTransporterContent() {
   const formRef = useRef<HTMLDivElement>(null);
 
   const scrollToForm = () => {
@@ -12,7 +12,7 @@ export default function BecomeTransporterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* HERO SECTION */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 pt-20">
         <div className="absolute inset-0 opacity-10">
@@ -242,7 +242,7 @@ function ApplicationForm() {
           value={formData.companyName}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder:text-slate-400"
         />
         <input
           type="text"
@@ -251,7 +251,7 @@ function ApplicationForm() {
           value={formData.contactName}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder:text-slate-400"
         />
       </div>
 
@@ -263,7 +263,7 @@ function ApplicationForm() {
           value={formData.email}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder:text-slate-400"
         />
         <input
           type="tel"
@@ -272,7 +272,7 @@ function ApplicationForm() {
           value={formData.phone}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder:text-slate-400"
         />
       </div>
 
@@ -282,7 +282,7 @@ function ApplicationForm() {
           value={formData.country}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
         >
           <option value="">Select Country</option>
           <option value="south-africa">South Africa</option>
@@ -298,7 +298,7 @@ function ApplicationForm() {
           value={formData.fleetSize}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder:text-slate-400"
         />
       </div>
 
@@ -309,7 +309,7 @@ function ApplicationForm() {
         value={formData.vehicleTypes}
         onChange={handleChange}
         required
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder:text-slate-400"
       />
 
       <input
@@ -319,7 +319,7 @@ function ApplicationForm() {
         value={formData.operatingRoutes}
         onChange={handleChange}
         required
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder:text-slate-400"
       />
 
       <select
@@ -327,7 +327,7 @@ function ApplicationForm() {
         value={formData.yearsInBusiness}
         onChange={handleChange}
         required
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
       >
         <option value="">Years in Business</option>
         <option value="0-2">0-2 years</option>
@@ -342,7 +342,7 @@ function ApplicationForm() {
         value={formData.message}
         onChange={handleChange}
         rows={3}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder:text-slate-400"
       ></textarea>
 
       <button
@@ -354,4 +354,8 @@ function ApplicationForm() {
       </button>
     </form>
   );
+}
+
+export default function BecomeTransporterPage() {
+  return <BecomeTransporterContent />;
 }
