@@ -447,13 +447,14 @@ export async function POST(req: NextRequest) {
           qbInvoiceLink = generateQBInvoiceLink(qbInvoice.invoiceId);
           qbBillLink = generateQBBillLink(qbBill.billId);
           
-          console.log('[Invoice] 🔗 Generated QB links:', {
+          console.log('[Invoice] 🔗 Generated QB links (Dynamic Realm ID from Currency):', {
+            currency: load.currency,
             environment: process.env.QUICKBOOKS_ENVIRONMENT || 'SANDBOX',
+            dynamicRealmId: realmId,  // This is fetched dynamically from MongoDB by currency
             invoiceId: qbInvoice?.invoiceId,
             billId: qbBill?.billId,
             invoiceLink: qbInvoiceLink,
             billLink: qbBillLink,
-            realmIdSet: !!realmId,
             linkBaseURL: process.env.QUICKBOOKS_ENVIRONMENT === 'PRODUCTION' 
               ? 'https://qbo.intuit.com' 
               : 'https://app.sandbox.qbo.intuit.com'
