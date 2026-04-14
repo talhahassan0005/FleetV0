@@ -112,21 +112,9 @@ export async function GET(req: NextRequest) {
           markupPercentage: 1,
           markupAmount: 1,
           qbLink: 1,
-          // Client approval status from documents
-          clientApprovalStatus: {
-            $cond: [
-              { $gt: [{ $size: '$invoiceDocuments' }, 0] },
-              { $arrayElemAt: ['$invoiceDocuments.approved', 0] },
-              null
-            ]
-          },
-          clientRejectionReason: {
-            $cond: [
-              { $gt: [{ $size: '$invoiceDocuments' }, 0] },
-              { $arrayElemAt: ['$invoiceDocuments.rejectionReason', 0] },
-              null
-            ]
-          }
+          qbInvoiceId: 1,
+          clientApprovalStatus: 1,
+          rejectionReason: 1
         }
       }
     ]).toArray()

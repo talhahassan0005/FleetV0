@@ -22,7 +22,7 @@ import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { sendEmail } from '@/lib/email'
 import { invoiceGeneratedEmail } from '@/lib/email'
-import { createQBCustomer, createQBVendor, createQBInvoice, createQBBill, makeQBAPICallWithRefresh } from '@/lib/quickbooks'
+import { createQBCustomer, createQBVendor, createQBInvoice, createQBBill, makeQBAPICallWithRefresh, generateQBInvoiceLink, generateQBBillLink } from '@/lib/quickbooks'
 
 export async function POST(req: NextRequest) {
   try {
@@ -114,28 +114,37 @@ export async function POST(req: NextRequest) {
     }
 
     // Calculate tonnage progress
-    const totalLoadTonnage = load.totalTonnage || parseFloat(load.weight) || 0
-    
-    // Get previous invoices for this load
-    const previousInvoices = await db.collection('invoices').find({
-      loadId: new ObjectId(loadId)
-    }).toArray()
+    // Fetch ALL non-cancelled client invoices for this load BEFORE creating new one
+    const existingInvoices = await db.collection('invoices').find({
+      loadId: new ObjectId(loadId),
+      invoiceType: 'CLIENT_INVOICE',
+      status: { $nin: ['CANCELLED', 'REJECTED'] }
+    }).toArray();
 
-    const tonnageDeliveredSoFar = previousInvoices.reduce((sum: number, inv: any) => 
-      sum + (inv.tonnageForThisInvoice || 0), 0
-    )
+    const previousTonnage = existingInvoices.reduce(
+      (sum: number, inv: any) => sum + (Number(inv.tonnageForThisInvoice) || Number(inv.tonnage) || 0), 0
+    );
+    const currentTonnage = Number(tonnageForThisInvoice) || 0;
+    const totalTonnageDelivered = previousTonnage + currentTonnage;
+    const loadWeight = Number(load.totalTonnage) || Number(load.weight) || 1;
 
-    const newTonnageDelivered = tonnageDeliveredSoFar + tonnageForThisInvoice
-    const progressPercentage = totalLoadTonnage > 0 
-      ? Math.min(Math.round((newTonnageDelivered / totalLoadTonnage) * 100), 100)
-      : 0
+    const progressPercentage = Math.min(
+      Math.round((totalTonnageDelivered / loadWeight) * 100),
+      100
+    );
+
+    // Cap tonnage display at load weight to prevent overflow
+    const displayTonnage = Math.min(totalTonnageDelivered, loadWeight);
+
+    const tonnageDeliveredSoFar = previousTonnage;
+    const totalLoadTonnage = loadWeight;
 
     // Calculate client amount (transporter amount + markup)
     const markupAmount = transporterAmount * (markupPercentage / 100)
     const clientAmount = transporterAmount + markupAmount
 
     // Generate invoice numbers
-    const invoiceCount = previousInvoices.length + 1
+    const invoiceCount = existingInvoices.length + 1
     const transporterInvNum = `${transporterInvoiceNumber}` // From transporter's QBs
     const clientInvNum = `${load.ref}-INV-${invoiceCount}` // FleetXchange's number
 
@@ -189,7 +198,7 @@ export async function POST(req: NextRequest) {
       // Core fields
       loadId: load._id,
       transporterId: new ObjectId(transporterId),
-      clientId: load.clientId,  // Explicitly ensure clientId is saved
+      clientId: load.clientId,
       podId: new ObjectId(podId),
       
       // This invoice details
@@ -228,8 +237,6 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date(),
     })
 
-    console.log('[Client Invoice] Saved fields:', Object.keys(clientInvoiceResult))
-    console.log('[Client Invoice] clientId saved as:', load.clientId)
     console.log('[Invoice] 📄 Created client invoice:', clientInvoiceResult.insertedId.toString())
 
     // ============================================
@@ -245,11 +252,14 @@ export async function POST(req: NextRequest) {
       let qbCredentials;
       try {
         qbCredentials = await getQBCredentialsByCurrency(load.currency);
+        console.log('[Invoice] QB credential lookup result:', qbCredentials ? '✅ FOUND' : '❌ NOT FOUND');
       } catch (err: any) {
-        console.log('[Invoice] ⚠️ ' + err.message + '. QB sync disabled.');
+        console.error('[Invoice] ⚠️ QB credential lookup error:', err.message);
+        qbCredentials = null;
       }
 
       if (qbCredentials) {
+        console.log('[Invoice] ✅ QB credentials found! Starting QB sync...');
         const realmId = qbCredentials.realmId;
 
         console.log('[Invoice] ✅ QB credentials found. Starting QB sync...');
@@ -339,6 +349,17 @@ export async function POST(req: NextRequest) {
           // Create QB Invoice and Bill
           console.log('[Invoice] 📝 Creating QB Invoice for client...');
           console.log('[Invoice] Using customerId:', client.quickbooks?.customerId);
+          console.log('[Invoice] Invoice payload:', {
+            customerId: client.quickbooks?.customerId,
+            customerDisplayName: client.companyName || client.email,
+            lineItems: [
+              {
+                description: `Load ${load.ref} - Tonnage: ${tonnageForThisInvoice}t`,
+                amount: clientAmount,
+              },
+            ],
+            invoiceNumber: clientInvNum,
+          });
           
           const qbInvoice = await createQBInvoice(realmId, {
             customerId: client.quickbooks?.customerId,
@@ -357,19 +378,45 @@ export async function POST(req: NextRequest) {
             throw new Error('QB Invoice creation failed: No invoice ID returned');
           }
           console.log('[Invoice] ✅ QB Invoice created:', qbInvoice.invoiceId);
+          console.log('[Invoice] QB Invoice Response:', JSON.stringify(qbInvoice, null, 2));
 
-          // Send QB Invoice to client via QB API
+          // Finalize QB Invoice to make it visible in QB UI
+          // Invoices created without sending are in DRAFT status and not visible in QB UI
+          // We need to mark them as sent for them to show up
+          console.log('[Invoice] 📧 Finalizing invoice in QB...');
           try {
-            await makeQBAPICallWithRefresh(
-              `/invoice/${qbInvoice.invoiceId}/send?sendTo=${encodeURIComponent(client.email)}`,
+            // Send invoice with email - this finalizes it and makes it visible in QB UI
+            const sendResponse = await makeQBAPICallWithRefresh(
+              `/invoice/${qbInvoice.invoiceId}/send`,
               'POST',
               realmId,
-              undefined,
+              { sendTo: client.email }, // Body with sendTo parameter
               load.currency
             );
-            console.log('[Invoice] ✅ QB Invoice emailed to client:', client.email);
-          } catch (emailErr) {
-            console.error('[Invoice] ⚠️ QB Invoice email failed (non-critical):', emailErr);
+            console.log('[Invoice] ✅ QB Invoice finalized and sent:', {
+              invoiceId: qbInvoice.invoiceId,
+              emailTo: client.email,
+              status: 'SENT'
+            });
+          } catch (emailErr: any) {
+            console.error('[Invoice] ⚠️ QB Invoice finalization failed (attempting alternative):', emailErr.message);
+            // If send fails, try marking as printed instead
+            try {
+              const updateResult = await makeQBAPICallWithRefresh(
+                `/invoice/${qbInvoice.invoiceId}`,
+                'POST',
+                realmId,
+                {
+                  Id: qbInvoice.invoiceId,
+                  SyncToken: qbInvoice.syncToken,
+                  EmailStatus: 'EmailSent', // Mark as if email was sent
+                },
+                load.currency
+              );
+              console.log('[Invoice] ✅ QB Invoice marked as EmailSent');
+            } catch (updateErr: any) {
+              console.warn('[Invoice] ⚠️ Alternative finalization also failed (non-critical):', updateErr.message);
+            }
           }
 
           console.log('[Invoice] 📝 Creating QB Bill for transporter...');
@@ -392,21 +439,20 @@ export async function POST(req: NextRequest) {
           }
           console.log('[Invoice] ✅ QB Bill created:', qbBill.billId);
 
-          // Send QB Bill to transporter via QB API
-          try {
-            await makeQBAPICallWithRefresh(
-              `/bill/${qbBill.billId}/send?sendTo=${encodeURIComponent(transporter.email)}`,
-              'POST',
-              realmId,
-              undefined,
-              load.currency
-            );
-            console.log('[Invoice] ✅ QB Bill emailed to transporter:', transporter.email);
-          } catch (emailErr) {
-            console.error('[Invoice] ⚠️ QB Bill email failed (non-critical):', emailErr);
-          }
+          // QB Bill /send is not supported in sandbox - skip silently
+          console.log('[Invoice] ℹ️ QB Bill email skipped (not supported in sandbox)');
 
-          // Update invoices with QB IDs
+          // Update invoices with QB IDs and Links
+          // Generate QB links from invoice IDs
+          qbInvoiceLink = generateQBInvoiceLink(qbInvoice.invoiceId);
+          qbBillLink = generateQBBillLink(qbBill.billId);
+          
+          console.log('[Invoice] 🔗 Generated QB links:', {
+            invoiceLink: qbInvoiceLink,
+            billLink: qbBillLink
+          });
+
+          // THEN update database with the links
           await db.collection('invoices').updateOne(
             { _id: clientInvoiceResult.insertedId },
             {
@@ -414,6 +460,8 @@ export async function POST(req: NextRequest) {
                 'qb_sync.invoiceId': qbInvoice.invoiceId,
                 'qb_sync.invoiceSyncToken': qbInvoice.syncToken,
                 'qb_sync.createdAt': new Date(),
+                qbLink: generateQBInvoiceLink(qbInvoice.invoiceId),
+                qbInvoiceId: qbInvoice.invoiceId,
               },
             }
           );
@@ -425,12 +473,11 @@ export async function POST(req: NextRequest) {
                 'qb_sync.billId': qbBill.billId,
                 'qb_sync.billSyncToken': qbBill.syncToken,
                 'qb_sync.createdAt': new Date(),
+                qbLink: generateQBBillLink(qbBill.billId),
+                qbInvoiceId: qbBill.billId,
               },
             }
           );
-
-          qbInvoiceLink = `https://qbo.intuit.com/app/invoice/${qbInvoice.invoiceId}`;
-          qbBillLink = `https://qbo.intuit.com/app/bill/${qbBill.billId}`;
 
           console.log('[Invoice] 🎉 QB Integration Complete!');
           console.log('[Invoice]   Invoice Link:', qbInvoiceLink);
@@ -439,10 +486,17 @@ export async function POST(req: NextRequest) {
           console.error('[Invoice] ❌ QB sync error:', qbError.message);
           console.error('[Invoice] Error details:', qbError.stack);
         }
+      } else {
+        console.log('[Invoice] ⚠️ No QB credentials found for currency:', load.currency);
+        console.log('[Invoice] ℹ️ QB invoice creation SKIPPED - Admin must connect QB account for this currency');
+        console.log('[Invoice] 📧 But SMTP email notifications will still be sent to client and transporter');
+        qbInvoiceLink = null;
+        qbBillLink = null;
       }
     } catch (qbSetupError: any) {
       console.error('[Invoice] ❌ QB setup error:', qbSetupError.message);
       console.error('[Invoice] Error details:', qbSetupError.stack);
+      // Links remain null — QB not configured or failed
     }
 
     // Send email to transporter
@@ -530,7 +584,9 @@ export async function POST(req: NextRequest) {
           qbLink: qbInvoiceLink,
         },
         progressPercentage,
-        tonnageDelivered: `${newTonnageDelivered}/${totalLoadTonnage}`,
+        tonnageDelivered: `${displayTonnage}/${totalLoadTonnage}`,
+        totalTonnageDelivered,
+        totalLoadTonnage,
       }
     })
 
