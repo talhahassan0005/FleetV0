@@ -1,4 +1,10 @@
 // src/app/api/chat/conversations/route.ts
+/**
+ * Chat Conversations API
+ * GET — Fetch conversations for logged-in user (Client/Transporter/Admin)
+ * POST — Create conversation between Client and Transporter for a specific load
+ */
+
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -20,214 +26,124 @@ function generateConversationId(userId1: string, userId2: string): string {
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const db = await getDatabase()
-    const userId = session.user.id
+    const userId = new ObjectId(session.user.id)
 
-    // Get all conversations for this user
-    const conversations = await db
-      .collection('conversations')
-      .find({
+    // Get conversations where user is a participant
+    const conversations = await db.collection('conversations')
+      .find({ 
         'participants.userId': userId,
-        isActive: true,
+        isActive: true 
       })
       .sort({ lastMessageAt: -1 })
       .toArray()
 
-    // Transform for client - get other user details
-    const transformedConversations = await Promise.all(
-      conversations.map(async (conv: any) => {
-        const otherParticipant = conv.participants.find(
-          (p: any) => p.userId !== userId
-        )
-
-        // Get other user's full details
-        let otherUserDetails: any = null
-        if (otherParticipant?.userId) {
-          try {
-            const otherUser = await db
-              .collection('users')
-              .findOne({
-                _id: new ObjectId(otherParticipant.userId),
-              })
-            
-            if (otherUser) {
-              otherUserDetails = {
-                _id: otherUser._id,
-                userId: otherUser._id.toString(),
-                name: otherUser.companyName || otherUser.name || otherUser.email,
-                email: otherUser.email,
-                role: otherUser.role,
-                companyName: otherUser.companyName,
-              }
-            }
-          } catch (err) {
-            console.error('Failed to fetch other user details:', err)
-          }
-        }
-
-        return {
-          _id: conv._id.toString(),
-          conversationId: conv.conversationId,
-          participants: conv.participants,
-          otherParticipant: otherUserDetails || {
-            userId: otherParticipant?.userId,
-            name: otherParticipant?.name || 'Unknown',
-            email: otherParticipant?.email || '',
-          },
-          loadId: conv.loadId?.toString?.(),
-          lastMessage: conv.lastMessage,
-          lastMessageAt: conv.lastMessageAt,
-          unreadCount: conv.unreadCount?.[userId] || 0,
-          isActive: conv.isActive,
-        }
-      })
-    )
-
-    return NextResponse.json({
-      success: true,
-      data: transformedConversations,
-    })
+    return NextResponse.json({ success: true, data: conversations })
   } catch (err: any) {
-    console.error('[GetConversations] Error:', err)
-    return NextResponse.json(
-      { error: 'Failed to fetch conversations', details: err.message },
-      { status: 500 }
-    )
+    console.error('[Chat] Error fetching conversations:', err)
+    return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { otherUserId, loadId } = await req.json()
-
-    if (!otherUserId) {
-      return NextResponse.json(
-        { error: 'Missing otherUserId' },
-        { status: 400 }
-      )
+    const { loadId } = await req.json()
+    if (!loadId) {
+      return NextResponse.json({ error: 'loadId required' }, { status: 400 })
     }
 
     const db = await getDatabase()
-    const userId = session.user.id
+    const loadObjectId = new ObjectId(loadId)
+    const requesterId = new ObjectId(session.user.id)
 
-    // Generate consistent conversation ID
-    const conversationId = generateConversationId(userId, otherUserId)
-
-    // Get both users' details
-    let currentUser: any = null
-    let otherUser: any = null
-
-    try {
-      currentUser = await db.collection('users').findOne({
-        _id: new ObjectId(userId),
-      })
-      otherUser = await db.collection('users').findOne({
-        _id: new ObjectId(otherUserId),
-      })
-    } catch (err) {
-      console.error('Failed to fetch users:', err)
+    // Get load details
+    const load = await db.collection('loads').findOne({ _id: loadObjectId })
+    if (!load) {
+      return NextResponse.json({ error: 'Load not found' }, { status: 404 })
     }
 
-    if (!currentUser || !otherUser) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
+    // Get client and transporter of this load
+    const clientId = new ObjectId(load.clientId)
+    const transporterId = load.assignedTransporterId ? new ObjectId(load.assignedTransporterId) : null
+
+    if (!clientId || !transporterId) {
+      return NextResponse.json({ 
+        error: 'Load must have both client and transporter assigned' 
+      }, { status: 400 })
     }
 
-    // Create or get conversation
-    let conversation = await db.collection('conversations').findOne({
-      conversationId,
+    // Verify requester is part of this load (Client, Transporter, or Admin)
+    const isClient = clientId.toString() === requesterId.toString()
+    const isTransporter = transporterId.toString() === requesterId.toString()
+    const isAdmin = session.user.role === 'ADMIN'
+
+    if (!isClient && !isTransporter && !isAdmin) {
+      return NextResponse.json({ error: 'You are not part of this load' }, { status: 403 })
+    }
+
+    // Check if conversation already exists for this load
+    const existing = await db.collection('conversations').findOne({
+      loadId: loadObjectId,
+      isActive: true,
     })
 
-    if (!conversation) {
-      // Create new conversation
-      const result = await db.collection('conversations').insertOne({
-        conversationId,
-        participants: [
-          {
-            userId,
-            userRole: session.user.role,
-            name: currentUser.companyName || currentUser.name || currentUser.email,
-            email: currentUser.email,
-          },
-          {
-            userId: otherUserId,
-            userRole: otherUser.role,
-            name: otherUser.companyName || otherUser.name || otherUser.email,
-            email: otherUser.email,
-          },
-        ],
-        unreadCount: {
-          [userId]: 0,
-          [otherUserId]: 0,
+    if (existing) {
+      return NextResponse.json({ success: true, data: existing })
+    }
+
+    // Fetch client and transporter details
+    const [client, transporter] = await Promise.all([
+      db.collection('users').findOne({ _id: clientId }),
+      db.collection('users').findOne({ _id: transporterId }),
+    ])
+
+    // Create new conversation
+    const conversation = await db.collection('conversations').insertOne({
+      participants: [
+        {
+          userId: clientId,
+          role: 'CLIENT',
+          name: client?.companyName || client?.contactName || client?.email,
         },
-        isActive: true,
-        ...(loadId && { loadId: new ObjectId(loadId) }),
-        createdAt: new Date(),
-        lastMessageAt: null,
-        lastMessage: null,
-      })
-
-      conversation = {
-        _id: result.insertedId,
-        conversationId,
-        participants: [
-          {
-            userId,
-            userRole: session.user.role,
-            name: currentUser.companyName || currentUser.name || currentUser.email,
-            email: currentUser.email,
-          },
-          {
-            userId: otherUserId,
-            userRole: otherUser.role,
-            name: otherUser.companyName || otherUser.name || otherUser.email,
-            email: otherUser.email,
-          },
-        ],
-      }
-    }
-
-    const responseData = {
-      _id: conversation._id.toString(),
-      conversationId: conversation.conversationId,
-      participants: conversation.participants,
-      otherParticipant: {
-        _id: otherUser._id,
-        userId: otherUser._id.toString(),
-        name: otherUser.companyName || otherUser.name || otherUser.email,
-        email: otherUser.email,
-        role: otherUser.role,
-        companyName: otherUser.companyName,
+        {
+          userId: transporterId,
+          role: 'TRANSPORTER',
+          name: transporter?.companyName || transporter?.contactName || transporter?.email,
+        },
+      ],
+      loadId: loadObjectId,
+      loadRef: load.ref,
+      isActive: true,
+      unreadCount: {
+        [clientId.toString()]: 0,
+        [transporterId.toString()]: 0,
       },
-      loadId: conversation.loadId?.toString?.(),
-      lastMessage: conversation.lastMessage,
-      lastMessageAt: conversation.lastMessageAt,
-      unreadCount: conversation.unreadCount?.[userId] || 0,
-      isActive: conversation.isActive,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    const newConversation = await db.collection('conversations').findOne({ 
+      _id: conversation.insertedId 
+    })
+
+    // Emit socket.io event to notify participants of new conversation
+    if (global.ioInstance) {
+      global.ioInstance.to(clientId.toString()).emit('conversation:created', newConversation)
+      global.ioInstance.to(transporterId.toString()).emit('conversation:created', newConversation)
     }
 
-    return NextResponse.json({
-      success: true,
-      data: responseData,
-    })
-  } catch (err: any) {
-    console.error('[CreateConversation] Error:', err)
-    return NextResponse.json(
-      { error: 'Failed to create conversation', details: err.message },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: true, data: newConversation })
+  } catch (error: any) {
+    console.error('[Chat] Error creating conversation:', error)
+    return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })
   }
 }

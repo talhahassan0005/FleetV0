@@ -2,6 +2,7 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { MessageCircle } from 'lucide-react'
 
 interface Quote {
   _id: string
@@ -36,6 +37,33 @@ export default function ClientLoadDetailPage({ params }: { params: { id: string 
   const [load, setLoad] = useState<Load | null>(null)
   const [loading, setLoading] = useState(true)
   const [updatingQuoteId, setUpdatingQuoteId] = useState<string | null>(null)
+  const [startingChat, setStartingChat] = useState(false)
+
+  const handleStartChat = async () => {
+    if (!load) return
+    try {
+      setStartingChat(true)
+      const res = await fetch('/api/chat/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ loadId: load._id }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        alert(`Failed to start chat: ${error.message || error.error}`)
+        return
+      }
+
+      const data = await res.json()
+      router.push('/client/chat')
+    } catch (err) {
+      console.error('Error starting chat:', err)
+      alert('Failed to start chat')
+    } finally {
+      setStartingChat(false)
+    }
+  }
 
   const handleQuoteAction = async (quoteId: string, status: 'ACCEPTED' | 'REJECTED') => {
     try {
@@ -113,12 +141,26 @@ export default function ClientLoadDetailPage({ params }: { params: { id: string 
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <button
-        onClick={() => router.back()}
-        className="px-4 py-2 bg-gray-100 text-gray-700 font-semibold rounded hover:bg-gray-200 mb-6 transition-colors"
-      >
-        ← Back to My Loads
-      </button>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <button
+          onClick={() => router.back()}
+          className="px-4 py-2 bg-gray-100 text-gray-700 font-semibold rounded hover:bg-gray-200 transition-colors"
+        >
+          ← Back to My Loads
+        </button>
+        
+        {/* Chat Button - Show for ongoing loads */}
+        {load && ['APPROVED', 'IN_TRANSIT', 'DELIVERED'].includes(load.status) && (
+          <button
+            onClick={handleStartChat}
+            disabled={startingChat}
+            className="flex items-center gap-2 px-4 py-2 bg-[#3ab54a] text-white font-semibold rounded hover:bg-[#2d9e3c] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          >
+            <MessageCircle className="w-5 h-5" />
+            {startingChat ? 'Starting...' : 'Chat with Transporter'}
+          </button>
+        )}
+      </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-6">
         {/* Load Header */}

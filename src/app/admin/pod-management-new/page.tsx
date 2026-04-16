@@ -324,13 +324,13 @@ export default function PODManagementPage() {
                         </div>
                       </div>
                       <a
-                        href={`/api/documents/${pod._id}/view`}
+                        href={`/api/pod/${pod._id}/view`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-semibold border border-blue-200"
                       >
                         <Download className="w-4 h-4" />
-                        Download POD
+                        View Document
                       </a>
                     </div>
                   </div>

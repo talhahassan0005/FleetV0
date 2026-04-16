@@ -20,6 +20,8 @@ interface Invoice {
   dueDate?: string
   itemDescription?: string
   notes?: string
+  qbLink?: string
+  qbInvoiceId?: string
 }
 
 export default function AdminInvoiceManagementPage() {
@@ -360,6 +362,19 @@ export default function AdminInvoiceManagementPage() {
                     <p className="text-lg font-semibold">
                       {new Date(selectedInvoice.dueDate).toLocaleDateString()}
                     </p>
+                  </div>
+                )}
+
+                {/* QB Link Button */}
+                {selectedInvoice.qbLink && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs text-blue-600 uppercase font-semibold mb-2">QuickBooks Invoice</p>
+                    <button
+                      onClick={() => window.open(selectedInvoice.qbLink, '_blank')}
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm flex items-center justify-center gap-2"
+                    >
+                      🔗 Open QB Invoice ({selectedInvoice.qbInvoiceId})
+                    </button>
                   </div>
                 )}
 

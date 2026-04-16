@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
+import { MessageCircle } from 'lucide-react'
 
 interface Load {
   _id: string
@@ -31,6 +32,33 @@ export default function TransporterLoadDetailPage({ params }: { params: { id: st
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [quoteSubmitted, setQuoteSubmitted] = useState(false)
+  const [startingChat, setStartingChat] = useState(false)
+
+  const handleStartChat = async () => {
+    if (!load) return
+    try {
+      setStartingChat(true)
+      const res = await fetch('/api/chat/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ loadId: load._id }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        alert(`Failed to start chat: ${error.message || error.error}`)
+        return
+      }
+
+      const data = await res.json()
+      router.push('/transporter/chat')
+    } catch (err) {
+      console.error('Error starting chat:', err)
+      alert('Failed to start chat')
+    } finally {
+      setStartingChat(false)
+    }
+  }
 
   useEffect(() => {
     const fetchLoad = async () => {
@@ -153,12 +181,26 @@ export default function TransporterLoadDetailPage({ params }: { params: { id: st
       <Topbar title="Load Quotation" />
       <PageLayout>
         <div className="max-w-4xl mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="mb-6 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-          >
-            ← Back to Available Loads
-          </button>
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <button
+              onClick={() => router.back()}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            >
+              ← Back to Available Loads
+            </button>
+
+            {/* Chat Button - Show for accepted loads */}
+            {load && ['APPROVED', 'IN_TRANSIT', 'DELIVERED'].includes(load.status) && (
+              <button
+                onClick={handleStartChat}
+                disabled={startingChat}
+                className="flex items-center gap-2 px-4 py-2 bg-[#3ab54a] text-white font-semibold rounded hover:bg-[#2d9e3c] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              >
+                <MessageCircle className="w-5 h-5" />
+                {startingChat ? 'Starting...' : 'Chat with Client'}
+              </button>
+            )}
+          </div>
 
           <div className="grid grid-cols-3 gap-6">
             {/* Load Details */}

@@ -1,12 +1,15 @@
 /**
  * QuickBooks Integration Helper
  * Handles OAuth, API calls, and webhook management
+ * 
+ * NOTE: QUICKBOOKS_REALM_ID is now DYNAMIC and fetched from MongoDB per currency
+ * Use getQBCredentialsByCurrency(currency) to get the realm ID for a specific currency
  */
 
 import crypto from 'crypto';
 
 // QB OAuth Configuration
-const QB_REALM_ID = process.env.QUICKBOOKS_REALM_ID || '';
+// NOTE: QB_REALM_ID is no longer hardcoded - it's dynamically retrieved from MongoDB per currency
 const QB_CLIENT_ID = process.env.QUICKBOOKS_CLIENT_ID || '';
 const QB_CLIENT_SECRET = process.env.QUICKBOOKS_CLIENT_SECRET || '';
 const QB_REDIRECT_URI = process.env.QUICKBOOKS_REDIRECT_URI || '';
@@ -199,6 +202,23 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
   };
 }
 
+/**
+ * Get QuickBooks Credentials for a Specific Currency (DYNAMIC REALM ID LOOKUP)
+ * 
+ * This function performs DYNAMIC realm ID lookup from MongoDB based on currency.
+ * No hardcoded environment variable is needed - realm IDs are stored per currency
+ * when admins connect their QuickBooks accounts via /admin/dashboard/quickbooks
+ * 
+ * @param currency - Currency code (e.g., 'ZAR', 'USD', 'BWP')
+ * @returns QB credentials including dynamically-fetched realmId for that currency
+ * @throws Error if no QB account is connected for the requested currency
+ * 
+ * How it works:
+ * 1. Query admin user's quickbooksAccounts array filtered by currency
+ * 2. Return the matching QB account's realmId + access/refresh tokens
+ * 3. Fallback to legacy single QB account if multi-currency not set up
+ * 4. Flow: Invoice currency → getQBCredentialsByCurrency → Dynamic realmId
+ */
 export async function getQBCredentialsByCurrency(currency: string): Promise<{
   accessToken: string;
   refreshToken: string;
