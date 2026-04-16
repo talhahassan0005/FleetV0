@@ -447,9 +447,17 @@ export async function POST(req: NextRequest) {
           qbInvoiceLink = generateQBInvoiceLink(qbInvoice.invoiceId);
           qbBillLink = generateQBBillLink(qbBill.billId);
           
-          console.log('[Invoice] 🔗 Generated QB links:', {
+          console.log('[Invoice] 🔗 Generated QB links (Dynamic Realm ID from Currency):', {
+            currency: load.currency,
+            environment: process.env.QUICKBOOKS_ENVIRONMENT || 'SANDBOX',
+            dynamicRealmId: realmId,  // This is fetched dynamically from MongoDB by currency
+            invoiceId: qbInvoice?.invoiceId,
+            billId: qbBill?.billId,
             invoiceLink: qbInvoiceLink,
-            billLink: qbBillLink
+            billLink: qbBillLink,
+            linkBaseURL: process.env.QUICKBOOKS_ENVIRONMENT === 'PRODUCTION' 
+              ? 'https://qbo.intuit.com' 
+              : 'https://app.sandbox.qbo.intuit.com'
           });
 
           // THEN update database with the links
@@ -480,11 +488,15 @@ export async function POST(req: NextRequest) {
           );
 
           console.log('[Invoice] 🎉 QB Integration Complete!');
+          console.log('[Invoice]   📝 Invoice ID:', qbInvoice.invoiceId);
           console.log('[Invoice]   Invoice Link:', qbInvoiceLink);
+          console.log('[Invoice]   📄 Bill ID:', qbBill.billId);
           console.log('[Invoice]   Bill Link:', qbBillLink);
+          console.log('[Invoice]   ✅ Saved to DB with qbLink fields');
         } catch (qbError: any) {
           console.error('[Invoice] ❌ QB sync error:', qbError.message);
           console.error('[Invoice] Error details:', qbError.stack);
+          console.log('[Invoice] ⚠️ Invoices created but QB sync failed - qbLink not set');
         }
       } else {
         console.log('[Invoice] ⚠️ No QB credentials found for currency:', load.currency);

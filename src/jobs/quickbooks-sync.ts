@@ -21,17 +21,34 @@ let syncInProgress = false;
 async function getQBAdminCredentials(db: any) {
   const admin = await db.collection('users').findOne({
     role: 'ADMIN',
-    'quickbooks.isConnected': true,
+    $or: [
+      { 'quickbooks.isConnected': true },
+      { 'quickbooksAccounts.isConnected': true },
+    ]
   });
 
-  if (!admin?.quickbooks?.accessToken) {
+  if (!admin) {
     throw new Error('No QB connected admin found');
   }
 
-  return {
-    accessToken: admin.quickbooks.accessToken,
-    realmId: admin.quickbooks.realmId,
-  };
+  // Try quickbooksAccounts first (new multi-country)
+  const activeAccount = admin.quickbooksAccounts?.find((acc: any) => acc.isConnected);
+  if (activeAccount?.accessToken) {
+    return {
+      accessToken: activeAccount.accessToken,
+      realmId: activeAccount.realmId,
+    };
+  }
+
+  // Fallback to legacy single account
+  if (admin.quickbooks?.accessToken) {
+    return {
+      accessToken: admin.quickbooks.accessToken,
+      realmId: admin.quickbooks.realmId,
+    };
+  }
+
+  throw new Error('No QB connected admin found');
 }
 
 /**

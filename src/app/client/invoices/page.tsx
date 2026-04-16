@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
+import ClientInvoiceViewModal from '@/components/client/ClientInvoiceViewModal'
 
 interface POD {
   _id: string
@@ -49,7 +50,7 @@ interface QBInvoice {
   createdAt: string
   dueDate?: string
   loadRef?: string
-  clientApprovalStatus?: boolean | null | 'APPROVED' | 'REJECTED'
+  clientApprovalStatus?: boolean | null
   qbLink?: string
 }
 
@@ -63,12 +64,8 @@ export default function ClientInvoicesPage() {
   const [tab, setTab] = useState<'pods' | 'invoices'>('pods')
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
-  const [rejectModalOpen, setRejectModalOpen] = useState(false)
-  const [rejectingInvoiceId, setRejectingInvoiceId] = useState<string | null>(null)
-  const [rejectionReason, setRejectionReason] = useState('')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [dateFilter, setDateFilter] = useState({ startDate: '', endDate: '' })
-  const [viewingInvoice, setViewingInvoice] = useState<QBInvoice | null>(null)
+  const [viewingUrl, setViewingUrl] = useState<string | null>(null)
+  const [selectedInvoice, setSelectedInvoice] = useState<QBInvoice | null>(null)
 
 
   useEffect(() => {
@@ -605,12 +602,16 @@ export default function ClientInvoicesPage() {
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Payment Status</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Due Date</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Created</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Actions</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredQBInvoices.map(invoice => (
-                        <tr key={invoice._id} className="border-b hover:bg-gray-50 transition-colors">
+                      {qbInvoices.map(invoice => (
+                        <tr 
+                          key={invoice._id} 
+                          className="border-b hover:bg-blue-50 transition-colors cursor-pointer"
+                          onClick={() => setSelectedInvoice(invoice)}
+                        >
                           <td className="px-4 py-3 font-bold text-[#1a2a5e]">{invoice.invoiceNumber}</td>
                           <td className="px-4 py-3 text-sm">{invoice.loadRef || '-'}</td>
                           <td className="px-4 py-3 text-sm">
@@ -635,51 +636,15 @@ export default function ClientInvoicesPage() {
                           <td className="px-4 py-3 text-sm">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '-'}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{new Date(invoice.createdAt).toLocaleDateString()}</td>
                           <td className="px-4 py-3">
-                            <div className="flex gap-2">
-                              {/* View Button */}
-                              {invoice.qbLink ? (
-                                <a
-                                  href={invoice.qbLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors inline-block"
-                                  title="View in QuickBooks"
-                                >
-                                  View
-                                </a>
-                              ) : (
-                                <button
-                                  onClick={() => setViewingInvoice(invoice)}
-                                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
-                                >
-                                  View
-                                </button>
-                              )}
-
-                              {/* Approve/Reject Buttons */}
-                              {invoice.clientApprovalStatus === true || invoice.clientApprovalStatus === 'APPROVED' ? (
-                                <span className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">✓ Approved</span>
-                              ) : invoice.clientApprovalStatus === false || invoice.clientApprovalStatus === 'REJECTED' ? (
-                                <span className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">✕ Rejected</span>
-                              ) : (
-                                <>
-                                  <button
-                                    onClick={() => handleApproveQBInvoice(invoice._id)}
-                                    disabled={approvingId === invoice._id}
-                                    className="px-3 py-1 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
-                                  >
-                                    {approvingId === invoice._id ? '...' : '✓ Approve'}
-                                  </button>
-                                  <button
-                                    onClick={() => handleRejectQBInvoice(invoice._id)}
-                                    disabled={rejectingId === invoice._id}
-                                    className="px-3 py-1 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
-                                  >
-                                    {rejectingId === invoice._id ? '...' : '✕ Reject'}
-                                  </button>
-                                </>
-                              )}
-                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedInvoice(invoice)
+                              }}
+                              className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-200 transition-colors"
+                            >
+                              View
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -840,6 +805,12 @@ export default function ClientInvoicesPage() {
             </div>
           </div>
         )}
+
+        {/* Invoice View Modal */}
+        <ClientInvoiceViewModal
+          invoice={selectedInvoice}
+          onClose={() => setSelectedInvoice(null)}
+        />
 
       </PageLayout>
     </>
