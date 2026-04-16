@@ -9,9 +9,19 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
+import { authOptions } from '@/lib/auth'
+
+/**
+ * HELPER: Generate consistent conversation ID from two user IDs
+ * This ensures both users use the SAME ID regardless of who initiates
+ * Format: sorted(userId1, userId2) to ensure consistency
+ */
+function generateConversationId(userId1: string, userId2: string): string {
+  const ids = [userId1, userId2].sort()
+  return ids.join('_')
+}
 
 export async function GET(req: NextRequest) {
   try {

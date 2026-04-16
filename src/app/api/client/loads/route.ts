@@ -71,13 +71,64 @@ export async function GET(req: NextRequest) {
       
       if (loadsString.length > 0) {
         console.log('[GetClientLoads] ⚠️  ISSUE DETECTED: clientId stored as STRING, not ObjectId!')
-        // Return the string-matched loads
-        return NextResponse.json({
-          success: true,
-          loads: await Promise.all(loadsString.map(async load => {
-            const quotesCount = await db.collection('quotes').countDocuments({ loadId: load._id })
+        // Return the string-matched loads with transporters
+        const loadsWithTransporters = await Promise.all(loadsString.map(async load => {
+          // Get all quotes for this load
+          const quotes = await db
+            .collection('quotes')
+            .find({ loadId: load._id })
+            .toArray()
+
+          // Get transporter details for each quote
+          const transporters = await Promise.all(quotes.map(async quote => {
+            const transporter = await db
+              .collection('users')
+              .findOne({ _id: quote.transporterId })
+            
             return {
-              _id: load._id.toString(),
+              _id: quote.transporterId.toString(),
+              name: transporter?.name || 'Unknown',
+              email: transporter?.email || '',
+              companyName: transporter?.companyName,
+              quoteStatus: quote.status,
+              quoteAmount: quote.amount,
+            }
+          }))
+
+          return {
+            _id: load._id.toString(),
+            ref: load.ref,
+            origin: load.origin,
+            destination: load.destination,
+            cargoType: load.cargoType,
+            weight: load.weight,
+            collectionDate: load.collectionDate,
+            finalPrice: load.finalPrice,
+            currency: load.currency || 'ZAR',
+            status: load.status,
+            clientId: load.clientId.toString?.() || load.clientId,
+            createdAt: load.createdAt,
+            transporters,
+          }
+        }))
+
+        // Transform to group by transporter
+        const transporterMap: { [key: string]: any } = {}
+
+        loadsWithTransporters.forEach(load => {
+          load.transporters.forEach((transporter: any) => {
+            if (!transporterMap[transporter._id]) {
+              transporterMap[transporter._id] = {
+                _id: transporter._id,
+                name: transporter.name,
+                email: transporter.email,
+                companyName: transporter.companyName,
+                loads: [],
+              }
+            }
+            
+            transporterMap[transporter._id].loads.push({
+              _id: load._id,
               ref: load.ref,
               origin: load.origin,
               destination: load.destination,
@@ -85,23 +136,82 @@ export async function GET(req: NextRequest) {
               weight: load.weight,
               collectionDate: load.collectionDate,
               finalPrice: load.finalPrice,
-              currency: load.currency || 'ZAR',
+              currency: load.currency,
               status: load.status,
-              clientId: load.clientId.toString?.() || load.clientId,
-              createdAt: load.createdAt,
-              quotesCount,
-            }
-          })),
+              quoteStatus: transporter.quoteStatus,
+              quoteAmount: transporter.quoteAmount,
+            })
+          })
+        })
+
+        const transportersGrouped = Object.values(transporterMap)
+        
+        return NextResponse.json({
+          success: true,
+          data: transportersGrouped,
         })
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      loads: await Promise.all(loads.map(async load => {
-        const quotesCount = await db.collection('quotes').countDocuments({ loadId: load._id })
+    // Format loads with nested transporters for chat modal
+    const loadsWithTransporters = await Promise.all(loads.map(async load => {
+      // Get all quotes for this load
+      const quotes = await db
+        .collection('quotes')
+        .find({ loadId: load._id })
+        .toArray()
+
+      // Get transporter details for each quote
+      const transporters = await Promise.all(quotes.map(async quote => {
+        const transporter = await db
+          .collection('users')
+          .findOne({ _id: quote.transporterId })
+        
         return {
-          _id: load._id.toString(),
+          _id: quote.transporterId.toString(),
+          name: transporter?.name || 'Unknown',
+          email: transporter?.email || '',
+          companyName: transporter?.companyName,
+          quoteStatus: quote.status,
+          quoteAmount: quote.amount,
+        }
+      }))
+
+      return {
+        _id: load._id.toString(),
+        ref: load.ref,
+        origin: load.origin,
+        destination: load.destination,
+        cargoType: load.cargoType,
+        weight: load.weight,
+        collectionDate: load.collectionDate,
+        finalPrice: load.finalPrice,
+        currency: load.currency || 'ZAR',
+        status: load.status,
+        clientId: load.clientId.toString?.() || load.clientId,
+        createdAt: load.createdAt,
+        transporters, // ← nested transporters with quote details
+      }
+    }))
+
+    // Transform to group by transporter instead of by load
+    const transporterMap: { [key: string]: any } = {}
+
+    loadsWithTransporters.forEach(load => {
+      load.transporters.forEach((transporter: any) => {
+        if (!transporterMap[transporter._id]) {
+          transporterMap[transporter._id] = {
+            _id: transporter._id,
+            name: transporter.name,
+            email: transporter.email,
+            companyName: transporter.companyName,
+            loads: [],
+          }
+        }
+        
+        // Add this load with quote status and amount for this transporter
+        transporterMap[transporter._id].loads.push({
+          _id: load._id,
           ref: load.ref,
           origin: load.origin,
           destination: load.destination,
@@ -109,13 +219,19 @@ export async function GET(req: NextRequest) {
           weight: load.weight,
           collectionDate: load.collectionDate,
           finalPrice: load.finalPrice,
-          currency: load.currency || 'ZAR',
+          currency: load.currency,
           status: load.status,
-          clientId: load.clientId.toString(),
-          createdAt: load.createdAt,
-          quotesCount,
-        }
-      })),
+          quoteStatus: transporter.quoteStatus,
+          quoteAmount: transporter.quoteAmount,
+        })
+      })
+    })
+
+    const transportersGrouped = Object.values(transporterMap)
+
+    return NextResponse.json({
+      success: true,
+      data: transportersGrouped, // ← return grouped by transporter
     })
   } catch (err: any) {
     console.error('[ClientLoads] Error:', err)

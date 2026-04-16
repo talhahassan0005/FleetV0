@@ -26,17 +26,49 @@ export async function uploadFile(
                                        process.env.CLOUDINARY_API_SECRET)
 
   if (hasCloudinaryCredentials) {
+    // Determine resource type based on file extension
+    const ext = originalName.split('.').pop()?.toLowerCase()
+    const isPdf = ext === 'pdf'
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')
+    
+    // For PDFs, we need special handling to make them viewable in browser
+    // Use 'image' type with 'fl_attachment' flag removed for inline viewing
+    const resourceType = isImage ? 'image' : 'raw'
+    
+    console.log('[Cloudinary] Uploading file:', originalName, 'as', resourceType)
+    
     return new Promise((resolve, reject) => {
+      const uploadOptions: any = {
+        folder: `fleetxchange/${folder}`,
+        resource_type: resourceType,
+        use_filename: true,
+        unique_filename: true,
+      }
+      
+      // For PDFs, add flags to enable inline viewing
+      if (isPdf) {
+        uploadOptions.flags = 'attachment:false'
+        uploadOptions.type = 'upload'
+      }
+      
       const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: `fleetxchange/${folder}`,
-          resource_type: 'auto',
-          use_filename: true,
-          unique_filename: true,
-        },
+        uploadOptions,
         (error, result) => {
-          if (error || !result) return reject(error)
-          resolve({ publicId: result.public_id, secureUrl: result.secure_url })
+          if (error || !result) {
+            console.error('[Cloudinary] Upload error:', error)
+            return reject(error)
+          }
+          
+          let secureUrl = result.secure_url
+          
+          // For PDFs, modify URL to use fl_attachment flag for inline viewing
+          if (isPdf && secureUrl.includes('/raw/upload/')) {
+            // Change from /raw/upload/ to /raw/upload/fl_attachment/ for inline viewing
+            secureUrl = secureUrl.replace('/raw/upload/', '/raw/upload/fl_attachment/')
+          }
+          
+          console.log('[Cloudinary] Upload success:', secureUrl)
+          resolve({ publicId: result.public_id, secureUrl: secureUrl })
         }
       )
       stream.end(buffer)

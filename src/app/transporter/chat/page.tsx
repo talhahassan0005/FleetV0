@@ -170,6 +170,8 @@ export default function TransporterChatPage() {
     const messageText = newMessage.trim()
     setNewMessage('')
 
+  // Start a conversation with a client
+  const handleStartChat = async (clientId: string) => {
     try {
       setSending(true)
       const res = await fetch('/api/chat/messages', {
@@ -181,7 +183,23 @@ export default function TransporterChatPage() {
         }),
       })
 
-      if (!res.ok) throw new Error('Failed to send message')
+      const data = await res.json()
+      if (data.success) {
+        setSelectedConversation(data.data)
+        // Add to conversations list if not already there
+        setConversations((prev) => {
+          const exists = prev.find((c) => c._id === data.data._id)
+          return exists ? prev : [data.data, ...prev]
+        })
+        setShowNewChat(false)
+      }
+    } catch (err) {
+      console.error('Failed to start chat:', err)
+      alert('Failed to start chat')
+    } finally {
+      setSending(false)
+    }
+  }
 
       const data = await res.json()
       

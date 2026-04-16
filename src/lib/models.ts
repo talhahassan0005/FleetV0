@@ -276,6 +276,47 @@ const qbCountryConfigSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
+// Chat Models - FIX for bug #2: Proper conversation tracking
+const conversationSchema = new mongoose.Schema(
+  {
+    conversationId: { type: String, required: true, unique: true, index: true }, // Format: sorted(id1,id2)
+    participants: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        userRole: { type: String, enum: Object.values(Role), required: true },
+        name: { type: String, required: true },
+        email: { type: String, required: true },
+      },
+    ],
+    loadId: { type: mongoose.Schema.Types.ObjectId, ref: 'Load' },
+    lastMessage: { type: String },
+    lastMessageAt: { type: Date },
+    lastMessageSenderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    unreadCount: { type: Map, of: Number, default: new Map() }, // { userId: unreadCount }
+    isActive: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
+
+const messageSchema = new mongoose.Schema(
+  {
+    conversationId: { type: String, required: true, index: true }, // Consistent across both users
+    senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    senderName: { type: String, required: true },
+    senderRole: { type: String, enum: Object.values(Role), required: true },
+    receiverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    message: { type: String, required: true },
+    isRead: { type: Boolean, default: false },
+    readAt: { type: Date },
+    loadRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Load' }, // Optional, for load context
+  },
+  { timestamps: true }
+);
+
+// Create indexes for faster queries
+messageSchema.index({ conversationId: 1, createdAt: 1 });
+conversationSchema.index({ 'participants.userId': 1 });
+
 export const User = mongoose.models.User || mongoose.model('User', userSchema);
 export const Load = mongoose.models.Load || mongoose.model('Load', loadSchema);
 export const Quote = mongoose.models.Quote || mongoose.model('Quote', quoteSchema);
@@ -285,3 +326,5 @@ export const Invoice = mongoose.models.Invoice || mongoose.model('Invoice', invo
 export const POD = mongoose.models.POD || mongoose.model('POD', podSchema);
 export const TrackingLink = mongoose.models.TrackingLink || mongoose.model('TrackingLink', trackingLinkSchema);
 export const QBCountryConfig = mongoose.models.QBCountryConfig || mongoose.model('QBCountryConfig', qbCountryConfigSchema);
+export const Conversation = mongoose.models.Conversation || mongoose.model('Conversation', conversationSchema);
+export const Message = mongoose.models.Message || mongoose.model('Message', messageSchema);

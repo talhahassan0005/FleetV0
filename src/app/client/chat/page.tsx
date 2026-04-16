@@ -241,6 +241,35 @@ export default function ClientChatPage() {
     const messageText = newMessage.trim()
     setNewMessage('')
 
+          if (messageData.senderId === session?.user?.id) {
+            return prev.map((m) =>
+              m._id.startsWith('temp-') &&
+              m.message === messageData.message &&
+              m.senderId === session?.user?.id
+                ? messageData
+                : m
+            )
+          }
+
+          console.log('[Chat] ✅ Adding new message to UI')
+          return [...prev, messageData]
+        })
+        scrollToBottom()
+      }
+
+      onMessageReceived(handleNewMessage)
+
+      return () => {
+        console.log('[Chat] 🧹 Cleaning up conversation:', selectedConversation.conversationId)
+        leaveConversation(selectedConversation.conversationId)
+      }
+    } else if (selectedConversation && !socketRef.current?.connected) {
+      console.error('[Chat] ❌ Cannot setup - socket not connected!')
+    }
+  }, [selectedConversation?.conversationId, fetchMessages, session?.user?.id])
+
+  // Start a conversation with a transporter
+  const handleStartChat = async (transporterId: string) => {
     try {
       setSending(true)
       const res = await fetch('/api/chat/messages', {
@@ -252,7 +281,41 @@ export default function ClientChatPage() {
         }),
       })
 
-      if (!res.ok) throw new Error('Failed to send message')
+      const data = await res.json()
+      if (data.success) {
+        setSelectedConversation(data.data)
+        // Add to conversations list if not already there
+        setConversations((prev) => {
+          const exists = prev.find((c) => c._id === data.data._id)
+          return exists ? prev : [data.data, ...prev]
+        })
+        setShowNewChat(false)
+      }
+    } catch (err) {
+      console.error('Failed to start chat:', err)
+      alert('Failed to start chat')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // Open new chat modal and fetch available loads
+  const handleOpenNewChat = async () => {
+    setLoadingLoads(true)
+    try {
+      const res = await fetch('/api/client/loads')
+      const data = await res.json()
+      if (data.success) {
+        setAvailableLoads(data.data || [])
+        setShowNewChat(true) // Only open modal after data is loaded
+      }
+    } catch (err) {
+      console.error('Failed to fetch loads:', err)
+      alert('Failed to load your loads')
+    } finally {
+      setLoadingLoads(false)
+    }
+  }
 
       const data = await res.json()
       
@@ -270,6 +333,46 @@ export default function ClientChatPage() {
     } finally {
       setSending(false)
     }
+  }
+
+  if (!mounted) {
+    return (
+      <>
+        <Topbar title="Chat" />
+        <PageLayout>
+          <div className="flex h-[calc(100vh-140px)] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden items-center justify-center">
+            <p className="text-gray-500">Loading...</p>
+          </div>
+        </PageLayout>
+      </>
+    )
+  }
+
+  // After mounted, check auth status
+  if (status === 'loading') {
+    return (
+      <>
+        <Topbar title="Chat" />
+        <PageLayout>
+          <div className="flex h-[calc(100vh-140px)] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden items-center justify-center">
+            <p className="text-gray-500">Loading...</p>
+          </div>
+        </PageLayout>
+      </>
+    )
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <>
+        <Topbar title="Chat" />
+        <PageLayout>
+          <div className="flex h-[calc(100vh-140px)] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden items-center justify-center">
+            <p className="text-gray-500">Please log in to access chat</p>
+          </div>
+        </PageLayout>
+      </>
+    )
   }
 
   return (
