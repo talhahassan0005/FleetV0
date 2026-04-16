@@ -163,7 +163,7 @@ export default function TransporterChatPage() {
 
   // Listen for socket messages when conversation selected
   useEffect(() => {
-    if (selectedConversation && socketRef.current?.connected) {
+    if (selectedConversation?.conversationId && socketRef.current?.connected) {
       console.log('[Chat] 💬 Setting up conversation:', selectedConversation.conversationId)
       console.log('[Chat] ✅ Socket connected:', socketRef.current?.connected)
       

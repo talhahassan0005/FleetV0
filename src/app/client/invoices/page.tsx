@@ -49,7 +49,8 @@ interface QBInvoice {
   createdAt: string
   dueDate?: string
   loadRef?: string
-  clientApprovalStatus?: boolean | null
+  clientApprovalStatus?: boolean | null | 'APPROVED' | 'REJECTED'
+  qbLink?: string
 }
 
 export default function ClientInvoicesPage() {
@@ -656,9 +657,9 @@ export default function ClientInvoicesPage() {
                               )}
 
                               {/* Approve/Reject Buttons */}
-                              {invoice.clientApprovalStatus === 'APPROVED' ? (
+                              {invoice.clientApprovalStatus === true || invoice.clientApprovalStatus === 'APPROVED' ? (
                                 <span className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">✓ Approved</span>
-                              ) : invoice.clientApprovalStatus === 'REJECTED' ? (
+                              ) : invoice.clientApprovalStatus === false || invoice.clientApprovalStatus === 'REJECTED' ? (
                                 <span className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">✕ Rejected</span>
                               ) : (
                                 <>

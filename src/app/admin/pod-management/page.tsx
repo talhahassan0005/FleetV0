@@ -32,15 +32,6 @@ export default function AdminPODManagementPage() {
   const [verifyingId, setVerifyingId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
 
-  useEffect(() => {
-    if (!session?.user?.role || session.user.role !== 'ADMIN') {
-      router.push('/login')
-      return
-    }
-
-    fetchPODs()
-  }, [session, router, filter])
-
   const fetchPODs = async () => {
     try {
       setLoading(true)
@@ -67,6 +58,16 @@ export default function AdminPODManagementPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!session?.user?.role || session.user.role !== 'ADMIN') {
+      router.push('/login')
+      return
+    }
+
+    fetchPODs()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, router, filter])
 
   const handleVerifyPOD = async (podId: string, approved: boolean) => {
     if (!approved && !rejectionReason?.trim()) {
@@ -271,6 +272,7 @@ export default function AdminPODManagementPage() {
                     <p className="text-xs text-gray-500 uppercase font-semibold mb-2">POD Document</p>
                     <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
                       {selectedPOD.mimeType?.startsWith('image/') ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={selectedPOD.podFile}
                           alt="POD"

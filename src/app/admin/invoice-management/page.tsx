@@ -33,15 +33,6 @@ export default function AdminInvoiceManagementPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
   const [processing, setProcessing] = useState(false)
 
-  useEffect(() => {
-    if (!session?.user?.role || session.user.role !== 'ADMIN') {
-      router.push('/login')
-      return
-    }
-
-    fetchInvoices()
-  }, [session, router, filter])
-
   const fetchInvoices = async () => {
     try {
       setLoading(true)
@@ -68,6 +59,16 @@ export default function AdminInvoiceManagementPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!session?.user?.role || session.user.role !== 'ADMIN') {
+      router.push('/login')
+      return
+    }
+
+    fetchInvoices()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, router, filter])
 
   const handleApproveInvoice = async (invoiceId: string) => {
     try {

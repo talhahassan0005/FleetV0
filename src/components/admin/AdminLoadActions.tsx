@@ -45,6 +45,7 @@ export function AdminLoadActions({ loadId, invoiceId, action, label, className =
     if (action === 'loadManagement' && loadId) {
       fetchDocuments()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [action, loadId])
 
   async function fetchDocuments() {
