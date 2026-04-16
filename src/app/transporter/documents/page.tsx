@@ -187,7 +187,7 @@ export default function TransporterDocumentsPage() {
                     <p><span className="font-semibold">Uploaded:</span> {new Date(selectedDoc.createdAt).toLocaleDateString()}</p>
                   </div>
                   <a
-                    href={selectedDoc.fileUrl}
+                    href={`/api/documents/${selectedDoc._id}/view`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block mt-3 px-3 py-1.5 rounded text-xs font-semibold bg-[#3ab54a] text-white hover:bg-green-600"

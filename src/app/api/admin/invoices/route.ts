@@ -114,7 +114,9 @@ export async function GET(req: NextRequest) {
           qbLink: 1,
           qbInvoiceId: 1,
           clientApprovalStatus: 1,
-          rejectionReason: 1
+          rejectionReason: 1,
+          clientApprovedAt: 1,
+          clientApprovedBy: 1
         }
       }
     ]).toArray()

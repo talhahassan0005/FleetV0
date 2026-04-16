@@ -41,6 +41,7 @@ export async function POST(
         $set: {
           visibleTo: approved ? visibleTo || 'CLIENT,TRANSPORTER' : 'ADMIN',
           approved: approved || false,
+          verificationStatus: approved ? 'APPROVED' : 'REJECTED',
           rejectionReason: !approved ? rejectionReason : undefined,
           // Update client approval status (for invoices and PODs)
           clientApprovalStatus: approved ? 'APPROVED' : 'REJECTED',
@@ -57,6 +58,7 @@ export async function POST(
       documentId: params.id,
       docType: updatedDocument?.docType,
       approved: updatedDocument?.approved,
+      verificationStatus: updatedDocument?.verificationStatus,
       clientApprovalStatus: updatedDocument?.clientApprovalStatus,
       role: role
     })
@@ -66,6 +68,45 @@ export async function POST(
         { error: 'Document not found' },
         { status: 404 }
       )
+    }
+
+    // If ADMIN is approving a verification document, check if user should be verified
+    if (role === 'ADMIN' && approved && updatedDocument.docType && ['COMPANY', 'REGISTRATION', 'CUSTOMS'].includes(updatedDocument.docType)) {
+      console.log('[ApproveDocument] 🔍 Admin approved verification document, checking user verification status...')
+      
+      const userId = updatedDocument.userId
+      if (userId) {
+        // Check if all required documents for the user are approved
+        const userDocuments = await db.collection('documents')
+          .find({ 
+            userId: userId,
+            docType: { $in: ['COMPANY', 'REGISTRATION', 'CUSTOMS'] }
+          })
+          .toArray()
+
+        console.log('[ApproveDocument] User required documents:', userDocuments.length)
+        console.log('[ApproveDocument] Document statuses:', userDocuments.map(d => ({ type: d.docType, status: d.verificationStatus })))
+
+        const allApproved = userDocuments.length > 0 && userDocuments.every(doc => doc.verificationStatus === 'APPROVED')
+
+        if (allApproved) {
+          const userUpdateResult = await db.collection('users').updateOne(
+            { _id: userId },
+            {
+              $set: {
+                isVerified: true,
+                verificationStatus: 'VERIFIED',
+                verifiedAt: new Date(),
+                verifiedBy: session.user.email || session.user.id,
+                updatedAt: new Date(),
+              },
+            }
+          )
+          console.log('[ApproveDocument] ✅ User account verified! Update result:', userUpdateResult)
+        } else {
+          console.log('[ApproveDocument] ⚠️ Not all required documents approved yet')
+        }
+      }
     }
 
     // SYNC POD AND INVOICE: If this is an invoice, also update related POD

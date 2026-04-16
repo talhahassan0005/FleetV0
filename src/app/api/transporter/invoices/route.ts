@@ -27,6 +27,9 @@ export async function GET() {
     currency: 1,
     createdAt: 1,
     qbLink: 1,
+    clientApprovalStatus: 1,
+    rejectionReason: 1,
+    clientApprovedAt: 1
   })
   .sort({ createdAt: -1 })
   .toArray()

@@ -1,109 +1,471 @@
 'use client'
-// src/app/transporter/chat/page.tsx
-import { useEffect, useState, useCallback } from 'react'
-import { Topbar, PageLayout } from '@/components/ui'
+// src/app/transporter/chat/page.tsx - Socket.io Real-Time Chat
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { useSession } from 'next-auth/react'
+import { Topbar, PageLayout, Skeleton } from '@/components/ui'
+import { 
+  initializeSocket, 
+  getSocket, 
+  disconnectSocket,
+  joinConversation,
+  leaveConversation,
+  sendMessage as sendSocketMessage,
+  onMessageReceived,
+  offMessageReceived,
+  sendTypingIndicator,
+} from '@/lib/socket'
+
+interface Message {
+  _id: string
+  conversationId: string
+  senderId: string
+  senderName: string
+  senderRole: string
+  receiverId: string
+  message: string
+  timestamp: string
+  isRead: boolean
+}
+
+interface Conversation {
+  _id: string
+  conversationId: string
+  participants: any[]
+  otherParticipant: any
+  lastMessage?: string
+  lastMessageAt?: string
+  unreadCount: number
+  isActive: boolean
+}
+
+/**
+ * GENERATOR: Consistent conversation ID from two user IDs
+ * Must match the backend generateConversationId function
+ */
+function generateConversationId(userId1: string, userId2: string): string {
+  const ids = [userId1, userId2].sort()
+  return ids.join('_')
+}
+
+// Safe format time helper
+const formatTime = (dateString?: string) => {
+  if (!dateString) return '';
+  try {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  } catch {
+    return '';
+  }
+};
 
 export default function TransporterChatPage() {
-  const [conversations, setConversations] = useState<any[]>([])
-  const [selectedUser, setSelectedUser] = useState<any>(null)
-  const [messages, setMessages] = useState<any[]>([])
+  const { data: session, status } = useSession()
+  const [mounted, setMounted] = useState(false)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
+  const [showNewChat, setShowNewChat] = useState(false)
+  const [loadingLoads, setLoadingLoads] = useState(false)
+  const [availableLoads, setAvailableLoads] = useState<any[]>([])
+  const [startingChat, setStartingChat] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const socketRef = useRef<ReturnType<typeof getSocket>>(null)
 
+  // Auto-scroll to bottom when messages change
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  // FIX #1 & #2: Fetch conversations from backend
   const fetchConversations = useCallback(async () => {
+    if (!session?.user?.id) return
     try {
       setLoading(true)
       const res = await fetch('/api/chat/conversations')
       const data = await res.json()
-      setConversations(data.data || [])
+      if (data.success) {
+        setConversations(data.data || [])
+      }
     } catch (err) {
       console.error('Failed to fetch conversations:', err)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [session?.user?.id])
 
+  // Initialize socket ONCE on page load
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id && !socketRef.current) {
+      console.log('[Chat] 🔌 Initializing socket for user:', session.user.id)
+      
+      // Initialize socket connection
+      const socket = initializeSocket(session.user.id)
+      socketRef.current = socket
+
+      // Wait for socket to connect
+      const handleConnect = () => {
+        console.log('[Chat] ✅ Socket connected, ready for chat')
+      }
+
+      if (socket.connected) {
+        console.log('[Chat] ✅ Socket already connected')
+      } else {
+        socket.once('connect', handleConnect)
+      }
+
+      return () => {
+        socket.off('connect', handleConnect)
+      }
+    }
+  }, [status, session?.user?.id])
+
+  // Fetch conversations separately
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id) {
+      fetchConversations()
+    }
+  }, [status, session?.user?.id, fetchConversations])
+
+  // FIX #1: Use consistent conversation ID (sorted user IDs, not Date.now()!)
   const fetchMessages = useCallback(async () => {
-    if (!selectedUser) return
+    if (!selectedConversation?.conversationId) return
     try {
-      const conversationId = `${Date.now()}-${selectedUser.id}`
-      const res = await fetch(`/api/chat/messages?conversationId=${conversationId}`)
+      const res = await fetch(
+        `/api/chat/messages?conversationId=${selectedConversation.conversationId}`
+      )
       const data = await res.json()
-      setMessages(data.data || [])
+      if (data.success) {
+        setMessages(data.data || [])
+      }
     } catch (err) {
       console.error('Failed to fetch messages:', err)
     }
-  }, [selectedUser])
+  }, [selectedConversation?.conversationId])
 
+  // Load initial conversations
   useEffect(() => {
-    fetchConversations()
-  }, [fetchConversations])
-
-  useEffect(() => {
-    if (selectedUser) {
-      fetchMessages()
+    if (status === 'authenticated') {
+      fetchConversations()
     }
-  }, [selectedUser, fetchMessages])
+  }, [status, fetchConversations])
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim() || !selectedUser) return
+  // Listen for socket messages when conversation selected
+  useEffect(() => {
+    if (selectedConversation && socketRef.current?.connected) {
+      console.log('[Chat] 💬 Setting up conversation:', selectedConversation.conversationId)
+      console.log('[Chat] ✅ Socket connected:', socketRef.current?.connected)
+      
+      // Fetch initial messages
+      fetchMessages()
 
+      // Join conversation room immediately (no delay needed since socket already connected)
+      joinConversation(selectedConversation.conversationId)
+
+      // Set up message listener
+      const handleNewMessage = (messageData: any) => {
+        console.log('[Chat] 📨 Received message in UI:', messageData)
+        console.log('[Chat] Message object keys:', Object.keys(messageData || {}))
+        console.log('[Chat] Message text:', messageData?.message)
+        
+        setMessages((prev) => {
+          const exists = prev.some((m) => m._id === messageData._id)
+          if (exists) {
+            console.log('[Chat] ⚠️ Duplicate message, skipping')
+            return prev
+          }
+
+          if (messageData.senderId === session?.user?.id) {
+            const updated = prev.map((m) =>
+              m._id.startsWith('temp-') &&
+              m.message === messageData.message &&
+              m.senderId === session?.user?.id
+                ? messageData
+                : m
+            )
+            console.log('[Chat] Replaced optimistic message')
+            return updated
+          }
+
+          console.log('[Chat] ✅ Adding new message to UI')
+          return [...prev, messageData]
+        })
+        scrollToBottom()
+      }
+
+      onMessageReceived(handleNewMessage)
+
+      return () => {
+        console.log('[Chat] 🧹 Cleaning up conversation:', selectedConversation.conversationId)
+        leaveConversation(selectedConversation.conversationId)
+      }
+    } else if (selectedConversation && !socketRef.current?.connected) {
+      console.error('[Chat] ❌ Cannot setup - socket not connected!')
+      console.error('[Chat] 🔄 Try refreshing the page')
+    }
+  }, [selectedConversation?.conversationId, fetchMessages, session?.user?.id])
+
+  // Start a conversation with a client
+  const handleStartChat = async (clientId: string) => {
     try {
       setSending(true)
-      const conversationId = `${Date.now()}-${selectedUser.id}`
-      
-      const res = await fetch('/api/chat/messages', {
+      const res = await fetch('/api/chat/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId,
-          recipientId: selectedUser.id,
-          message: newMessage,
-        }),
+        body: JSON.stringify({ otherUserId: clientId }),
       })
 
-      if (!res.ok) throw new Error('Failed to send message')
-
-      setNewMessage('')
-      await fetchMessages()
+      const data = await res.json()
+      if (data.success) {
+        setSelectedConversation(data.data)
+        // Add to conversations list if not already there
+        setConversations((prev) => {
+          const exists = prev.find((c) => c._id === data.data._id)
+          return exists ? prev : [data.data, ...prev]
+        })
+        setShowNewChat(false)
+      }
     } catch (err) {
-      console.error('Send error:', err)
-      alert('Failed to send message')
+      console.error('Failed to start chat:', err)
+      alert('Failed to start chat')
     } finally {
       setSending(false)
     }
+  }
+
+  // Open new chat modal and fetch available loads
+  const handleOpenNewChat = async () => {
+    setLoadingLoads(true)
+    try {
+      console.log('[Chat] Fetching transporter loads for chat...')
+      const res = await fetch('/api/chat/transporter-loads')
+      const data = await res.json()
+      console.log('[Chat] Transporter loads response:', data)
+      if (data.success) {
+        console.log('[Chat] Found', data.data?.length || 0, 'loads')
+        setAvailableLoads(data.data || [])
+        setShowNewChat(true) // Only open modal after data is loaded
+      } else {
+        console.error('[Chat] Failed to fetch loads:', data.error)
+        alert('Failed to load your quoted loads')
+      }
+    } catch (err) {
+      console.error('[Chat] Failed to fetch loads:', err)
+      alert('Failed to load your quoted loads')
+    } finally {
+      setLoadingLoads(false)
+    }
+  }
+
+  // FIX #1: Send message via Socket.io only (no HTTP API needed)
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newMessage.trim() || !selectedConversation || !session?.user?.id) return
+
+    const messageText = newMessage.trim()
+    const conversationId = selectedConversation.conversationId
+
+    try {
+      setSending(true)
+
+      // Create optimistic message for immediate UI update
+      const receiverId = selectedConversation.otherParticipant?.userId 
+        || selectedConversation.otherParticipant?._id?.toString() 
+        || selectedConversation.otherParticipant?._id
+      
+      const optimisticMessage: Message = {
+        _id: `temp-${Date.now()}`,
+        conversationId,
+        senderId: session.user.id,
+        senderName: session.user.name || 'You',
+        senderRole: session.user.role,
+        receiverId: receiverId || '',
+        message: messageText,
+        timestamp: new Date().toISOString(),
+        isRead: false,
+      }
+
+      // Immediately add to UI
+      setMessages((prev) => [...prev, optimisticMessage])
+      setNewMessage('')
+      scrollToBottom()
+
+      // Send via socket.io for real-time delivery
+      console.log('[Chat] Sending message via socket:', conversationId, messageText.substring(0, 50))
+      sendSocketMessage(conversationId, messageText)
+
+      // CRITICAL FIX #1: Also save to DB via HTTP POST to ensure persistence
+      try {
+        // Get receiverId - handle both formats (userId field or _id field)
+        const otherUserId = selectedConversation.otherParticipant?.userId 
+          || selectedConversation.otherParticipant?._id?.toString() 
+          || selectedConversation.otherParticipant?._id
+        
+        console.log('[Chat] Receiver ID:', otherUserId, 'from otherParticipant:', selectedConversation.otherParticipant)
+        
+        if (!otherUserId) {
+          console.error('[Chat] Cannot determine receiverId from otherParticipant')
+          throw new Error('Receiver ID not found')
+        }
+        
+        const res = await fetch('/api/chat/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: selectedConversation.conversationId,
+            receiverId: otherUserId,
+            message: messageText,
+          }),
+        })
+        
+        if (!res.ok) {
+          console.error('[Chat] HTTP save failed:', await res.text())
+        }
+      } catch (err) {
+        console.error('[Chat] HTTP save error:', err)
+      }
+
+      // Update conversation's last message
+      setConversations((prev) =>
+        prev.map((c) =>
+          c._id === selectedConversation._id
+            ? {
+                ...c,
+                lastMessage: messageText,
+                lastMessageAt: new Date().toISOString(),
+              }
+            : c
+        )
+      )
+    } catch (err) {
+      console.error('Send error:', err)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  if (!mounted) {
+    return (
+      <>
+        <Topbar title="Chat" />
+        <PageLayout>
+          <div className="flex h-[calc(100vh-140px)] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden items-center justify-center">
+            <p className="text-gray-500">Loading...</p>
+          </div>
+        </PageLayout>
+      </>
+    )
+  }
+
+  // After mounted, check auth status
+  if (status === 'loading') {
+    return (
+      <>
+        <Topbar title="Chat" />
+        <PageLayout>
+          <div className="flex h-[calc(100vh-140px)] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden items-center justify-center">
+            <p className="text-gray-500">Loading...</p>
+          </div>
+        </PageLayout>
+      </>
+    )
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <>
+        <Topbar title="Chat" />
+        <PageLayout>
+          <div className="flex h-[calc(100vh-140px)] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden items-center justify-center">
+            <p className="text-gray-500">Please log in to access chat</p>
+          </div>
+        </PageLayout>
+      </>
+    )
   }
 
   return (
     <>
       <Topbar title="Chat" />
       <PageLayout>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)]">
+        <div className="flex h-[calc(100vh-140px)] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {/* Conversations List */}
-          <div className="lg:col-span-1 card overflow-y-auto">
-            <div className="border-b border-gray-100 pb-3 mb-4">
-              <h3 className="font-condensed font-bold text-sm text-[#1a2a5e] uppercase tracking-wide">Clients</h3>
+          <div className="w-full lg:w-80 flex-shrink-0 border-r border-gray-100 flex flex-col bg-gray-50/50">
+            <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg text-[#1a2a5e]">Messages</h3>
+                <p className="text-sm text-gray-500 mt-0.5">Your conversations</p>
+              </div>
+              <button
+                onClick={handleOpenNewChat}
+                className="p-2 bg-[#3ab54a] text-white rounded-lg text-xl font-medium hover:bg-[#2d9e3c] transition"
+                title="Start new chat"
+              >
+                +
+              </button>
             </div>
+
             {loading ? (
-              <p className="text-xs text-gray-400">Loading...</p>
+              <div className="space-y-3 p-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="p-3 rounded-lg">
+                    <Skeleton className="h-4 w-28 mb-2" />
+                    <Skeleton className="h-3 w-36" />
+                  </div>
+                ))}
+              </div>
             ) : conversations.length === 0 ? (
-              <p className="text-xs text-gray-400">No clients available</p>
+              <div className="flex-1 flex items-center justify-center p-6 text-center">
+                <div>
+                  <p className="text-base text-gray-500 mb-2">No conversations yet</p>
+                  <p className="text-sm text-gray-400">Click <strong>+</strong> to start a new chat with a client</p>
+                </div>
+              </div>
             ) : (
-              <div className="space-y-2">
-                {conversations.map((user) => (
+              <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
+                {conversations.map((conv) => (
                   <button
-                    key={user.id}
-                    onClick={() => setSelectedUser(user)}
-                    className={`w-full p-3 rounded text-left transition-colors ${
-                      selectedUser?.id === user.id
-                        ? 'bg-[#3ab54a] text-white'
-                        : 'hover:bg-gray-50 text-[#1a2a5e]'
+                    key={conv._id}
+                    onClick={() => setSelectedConversation(conv)}
+                    className={`w-full p-4 rounded-lg text-left transition-all duration-200 ${
+                      selectedConversation?._id === conv._id
+                        ? 'bg-[#3ab54a] text-white shadow-md'
+                        : 'hover:bg-gray-100 text-[#1a2a5e]'
                     }`}
                   >
-                    <p className="text-xs font-semibold">{user.name}</p>
-                    <p className="text-[10px] opacity-75 truncate">{user.email}</p>
+                    <p className="font-semibold text-base">{conv.otherParticipant?.name || 'Unknown'}</p>
+                    <p className={`text-sm mt-1 truncate ${
+                      selectedConversation?._id === conv._id ? 'opacity-90' : 'opacity-75 text-gray-600'
+                    }`}>
+                      {conv.otherParticipant?.email || ''}
+                    </p>
+                    {conv.lastMessage && (
+                      <p className={`text-sm mt-2 truncate ${
+                        selectedConversation?._id === conv._id ? 'text-white opacity-80' : 'text-gray-600'
+                      }`}>
+                        {conv.lastMessage}
+                      </p>
+                    )}
+                    {conv.unreadCount > 0 && (
+                      <span className={`inline-block mt-3 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        selectedConversation?._id === conv._id 
+                          ? 'bg-white text-[#3ab54a]' 
+                          : 'bg-red-500 text-white'
+                      }`}>
+                        {conv.unreadCount} new
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -111,56 +473,66 @@ export default function TransporterChatPage() {
           </div>
 
           {/* Chat Area */}
-          <div className="lg:col-span-3 card flex flex-col">
-            {selectedUser ? (
+          <div className="flex-1 flex flex-col bg-white relative">
+            {selectedConversation ? (
               <>
                 {/* Header */}
-                <div className="border-b border-gray-100 pb-3 mb-4">
-                  <h3 className="font-condensed font-bold text-sm text-[#1a2a5e] uppercase tracking-wide">{selectedUser.name}</h3>
-                  <p className="text-xs text-gray-500">{selectedUser.phone}</p>
+                <div className="border-b border-gray-200 px-6 py-4">
+                  <h3 className="font-bold text-lg text-[#1a2a5e]">
+                    {selectedConversation.otherParticipant?.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-0.5">{selectedConversation.otherParticipant?.email}</p>
                 </div>
 
-                {/* Message List */}
-                <div className="flex-1 overflow-y-auto mb-4 space-y-3">
+                {/* Messages List */}
+                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 pb-4">
                   {messages.length === 0 ? (
-                    <p className="text-center text-gray-400 text-xs py-8">No messages yet. Start the conversation!</p>
+                    <p className="text-center text-gray-400 text-sm py-8">No messages yet. Start the conversation!</p>
                   ) : (
-                    messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex ${msg.senderId === selectedUser.id ? 'justify-start' : 'justify-end'}`}
-                      >
+                    messages.map((msg) => {
+                      const isOwn = msg.senderId === session?.user?.id
+                      return (
                         <div
-                          className={`max-w-xs px-4 py-2 rounded-lg ${
-                            msg.senderId === selectedUser.id
-                              ? 'bg-gray-100 text-[#1a2a5e]'
-                              : 'bg-[#3ab54a] text-white'
-                          }`}
+                          key={msg._id}
+                          className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                         >
-                          <p className="text-sm">{msg.message}</p>
-                          <p className="text-xs opacity-75 mt-1">
-                            {new Date(msg.timestamp).toLocaleTimeString()}
-                          </p>
+                          <div
+                            className={`max-w-xs px-5 py-3 rounded-lg ${
+                              isOwn
+                                ? 'bg-[#3ab54a] text-white rounded-br-none'
+                                : 'bg-gray-100 text-[#1a2a5e] rounded-bl-none'
+                            }`}
+                          >
+                            {!isOwn && <p className="text-sm font-semibold mb-1">{msg.senderName}</p>}
+                            <p className="text-base">{msg.message}</p>
+                            <p className={`text-xs opacity-75 mt-1 ${isOwn ? 'text-green-100' : 'text-gray-500'}`}>
+                              {new Date(msg.timestamp).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      )
+                    })
                   )}
+                  <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input */}
-                <form onSubmit={handleSendMessage} className="flex gap-2">
+                {/* Input Area */}
+                <form onSubmit={handleSendMessage} className="flex gap-3 border-t border-gray-200 px-6 py-4">
                   <input
                     type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type message..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#3ab54a]"
+                    placeholder="Type a message..."
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-base focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 disabled:bg-gray-100"
                     disabled={sending}
                   />
                   <button
                     type="submit"
                     disabled={sending || !newMessage.trim()}
-                    className="px-4 py-2 bg-[#3ab54a] text-white rounded font-semibold text-sm hover:bg-[#2d9e3c] disabled:opacity-60"
+                    className="px-6 py-3 bg-[#3ab54a] text-white rounded-lg font-semibold text-base hover:bg-[#2d9e3c] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                   >
                     {sending ? '...' : 'Send'}
                   </button>
@@ -168,11 +540,119 @@ export default function TransporterChatPage() {
               </>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-400">
-                <p>Select a client to start chatting</p>
+                <p className="text-center">
+                  <p className="font-semibold mb-2">Select a conversation to start chatting</p>
+                  <p className="text-sm">Or start a new chat by selecting a client from the list</p>
+                </p>
               </div>
             )}
           </div>
         </div>
+
+        {/* New Chat Modal - Select Load & Client */}
+        {showNewChat && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl max-h-[80vh] overflow-hidden flex flex-col">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-5 border-b">
+                <div>
+                  <h3 className="font-bold text-gray-900">Start New Chat</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Select a load to chat about</p>
+                </div>
+                <button
+                  onClick={() => setShowNewChat(false)}
+                  className="p-1 hover:bg-gray-100 rounded-lg transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto">
+                {loadingLoads ? (
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">Loading your quoted loads...</p>
+                  </div>
+                ) : availableLoads.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">
+                      No quoted loads found. Submit quotes on loads to start chatting with clients.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-4 space-y-3">
+                    {availableLoads.map((client) => (
+                      <div key={client._id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        {/* Client Info Header */}
+                        <div className="mb-3 pb-3 border-b">
+                          <p className="font-semibold text-gray-900 text-sm">
+                            👤 {client.name}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">{client.email}</p>
+                          {client.companyName && (
+                            <p className="text-xs text-gray-500 mt-0.5">{client.companyName}</p>
+                          )}
+                        </div>
+
+                        {/* Loads for this Client */}
+                        <div className="space-y-2">
+                          <p className="text-xs text-gray-600 font-medium mb-2">
+                            {client.loads?.length || 0} load{client.loads?.length !== 1 ? 's' : ''} quoted
+                          </p>
+                          {client.loads?.map((load: any) => (
+                            <div
+                              key={load._id}
+                              className="p-2 bg-white rounded border border-gray-100"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  📦 {load.ref}
+                                </p>
+                                <p className="text-xs text-gray-600 mt-0.5 truncate">
+                                  {load.origin} → {load.destination}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                  <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
+                                    {load.status}
+                                  </span>
+                                  <span
+                                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                      load.quoteStatus === 'ACCEPTED'
+                                        ? 'bg-green-100 text-green-700'
+                                        : load.quoteStatus === 'REJECTED'
+                                          ? 'bg-red-100 text-red-700'
+                                          : 'bg-yellow-100 text-yellow-700'
+                                    }`}
+                                  >
+                                    {load.quoteStatus}
+                                  </span>
+                                  {load.quoteAmount && (
+                                    <span className="text-xs text-gray-600">
+                                      Your quote: {load.quoteAmount.toLocaleString()} {load.currency}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Chat Button */}
+                        <button
+                          onClick={() => handleStartChat(client._id)}
+                          disabled={startingChat === client._id}
+                          className="mt-3 w-full px-3 py-2 bg-[#3ab54a] text-white rounded text-sm font-medium hover:bg-[#2d9e3c] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {startingChat === client._id ? 'Starting chat...' : `Chat with ${client.name}`}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </PageLayout>
     </>
   )

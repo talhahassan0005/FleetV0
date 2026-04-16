@@ -25,6 +25,22 @@ export async function GET() {
     invoiceType: 'CLIENT_INVOICE',
   })
   .sort({ createdAt: -1 })
+  .project({
+    _id: 1,
+    invoiceNumber: 1,
+    invoiceType: 1,
+    amount: 1,
+    currency: 1,
+    paymentStatus: 1,
+    paymentAmount: 1,
+    createdAt: 1,
+    dueDate: 1,
+    loadRef: 1,
+    clientApprovalStatus: 1,
+    rejectionReason: 1,
+    clientApprovedAt: 1,
+    clientApprovedBy: 1
+  })
   .toArray()
 
   return NextResponse.json({ success: true, invoices })

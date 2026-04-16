@@ -16,72 +16,100 @@ export async function GET(req: NextRequest) {
     const db = await getDatabase()
     const userId = new ObjectId(session.user.id)
     const userRole = session.user.role
-
-    console.log('[GetDocuments] Query user:', {
-      userId: session.user.id,
-      userIdObjectId: userId.toString(),
-      role: userRole,
-    })
-
-    // Get ALL documents first to inspect
-    const allDocs = await db.collection('documents').find({}).toArray()
-    console.log('[GetDocuments] Total documents in DB:', allDocs.length)
-    allDocs.forEach((doc: any) => {
-      console.log('[GetDocuments] DB Doc:', {
-        id: doc._id?.toString?.(),
-        userId: doc.userId?.toString?.(),
-        uploadedByRole: doc.uploadedByRole,
-        visibleTo: doc.visibleTo,
-      })
-    })
     
     // Build query based on user role
     let query: any = {}
     
     if (userRole === 'ADMIN') {
-      // ADMIN can see ALL documents
-      console.log('[GetDocuments] ADMIN user - fetching ALL documents')
-      query = {} // Empty query = all documents
-    } else {
-      // CLIENT and TRANSPORTER see only their own documents
-      console.log('[GetDocuments] Regular user - fetching only own documents')
-      query = { userId: userId }
-    }
-    
-    // Get documents based on query
-    const documents = await db.collection('documents').find(query).sort({ createdAt: -1 }).toArray()
+      // ADMIN can see ALL documents with user information
+      const documents = await db.collection('documents')
+        .aggregate([
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'userId',
+              foreignField: '_id',
+              as: 'user'
+            }
+          },
+          {
+            $unwind: {
+              path: '$user',
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $sort: { createdAt: -1 }
+          },
+          {
+            $project: {
+              _id: 1,
+              userId: 1,
+              loadId: 1,
+              docType: 1,
+              filename: 1,
+              originalName: 1,
+              fileUrl: 1,
+              fileData: 1,
+              fileMimeType: 1,
+              uploadedByRole: 1,
+              visibleTo: 1,
+              verificationStatus: 1,
+              approved: 1,
+              approvedAt: 1,
+              approvedBy: 1,
+              rejectionReason: 1,
+              reviews: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              'user._id': 1,
+              'user.name': 1,
+              'user.email': 1,
+              'user.companyName': 1,
+              'user.role': 1
+            }
+          }
+        ])
+        .toArray()
 
-    console.log('[GetDocuments] Found matching documents:', documents.length, 'with query:', query)
-    documents.forEach((doc: any) => {
-      console.log('[GetDocuments] Result Doc:', {
-        id: doc._id?.toString?.(),
-        userId: doc.userId?.toString?.(),
-        uploadedByRole: doc.uploadedByRole,
-        visibleTo: doc.visibleTo,
-      })
-    })
-
-    // Convert ObjectIds to strings for JSON serialization
-    const serializedDocs = documents.map((doc: any) => {
-      const serialized: any = {
+      // Convert ObjectIds to strings for JSON serialization
+      const serializedDocs = documents.map((doc: any) => ({
         ...doc,
         _id: doc._id?.toString?.() || doc._id,
-      }
-      // Also serialize userId if it exists
-      if (doc.userId) {
-        serialized.userId = doc.userId?.toString?.() || doc.userId
-      }
-      // Serialize loadId if it exists
-      if (doc.loadId) {
-        serialized.loadId = doc.loadId?.toString?.() || doc.loadId
-      }
-      return serialized
-    })
+        userId: doc.userId?.toString?.() || doc.userId,
+        loadId: doc.loadId?.toString?.() || doc.loadId,
+        user: doc.user ? {
+          _id: doc.user._id?.toString?.() || doc.user._id,
+          name: doc.user.name,
+          email: doc.user.email,
+          companyName: doc.user.companyName,
+          role: doc.user.role
+        } : null
+      }))
 
-    return NextResponse.json({
-      success: true,
-      data: serializedDocs,
-    })
+      return NextResponse.json({
+        success: true,
+        data: serializedDocs,
+      })
+    } else {
+      // CLIENT and TRANSPORTER see only their own documents
+      query = { userId: userId }
+      
+      const documents = await db.collection('documents').find(query).sort({ createdAt: -1 }).toArray()
+
+      // Convert ObjectIds to strings for JSON serialization
+      const serializedDocs = documents.map((doc: any) => ({
+        ...doc,
+        _id: doc._id?.toString?.() || doc._id,
+        userId: doc.userId?.toString?.() || doc.userId,
+        loadId: doc.loadId?.toString?.() || doc.loadId,
+      }))
+
+      return NextResponse.json({
+        success: true,
+        data: serializedDocs,
+      })
+    }
   } catch (err: any) {
     console.error('Documents fetch error:', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

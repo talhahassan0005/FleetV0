@@ -71,9 +71,69 @@ export default function NetworkPage() {
         </div>
       </section>
 
-      {/* MAP SECTION */}
+      {/* LOCATIONS SECTION */}
       <section className="py-20 bg-gray-50 relative overflow-hidden">
-        {/* Animated background */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: "radial-gradient(circle at 2px 2px, rgba(16, 185, 129, 0.2) 1px, transparent 0px)",
+            backgroundSize: "40px 40px"
+          }}></div>
+        </div>
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <FadeIn direction="down" delay={0} duration={800} distance={30} blur={true}>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+                Our Locations
+              </h2>
+              <p className="text-lg text-gray-700">
+                Strategic presence across Southern Africa's key freight corridors
+              </p>
+            </div>
+          </FadeIn>
+
+          {/* South Africa Locations */}
+          <FadeIn direction="up" delay={200} duration={800} distance={30}>
+            <div className="mb-12">
+              <h3 className="text-2xl font-bold text-slate-900 mb-6">South Africa</h3>
+              <div className="grid md:grid-cols-3 gap-6">
+                {[
+                  { name: 'Johannesburg', desc: 'Main hub for inland freight operations', link: '/freight-johannesburg' },
+                  { name: 'Cape Town', desc: 'Coastal logistics and port services', link: '/freight-cape-town' },
+                  { name: 'Durban', desc: 'Major port gateway to Africa', link: '/freight-durban' }
+                ].map((loc, idx) => (
+                  <a key={idx} href={loc.link} className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 hover:-translate-y-2 border-l-4 border-emerald-500">
+                    <h4 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-emerald-600 transition-colors">{loc.name}</h4>
+                    <p className="text-gray-600">{loc.desc}</p>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </FadeIn>
+
+          {/* International Locations */}
+          <FadeIn direction="up" delay={400} duration={800} distance={30}>
+            <div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-6">International</h3>
+              <div className="grid md:grid-cols-3 gap-6">
+                {[
+                  { name: '🇿🇲 Lusaka, Zambia', desc: 'Cross-border freight solutions', link: '/freight-zambia' },
+                  { name: '🇧🇼 Gaborone, Botswana', desc: 'Regional distribution center', link: '/freight-botswana' },
+                  { name: '🇿🇼 Harare, Zimbabwe', desc: 'Strategic transit hub', link: '/freight-zimbabwe' }
+                ].map((loc, idx) => (
+                  <a key={idx} href={loc.link} className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 hover:-translate-y-2 border-l-4 border-blue-500">
+                    <h4 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">{loc.name}</h4>
+                    <p className="text-gray-600">{loc.desc}</p>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* MAP SECTION */}
+      <section className="py-20 bg-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
             backgroundImage: "radial-gradient(circle at 2px 2px, rgba(16, 185, 129, 0.3) 1px, transparent 0px)",
@@ -84,7 +144,7 @@ export default function NetworkPage() {
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <FadeIn direction="down" delay={0} duration={800} distance={30} blur={true}>
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-12 text-center">
-              Countries We Service
+              Live Network Coverage
             </h2>
           </FadeIn>
           

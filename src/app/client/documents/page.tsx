@@ -262,7 +262,15 @@ export default function ClientDocumentsPage() {
                           <p className="text-xs text-gray-600 mt-2 italic">Admin: {adminReview.comment}</p>
                         )}
                       </div>
-                      <div>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`/api/documents/${doc._id}/view`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 rounded text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
+                        >
+                          View
+                        </a>
                         <span className={`inline-block px-3 py-1.5 rounded text-xs font-semibold ${statusBadge.bg} ${statusBadge.text} border ${statusBadge.border}`}>
                           {statusBadge.icon} {statusBadge.label}
                         </span>

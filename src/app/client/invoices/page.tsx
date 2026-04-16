@@ -59,10 +59,15 @@ export default function ClientInvoicesPage() {
   const [qbInvoices, setQbInvoices] = useState<QBInvoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [tab, setTab] = useState<'pods' | 'invoices' | 'history'>('pods')
+  const [tab, setTab] = useState<'pods' | 'invoices'>('pods')
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
-  const [viewingUrl, setViewingUrl] = useState<string | null>(null)
+  const [rejectModalOpen, setRejectModalOpen] = useState(false)
+  const [rejectingInvoiceId, setRejectingInvoiceId] = useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [dateFilter, setDateFilter] = useState({ startDate: '', endDate: '' })
+  const [viewingInvoice, setViewingInvoice] = useState<QBInvoice | null>(null)
 
 
   useEffect(() => {
@@ -164,12 +169,22 @@ export default function ClientInvoicesPage() {
   }
 
   const handleRejectInvoice = async (invoiceId: string) => {
+    setRejectingInvoiceId(invoiceId)
+    setRejectModalOpen(true)
+  }
+
+  const submitRejection = async () => {
+    if (!rejectionReason.trim()) {
+      alert('Please provide a reason for rejection')
+      return
+    }
+
     try {
-      setRejectingId(invoiceId)
-      const res = await fetch(`/api/documents/${invoiceId}/approve`, {
+      setRejectingId(rejectingInvoiceId)
+      const res = await fetch(`/api/documents/${rejectingInvoiceId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ approved: false, rejectionReason: 'Rejected by client' })
+        body: JSON.stringify({ approved: false, rejectionReason: rejectionReason.trim() })
       })
 
       if (!res.ok) {
@@ -178,7 +193,69 @@ export default function ClientInvoicesPage() {
       }
 
       alert('❌ Invoice rejected!')
+      setRejectModalOpen(false)
+      setRejectionReason('')
+      setRejectingInvoiceId(null)
       fetchLoads() // Refresh
+    } catch (err: any) {
+      alert(`Error: ${err.message}`)
+    } finally {
+      setRejectingId(null)
+    }
+  }
+
+  const handleApproveQBInvoice = async (invoiceId: string) => {
+    try {
+      setApprovingId(invoiceId)
+      const res = await fetch(`/api/invoices/${invoiceId}/client-approval`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'APPROVE' })
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to approve invoice')
+      }
+
+      alert('✅ Invoice approved!')
+      fetchQBInvoices() // Refresh
+    } catch (err: any) {
+      alert(`Error: ${err.message}`)
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
+  const handleRejectQBInvoice = async (invoiceId: string) => {
+    setRejectingInvoiceId(invoiceId)
+    setRejectModalOpen(true)
+  }
+
+  const submitQBRejection = async () => {
+    if (!rejectionReason.trim()) {
+      alert('Please provide a reason for rejection')
+      return
+    }
+
+    try {
+      setRejectingId(rejectingInvoiceId)
+      const res = await fetch(`/api/invoices/${rejectingInvoiceId}/client-approval`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'REJECT', rejectionReason: rejectionReason.trim() })
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to reject invoice')
+      }
+
+      alert('❌ Invoice rejected!')
+      setRejectModalOpen(false)
+      setRejectionReason('')
+      setRejectingInvoiceId(null)
+      fetchQBInvoices() // Refresh
     } catch (err: any) {
       alert(`Error: ${err.message}`)
     } finally {
@@ -198,6 +275,39 @@ export default function ClientInvoicesPage() {
     }
     return colors[status] || 'bg-gray-100 text-gray-800'
   }
+
+  // Filter invoices based on search and date
+  const filteredQBInvoices = qbInvoices.filter(invoice => {
+    // Search filter
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase()
+      const matchesSearch = 
+        invoice.invoiceNumber?.toLowerCase().includes(search) ||
+        invoice.loadRef?.toLowerCase().includes(search) ||
+        invoice.amount?.toString().includes(search) ||
+        invoice.currency?.toLowerCase().includes(search)
+      
+      if (!matchesSearch) return false
+    }
+
+    // Date filter
+    if (dateFilter.startDate || dateFilter.endDate) {
+      const invoiceDate = new Date(invoice.createdAt)
+      
+      if (dateFilter.startDate) {
+        const startDate = new Date(dateFilter.startDate)
+        if (invoiceDate < startDate) return false
+      }
+      
+      if (dateFilter.endDate) {
+        const endDate = new Date(dateFilter.endDate)
+        endDate.setHours(23, 59, 59, 999)
+        if (invoiceDate > endDate) return false
+      }
+    }
+
+    return true
+  })
 
   if (loading) {
     return (
@@ -244,16 +354,6 @@ export default function ClientInvoicesPage() {
               }`}
             >
               Invoices ({qbInvoices.length})
-            </button>
-            <button
-              onClick={() => setTab('history')}
-              className={`pb-3 px-1 font-semibold transition-colors border-b-2 ${
-                tab === 'history'
-                  ? 'border-[#3ab54a] text-[#3ab54a]'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              All Loads
             </button>
           </div>
         </div>
@@ -384,13 +484,15 @@ export default function ClientInvoicesPage() {
                               )}
                             </div>
                             <div className="ml-4 flex gap-2">
-                              {/* View Button */}
-                              <button
-                                onClick={() => setViewingUrl(invoice.fileUrl)}
-                                className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
+                              {/* View Button - Opens in new tab */}
+                              <a
+                                href={invoice.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors inline-block"
                               >
                                 View
-                              </button>
+                              </a>
                               
                               {/* Approve Button */}
                               <button
@@ -424,9 +526,70 @@ export default function ClientInvoicesPage() {
         {/* Tab: QB Invoices */}
         {tab === 'invoices' && (
           <div>
-            {qbInvoices.length === 0 ? (
+            {/* Search and Filter Bar */}
+            <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Search Bar */}
+                <div className="md:col-span-1">
+                  <label className="block text-xs font-semibold text-gray-700 mb-2">Search</label>
+                  <input
+                    type="text"
+                    placeholder="Invoice #, Load Ref, Amount..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20"
+                  />
+                </div>
+
+                {/* Start Date */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-2">Start Date</label>
+                  <input
+                    type="date"
+                    value={dateFilter.startDate}
+                    onChange={(e) => setDateFilter({ ...dateFilter, startDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20"
+                  />
+                </div>
+
+                {/* End Date */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-2">End Date</label>
+                  <input
+                    type="date"
+                    value={dateFilter.endDate}
+                    onChange={(e) => setDateFilter({ ...dateFilter, endDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20"
+                  />
+                </div>
+              </div>
+
+              {/* Clear Filters */}
+              {(searchTerm || dateFilter.startDate || dateFilter.endDate) && (
+                <div className="mt-3 flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    Showing {filteredQBInvoices.length} of {qbInvoices.length} invoices
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchTerm('')
+                      setDateFilter({ startDate: '', endDate: '' })
+                    }}
+                    className="text-sm text-[#3ab54a] hover:text-[#2d9e3c] font-semibold"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {filteredQBInvoices.length === 0 ? (
               <div className="p-8 bg-gray-50 rounded-lg text-center border border-gray-200">
-                <p className="text-gray-600">No invoices yet. Invoices will appear here once the admin generates them from approved PODs.</p>
+                <p className="text-gray-600">
+                  {qbInvoices.length === 0 
+                    ? 'No invoices yet. Invoices will appear here once the admin generates them from approved PODs.'
+                    : 'No invoices match your search criteria.'}
+                </p>
               </div>
             ) : (
               <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -441,10 +604,11 @@ export default function ClientInvoicesPage() {
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Payment Status</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Due Date</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Created</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {qbInvoices.map(invoice => (
+                      {filteredQBInvoices.map(invoice => (
                         <tr key={invoice._id} className="border-b hover:bg-gray-50 transition-colors">
                           <td className="px-4 py-3 font-bold text-[#1a2a5e]">{invoice.invoiceNumber}</td>
                           <td className="px-4 py-3 text-sm">{invoice.loadRef || '-'}</td>
@@ -469,6 +633,53 @@ export default function ClientInvoicesPage() {
                           </td>
                           <td className="px-4 py-3 text-sm">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '-'}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{new Date(invoice.createdAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-2">
+                              {/* View Button */}
+                              {invoice.qbLink ? (
+                                <a
+                                  href={invoice.qbLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors inline-block"
+                                  title="View in QuickBooks"
+                                >
+                                  View
+                                </a>
+                              ) : (
+                                <button
+                                  onClick={() => setViewingInvoice(invoice)}
+                                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
+                                >
+                                  View
+                                </button>
+                              )}
+
+                              {/* Approve/Reject Buttons */}
+                              {invoice.clientApprovalStatus === 'APPROVED' ? (
+                                <span className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">✓ Approved</span>
+                              ) : invoice.clientApprovalStatus === 'REJECTED' ? (
+                                <span className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">✕ Rejected</span>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleApproveQBInvoice(invoice._id)}
+                                    disabled={approvingId === invoice._id}
+                                    className="px-3 py-1 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
+                                  >
+                                    {approvingId === invoice._id ? '...' : '✓ Approve'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRejectQBInvoice(invoice._id)}
+                                    disabled={rejectingId === invoice._id}
+                                    className="px-3 py-1 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
+                                  >
+                                    {rejectingId === invoice._id ? '...' : '✕ Reject'}
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -479,53 +690,151 @@ export default function ClientInvoicesPage() {
           </div>
         )}
 
-        {/* Tab: All Loads */}
-        {tab === 'history' && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[80vh] overflow-y-auto">
-              <div className="sticky top-0 bg-gray-100 border-b p-4 flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900">Invoice Preview</h3>
-                <button
-                  onClick={() => setViewingUrl(null)}
-                  className="text-gray-600 hover:text-gray-900 font-bold text-xl"
-                >
-                  ✕
-                </button>
+        {/* Invoice Details Modal */}
+        {viewingInvoice && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl">
+              <div className="p-5 border-b">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-lg text-gray-900">Invoice Details</h3>
+                    <p className="text-sm text-gray-500 mt-1">{viewingInvoice.invoiceNumber}</p>
+                  </div>
+                  <button
+                    onClick={() => setViewingInvoice(null)}
+                    className="p-1 hover:bg-gray-100 rounded-lg transition"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
               
-              <div className="p-4">
-                {viewingUrl && viewingUrl.includes('.pdf') ? (
-                  <iframe
-                    src={viewingUrl}
-                    className="w-full h-[600px] border rounded"
-                    title="Invoice PDF"
-                  />
-                ) : viewingUrl ? (
-                  <img
-                    src={viewingUrl}
-                    alt="Invoice"
-                    className="w-full h-auto border rounded"
-                  />
-                ) : null}
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">Invoice Number</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-1">{viewingInvoice.invoiceNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">Load Reference</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-1">{viewingInvoice.loadRef || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">Type</p>
+                    <p className="text-sm mt-1">
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                        viewingInvoice.invoiceType === 'CLIENT_INVOICE' ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'
+                      }`}>
+                        {viewingInvoice.invoiceType === 'CLIENT_INVOICE' ? 'Client' : 'Transporter'}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">Amount</p>
+                    <p className="text-lg font-bold text-green-600 mt-1">{viewingInvoice.currency} {viewingInvoice.amount.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">Payment Status</p>
+                    <p className="text-sm mt-1">
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                        viewingInvoice.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
+                        viewingInvoice.paymentStatus === 'PARTIAL_PAID' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {viewingInvoice.paymentStatus === 'PAID' ? '✅ Paid' :
+                         viewingInvoice.paymentStatus === 'PARTIAL_PAID' ? '⏳ Partial' :
+                         '❌ Unpaid'}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">Client Approval</p>
+                    <p className="text-sm mt-1">
+                      {viewingInvoice.clientApprovalStatus === true || viewingInvoice.clientApprovalStatus === 'APPROVED' ? (
+                        <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">✓ Approved</span>
+                      ) : viewingInvoice.clientApprovalStatus === false || viewingInvoice.clientApprovalStatus === 'REJECTED' ? (
+                        <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">✕ Rejected</span>
+                      ) : (
+                        <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">⏳ Pending</span>
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">Due Date</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-1">{viewingInvoice.dueDate ? new Date(viewingInvoice.dueDate).toLocaleDateString() : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">Created</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-1">{new Date(viewingInvoice.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+
+                {viewingInvoice.qbLink && (
+                  <div className="pt-4 border-t">
+                    <a
+                      href={viewingInvoice.qbLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                    >
+                      View in QuickBooks →
+                    </a>
+                  </div>
+                )}
               </div>
               
-              <div className="bg-gray-50 border-t p-4 flex gap-2 justify-end">
+              <div className="p-5 border-t flex gap-3 justify-end">
                 <button
-                  onClick={() => setViewingUrl(null)}
-                  className="px-4 py-2 bg-gray-300 text-gray-900 rounded font-semibold hover:bg-gray-400"
+                  onClick={() => setViewingInvoice(null)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
                 >
                   Close
                 </button>
-                {viewingUrl && (
-                  <a
-                    href={viewingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-[#3ab54a] text-white rounded font-semibold hover:bg-[#2d9e3c]"
-                  >
-                    Download
-                  </a>
-                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rejection Reason Modal */}
+        {rejectModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+              <div className="p-5 border-b">
+                <h3 className="font-bold text-lg text-gray-900">Reject Invoice</h3>
+                <p className="text-sm text-gray-500 mt-1">Please provide a reason for rejection</p>
+              </div>
+              
+              <div className="p-5">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Rejection Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Enter reason for rejection..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 min-h-[100px]"
+                  required
+                />
+              </div>
+              
+              <div className="p-5 border-t flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setRejectModalOpen(false)
+                    setRejectionReason('')
+                    setRejectingInvoiceId(null)
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={rejectingInvoiceId && qbInvoices.find(i => i._id === rejectingInvoiceId) ? submitQBRejection : submitRejection}
+                  disabled={!rejectionReason.trim() || rejectingId !== null}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {rejectingId ? 'Rejecting...' : 'Reject Invoice'}
+                </button>
               </div>
             </div>
           </div>
