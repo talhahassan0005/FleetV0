@@ -304,6 +304,45 @@ export async function POST(req: NextRequest) {
             }
           } else {
             console.log('[Invoice] ✅ QB Customer already exists:', client.quickbooks.customerId);
+            // VERIFY customer exists in QB
+            try {
+              console.log('[Invoice] 🔍 Verifying customer exists in QB...');
+              const verifyResult = await makeQBAPICallWithRefresh(
+                `/customer/${client.quickbooks.customerId}`,
+                'GET',
+                realmId,
+                undefined,
+                load.currency
+              );
+              if (!verifyResult?.Customer?.Id) {
+                console.error('[Invoice] ❌ Customer not found in QB, recreating...');
+                throw new Error('Customer not found in QB');
+              }
+              console.log('[Invoice] ✅ Customer verified in QB');
+            } catch (verifyErr: any) {
+              console.error('[Invoice] ⚠️ Customer verification failed, recreating:', verifyErr.message);
+              // Customer doesn't exist, create new one
+              const qbCustomer = await createQBCustomer(realmId, {
+                displayName: client.companyName || client.email,
+                email: client.email,
+                phone: client.phone,
+              }, load.currency);
+              
+              await db.collection('users').updateOne(
+                { _id: client._id },
+                {
+                  $set: {
+                    'quickbooks.customerId': qbCustomer.id,
+                    'quickbooks.customerSyncToken': qbCustomer.syncToken,
+                    'quickbooks.customerSyncedAt': new Date(),
+                  },
+                }
+              );
+              
+              client.quickbooks.customerId = qbCustomer.id;
+              client.quickbooks.customerSyncToken = qbCustomer.syncToken;
+              console.log('[Invoice] ✅ QB Customer recreated:', qbCustomer.id);
+            }
           }
 
           // Ensure transporter exists in QB
@@ -344,6 +383,46 @@ export async function POST(req: NextRequest) {
             }
           } else {
             console.log('[Invoice] ✅ QB Vendor already exists:', transporter.quickbooks.vendorId);
+            // VERIFY vendor exists in QB
+            try {
+              console.log('[Invoice] 🔍 Verifying vendor exists in QB...');
+              const verifyResult = await makeQBAPICallWithRefresh(
+                `/vendor/${transporter.quickbooks.vendorId}`,
+                'GET',
+                realmId,
+                undefined,
+                load.currency
+              );
+              if (!verifyResult?.Vendor?.Id) {
+                console.error('[Invoice] ❌ Vendor not found in QB, recreating...');
+                throw new Error('Vendor not found in QB');
+              }
+              console.log('[Invoice] ✅ Vendor verified in QB');
+            } catch (verifyErr: any) {
+              console.error('[Invoice] ⚠️ Vendor verification failed, recreating:', verifyErr.message);
+              // Vendor doesn't exist, create new one
+              const qbVendor = await createQBVendor(realmId, {
+                displayName: transporter.companyName || transporter.email,
+                email: transporter.email,
+                phone: transporter.phone,
+                bankAccount: transporter.bankAccount,
+              }, load.currency);
+              
+              await db.collection('users').updateOne(
+                { _id: transporter._id },
+                {
+                  $set: {
+                    'quickbooks.vendorId': qbVendor.id,
+                    'quickbooks.vendorSyncToken': qbVendor.syncToken,
+                    'quickbooks.vendorSyncedAt': new Date(),
+                  },
+                }
+              );
+              
+              transporter.quickbooks.vendorId = qbVendor.id;
+              transporter.quickbooks.vendorSyncToken = qbVendor.syncToken;
+              console.log('[Invoice] ✅ QB Vendor recreated:', qbVendor.id);
+            }
           }
 
           // Create QB Invoice and Bill
@@ -376,10 +455,14 @@ export async function POST(req: NextRequest) {
             memo: `Load Ref: ${load.ref}, Transporter: ${transporter.companyName}`,
           }, load.currency);
 
+          console.log('[Invoice] 🔍 QB Invoice creation response:', JSON.stringify(qbInvoice, null, 2));
+          
           if (!qbInvoice?.invoiceId) {
+            console.error('[Invoice] ❌ CRITICAL: QB Invoice creation returned no invoiceId!');
+            console.error('[Invoice] Response was:', qbInvoice);
             throw new Error('QB Invoice creation failed: No invoice ID returned');
           }
-          console.log('[Invoice] ✅ QB Invoice created:', qbInvoice.invoiceId);
+          console.log('[Invoice] ✅ QB Invoice created with ID:', qbInvoice.invoiceId);
 
           // IMMEDIATELY save qbLink to database:
           const qbLinkToSave = `https://app.qbo.intuit.com/app/invoice?txnId=${qbInvoice.invoiceId}`;
@@ -458,10 +541,14 @@ export async function POST(req: NextRequest) {
             billNumber: transporterInvNum,
           }, load.currency);
 
+          console.log('[Invoice] 🔍 QB Bill creation response:', JSON.stringify(qbBill, null, 2));
+          
           if (!qbBill?.billId) {
+            console.error('[Invoice] ❌ CRITICAL: QB Bill creation returned no billId!');
+            console.error('[Invoice] Response was:', qbBill);
             throw new Error('QB Bill creation failed: No bill ID returned');
           }
-          console.log('[Invoice] ✅ QB Bill created:', qbBill.billId);
+          console.log('[Invoice] ✅ QB Bill created with ID:', qbBill.billId);
 
           // IMMEDIATELY save qbLink to database:
           const qbBillLinkToSave = `https://app.qbo.intuit.com/app/bill?txnId=${qbBill.billId}`;
