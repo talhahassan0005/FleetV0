@@ -470,8 +470,7 @@ export async function POST(req: NextRequest) {
           // QB Bill /send is not supported in sandbox - skip silently
           console.log('[Invoice] ℹ️ QB Bill email skipped (not supported in sandbox)');
 
-          // Update invoices with QB IDs and Links
-          // Generate QB links from invoice IDs
+          // Generate QB links from invoice IDs for local variables
           qbInvoiceLink = generateQBInvoiceLink(qbInvoice.invoiceId);
           qbBillLink = generateQBBillLink(qbBill.billId);
           
@@ -479,33 +478,6 @@ export async function POST(req: NextRequest) {
             invoiceLink: qbInvoiceLink,
             billLink: qbBillLink
           });
-
-          // THEN update database with the links
-          await db.collection('invoices').updateOne(
-            { _id: clientInvoiceResult.insertedId },
-            {
-              $set: {
-                'qb_sync.invoiceId': qbInvoice.invoiceId,
-                'qb_sync.invoiceSyncToken': qbInvoice.syncToken,
-                'qb_sync.createdAt': new Date(),
-                qbLink: generateQBInvoiceLink(qbInvoice.invoiceId),
-                qbInvoiceId: qbInvoice.invoiceId,
-              },
-            }
-          );
-
-          await db.collection('invoices').updateOne(
-            { _id: transporterInvoiceResult.insertedId },
-            {
-              $set: {
-                'qb_sync.billId': qbBill.billId,
-                'qb_sync.billSyncToken': qbBill.syncToken,
-                'qb_sync.createdAt': new Date(),
-                qbLink: generateQBBillLink(qbBill.billId),
-                qbInvoiceId: qbBill.billId,
-              },
-            }
-          );
 
           console.log('[Invoice] 🎉 QB Integration Complete!');
           console.log('[Invoice]   Invoice Link:', qbInvoiceLink);
