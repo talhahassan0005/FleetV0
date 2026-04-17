@@ -348,6 +348,8 @@ export async function POST(req: NextRequest) {
 
           // Create QB Invoice and Bill
           console.log('[Invoice] 📝 Creating QB Invoice for client...');
+          console.log('[Invoice] QB Environment:', process.env.QUICKBOOKS_ENVIRONMENT);
+          console.log('[Invoice] QB Client ID loaded:', process.env.QUICKBOOKS_CLIENT_ID ? '✅' : '❌ MISSING');
           console.log('[Invoice] Using customerId:', client.quickbooks?.customerId);
           console.log('[Invoice] Invoice payload:', {
             customerId: client.quickbooks?.customerId,
@@ -378,6 +380,19 @@ export async function POST(req: NextRequest) {
             throw new Error('QB Invoice creation failed: No invoice ID returned');
           }
           console.log('[Invoice] ✅ QB Invoice created:', qbInvoice.invoiceId);
+
+          // IMMEDIATELY save qbLink to database:
+          await db.collection('invoices').updateOne(
+            { _id: clientInvoiceResult.insertedId },
+            {
+              $set: {
+                qbLink: `https://app.qbo.intuit.com/app/invoice?txnId=${qbInvoice.invoiceId}`,
+                'qbSync.invoiceId': qbInvoice.invoiceId,
+                'qbSync.syncToken': qbInvoice.syncToken,
+                'qbSync.lastSyncedAt': new Date(),
+              }
+            }
+          );
           console.log('[Invoice] QB Invoice Response:', JSON.stringify(qbInvoice, null, 2));
 
           // Finalize QB Invoice to make it visible in QB UI
@@ -438,6 +453,19 @@ export async function POST(req: NextRequest) {
             throw new Error('QB Bill creation failed: No bill ID returned');
           }
           console.log('[Invoice] ✅ QB Bill created:', qbBill.billId);
+
+          // IMMEDIATELY save qbLink to database:
+          await db.collection('invoices').updateOne(
+            { _id: transporterInvoiceResult.insertedId },
+            {
+              $set: {
+                qbLink: `https://app.qbo.intuit.com/app/bill?txnId=${qbBill.billId}`,
+                'qbSync.billId': qbBill.billId,
+                'qbSync.syncToken': qbBill.syncToken,
+                'qbSync.lastSyncedAt': new Date(),
+              }
+            }
+          );
 
           // QB Bill /send is not supported in sandbox - skip silently
           console.log('[Invoice] ℹ️ QB Bill email skipped (not supported in sandbox)');
@@ -565,23 +593,29 @@ export async function POST(req: NextRequest) {
       createdAt: new Date(),
     })
 
+    // Re-fetch both invoices to get updated qbLink:
+    const [updatedClientInvoice, updatedTransporterInvoice] = await Promise.all([
+      db.collection('invoices').findOne({ _id: clientInvoiceResult.insertedId }),
+      db.collection('invoices').findOne({ _id: transporterInvoiceResult.insertedId }),
+    ]);
+
     return NextResponse.json({
       success: true,
       message: 'Invoices created successfully',
       data: {
         transporterInvoice: {
-          _id: transporterInvoiceResult.insertedId.toString(),
-          invoiceNumber: transporterInvNum,
-          amount: transporterAmount,
-          status: 'PENDING_CLIENT_APPROVAL',
-          qbLink: qbBillLink,
+          _id: updatedTransporterInvoice?._id.toString(),
+          invoiceNumber: updatedTransporterInvoice?.invoiceNumber,
+          amount: updatedTransporterInvoice?.amount,
+          status: updatedTransporterInvoice?.status,
+          qbLink: updatedTransporterInvoice?.qbLink || null,
         },
         clientInvoice: {
-          _id: clientInvoiceResult.insertedId.toString(),
-          invoiceNumber: clientInvNum,
-          amount: clientAmount,
-          status: 'SENT_TO_CLIENT',
-          qbLink: qbInvoiceLink,
+          _id: updatedClientInvoice?._id.toString(),
+          invoiceNumber: updatedClientInvoice?.invoiceNumber,
+          amount: updatedClientInvoice?.amount,
+          status: updatedClientInvoice?.status,
+          qbLink: updatedClientInvoice?.qbLink || null,
         },
         progressPercentage,
         tonnageDelivered: `${displayTonnage}/${totalLoadTonnage}`,
