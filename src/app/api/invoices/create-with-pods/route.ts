@@ -322,11 +322,14 @@ export async function POST(req: NextRequest) {
             } catch (verifyErr: any) {
               console.error('[Invoice] ⚠️ Customer verification failed, recreating:', verifyErr.message);
               // Customer doesn't exist, create new one
+              console.log('[Invoice] 🔄 Creating new customer in QB...');
               const qbCustomer = await createQBCustomer(realmId, {
                 displayName: client.companyName || client.email,
                 email: client.email,
                 phone: client.phone,
               }, load.currency);
+              
+              console.log('[Invoice] ✅ New customer created:', qbCustomer.id);
               
               await db.collection('users').updateOne(
                 { _id: client._id },
@@ -341,7 +344,7 @@ export async function POST(req: NextRequest) {
               
               client.quickbooks.customerId = qbCustomer.id;
               client.quickbooks.customerSyncToken = qbCustomer.syncToken;
-              console.log('[Invoice] ✅ QB Customer recreated:', qbCustomer.id);
+              console.log('[Invoice] 💾 Customer ID updated in database:', qbCustomer.id);
             }
           }
 
@@ -401,12 +404,15 @@ export async function POST(req: NextRequest) {
             } catch (verifyErr: any) {
               console.error('[Invoice] ⚠️ Vendor verification failed, recreating:', verifyErr.message);
               // Vendor doesn't exist, create new one
+              console.log('[Invoice] 🔄 Creating new vendor in QB...');
               const qbVendor = await createQBVendor(realmId, {
                 displayName: transporter.companyName || transporter.email,
                 email: transporter.email,
                 phone: transporter.phone,
                 bankAccount: transporter.bankAccount,
               }, load.currency);
+              
+              console.log('[Invoice] ✅ New vendor created:', qbVendor.id);
               
               await db.collection('users').updateOne(
                 { _id: transporter._id },
@@ -421,7 +427,7 @@ export async function POST(req: NextRequest) {
               
               transporter.quickbooks.vendorId = qbVendor.id;
               transporter.quickbooks.vendorSyncToken = qbVendor.syncToken;
-              console.log('[Invoice] ✅ QB Vendor recreated:', qbVendor.id);
+              console.log('[Invoice] 💾 Vendor ID updated in database:', qbVendor.id);
             }
           }
 
