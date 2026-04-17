@@ -382,17 +382,26 @@ export async function POST(req: NextRequest) {
           console.log('[Invoice] ✅ QB Invoice created:', qbInvoice.invoiceId);
 
           // IMMEDIATELY save qbLink to database:
-          await db.collection('invoices').updateOne(
+          const qbLinkToSave = `https://app.qbo.intuit.com/app/invoice?txnId=${qbInvoice.invoiceId}`;
+          console.log('[Invoice] 💾 Saving QB Invoice link to DB:', qbLinkToSave);
+          console.log('[Invoice] 💾 Saving to invoice ID:', clientInvoiceResult.insertedId.toString());
+          
+          const updateResult = await db.collection('invoices').updateOne(
             { _id: clientInvoiceResult.insertedId },
             {
               $set: {
-                qbLink: `https://app.qbo.intuit.com/app/invoice?txnId=${qbInvoice.invoiceId}`,
+                qbLink: qbLinkToSave,
                 'qbSync.invoiceId': qbInvoice.invoiceId,
                 'qbSync.syncToken': qbInvoice.syncToken,
                 'qbSync.lastSyncedAt': new Date(),
               }
             }
           );
+          console.log('[Invoice] 💾 Update result:', JSON.stringify({
+            matched: updateResult.matchedCount,
+            modified: updateResult.modifiedCount,
+            acknowledged: updateResult.acknowledged
+          }));
           console.log('[Invoice] QB Invoice Response:', JSON.stringify(qbInvoice, null, 2));
 
           // Finalize QB Invoice to make it visible in QB UI
@@ -455,17 +464,26 @@ export async function POST(req: NextRequest) {
           console.log('[Invoice] ✅ QB Bill created:', qbBill.billId);
 
           // IMMEDIATELY save qbLink to database:
-          await db.collection('invoices').updateOne(
+          const qbBillLinkToSave = `https://app.qbo.intuit.com/app/bill?txnId=${qbBill.billId}`;
+          console.log('[Invoice] 💾 Saving QB Bill link to DB:', qbBillLinkToSave);
+          console.log('[Invoice] 💾 Saving to invoice ID:', transporterInvoiceResult.insertedId.toString());
+          
+          const billUpdateResult = await db.collection('invoices').updateOne(
             { _id: transporterInvoiceResult.insertedId },
             {
               $set: {
-                qbLink: `https://app.qbo.intuit.com/app/bill?txnId=${qbBill.billId}`,
+                qbLink: qbBillLinkToSave,
                 'qbSync.billId': qbBill.billId,
                 'qbSync.syncToken': qbBill.syncToken,
                 'qbSync.lastSyncedAt': new Date(),
               }
             }
           );
+          console.log('[Invoice] 💾 Bill update result:', JSON.stringify({
+            matched: billUpdateResult.matchedCount,
+            modified: billUpdateResult.modifiedCount,
+            acknowledged: billUpdateResult.acknowledged
+          }));
 
           // QB Bill /send is not supported in sandbox - skip silently
           console.log('[Invoice] ℹ️ QB Bill email skipped (not supported in sandbox)');
@@ -566,10 +584,13 @@ export async function POST(req: NextRequest) {
     })
 
     // Re-fetch both invoices to get updated qbLink:
+    console.log('[Invoice] 🔄 Re-fetching invoices to get updated qbLink...');
     const [updatedClientInvoice, updatedTransporterInvoice] = await Promise.all([
       db.collection('invoices').findOne({ _id: clientInvoiceResult.insertedId }),
       db.collection('invoices').findOne({ _id: transporterInvoiceResult.insertedId }),
     ]);
+    console.log('[Invoice] 🔄 Client invoice qbLink after re-fetch:', updatedClientInvoice?.qbLink || 'NULL');
+    console.log('[Invoice] 🔄 Transporter invoice qbLink after re-fetch:', updatedTransporterInvoice?.qbLink || 'NULL');
 
     return NextResponse.json({
       success: true,
