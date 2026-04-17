@@ -630,6 +630,9 @@ export async function createQBInvoice(
   // Get income account for line items - but we'll use Services item instead
   // According to QB docs, minimum required is SalesItemLineDetail, not AccountBasedLineDetail
   let incomeAccountId = '1';
+  let serviceItemId = '1';
+  let serviceItemName = 'Services';
+  
   try {
     const encodedQuery = encodeURIComponent(`SELECT * FROM Account WHERE AccountType = 'Income' MAXRESULTS 1`);
     const accountsResult = await makeCall(`/query?query=${encodedQuery}`, 'GET');
@@ -640,9 +643,23 @@ export async function createQBInvoice(
   } catch (e) {
     console.log('[QB Invoice] ⚠️ Could not fetch income account, using default');
   }
+  
+  // Fetch available service items from QB
+  try {
+    const itemQuery = encodeURIComponent(`SELECT * FROM Item WHERE Type = 'Service' AND Active = true MAXRESULTS 1`);
+    const itemsResult = await makeCall(`/query?query=${itemQuery}`, 'GET');
+    if (itemsResult.QueryResponse?.Item?.[0]) {
+      const item = itemsResult.QueryResponse.Item[0];
+      serviceItemId = item.Id;
+      serviceItemName = item.Name;
+      console.log('[QB Invoice] 📦 Using service item:', serviceItemName, '(ID:', serviceItemId, ')');
+    }
+  } catch (e) {
+    console.log('[QB Invoice] ⚠️ Could not fetch service items, using default');
+  }
 
   // Build line items using SalesItemLineDetail (as per QB official documentation)
-  // Use Services item (ID: 1) which exists in all QB companies
+  // Use dynamically fetched service item from QB account
   const lines = invoiceData.lineItems.map((item: any, index: number) => {
     const amount = Number(item.amount) || 0;
     return {
@@ -650,8 +667,8 @@ export async function createQBInvoice(
       Amount: amount,
       SalesItemLineDetail: {
         ItemRef: {
-          name: 'Services', // REQUIRED: name field must be included
-          value: '1' // Services item - exists in all QB companies
+          name: serviceItemName,
+          value: serviceItemId
         }
       },
       Description: item.description || 'Freight Service',
