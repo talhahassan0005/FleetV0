@@ -112,11 +112,12 @@ export default function AdminDocumentsPage() {
       }
 
       await fetchDocuments()
-      const updated = documents.find(d => d._id === selectedDoc._id || d._id?.toString?.() === selectedDoc._id?.toString?.())
-      if (updated) setSelectedDoc(updated)
+      alert('Review submitted successfully!')
+      
+      // Close modal after successful review
+      setSelectedDoc(null)
       setReviewComment('')
       setReviewStatus('APPROVED')
-      alert('Review submitted successfully!')
     } catch (err: any) {
       console.error('Review error:', err)
       if (err.message.includes('already')) {

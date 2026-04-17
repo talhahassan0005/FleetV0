@@ -81,11 +81,13 @@ export async function POST(
             'reviews.$.status': status,
             'reviews.$.comment': comment,
             'reviews.$.timestamp': new Date(),
+            verificationStatus: status,
+            updatedAt: new Date()
           },
         } as any
       )
     } else {
-      // Add new review
+      // Add new review AND update verification status in same operation
       await db.collection('documents').updateOne(
         { _id: docId },
         {
@@ -98,8 +100,76 @@ export async function POST(
               timestamp: new Date(),
             },
           },
+          $set: {
+            verificationStatus: status,
+            updatedAt: new Date()
+          }
         } as any
       )
+    }
+
+    console.log(`[Document Review] Document ${docId} status updated to: ${status}`)
+
+    // Check if user account should be verified based on approved documents
+    if (status === 'APPROVED' && doc.userId) {
+      const user = await db.collection('users').findOne({ _id: doc.userId })
+      
+      if (user) {
+        console.log(`[Document Review] Checking verification for ${user.role}: ${user.email}`)
+        
+        // Get all approved documents for this user (including the one we just approved)
+        const approvedDocs = await db.collection('documents').find({
+          userId: doc.userId,
+          verificationStatus: 'APPROVED'
+        }).toArray()
+
+        const approvedDocTypes = approvedDocs.map((d: any) => d.docType)
+        console.log(`[Document Review] Approved doc types:`, approvedDocTypes)
+
+        // CLIENT verification: needs COMPANY + CUSTOMS
+        if (user.role === 'CLIENT') {
+          const hasCompany = approvedDocTypes.includes('COMPANY')
+          const hasCustoms = approvedDocTypes.includes('CUSTOMS')
+          
+          console.log(`[Document Review] CLIENT check: COMPANY=${hasCompany}, CUSTOMS=${hasCustoms}, isVerified=${user.isVerified}`)
+          
+          if (hasCompany && hasCustoms && !user.isVerified) {
+            await db.collection('users').updateOne(
+              { _id: doc.userId },
+              { 
+                $set: { 
+                  isVerified: true, 
+                  verifiedAt: new Date(),
+                  updatedAt: new Date()
+                } 
+              }
+            )
+            console.log(`[Document Review] ✅ CLIENT account verified: ${user.email}`)
+          }
+        }
+
+        // TRANSPORTER verification: needs COMPANY + REGISTRATION
+        if (user.role === 'TRANSPORTER') {
+          const hasCompany = approvedDocTypes.includes('COMPANY')
+          const hasRegistration = approvedDocTypes.includes('REGISTRATION')
+          
+          console.log(`[Document Review] TRANSPORTER check: COMPANY=${hasCompany}, REGISTRATION=${hasRegistration}, isVerified=${user.isVerified}`)
+          
+          if (hasCompany && hasRegistration && !user.isVerified) {
+            await db.collection('users').updateOne(
+              { _id: doc.userId },
+              { 
+                $set: { 
+                  isVerified: true, 
+                  verifiedAt: new Date(),
+                  updatedAt: new Date()
+                } 
+              }
+            )
+            console.log(`[Document Review] ✅ TRANSPORTER account verified: ${user.email}`)
+          }
+        }
+      }
     }
 
     const updated = await db.collection('documents').findOne({
