@@ -39,9 +39,17 @@ export async function GET() {
     clientApprovalStatus: 1,
     rejectionReason: 1,
     clientApprovedAt: 1,
-    clientApprovedBy: 1
+    clientApprovedBy: 1,
+    qbLink: 1,
+    'qb_sync.invoiceLink': 1
   })
   .toArray()
 
-  return NextResponse.json({ success: true, invoices })
+  // Map invoices to include qbLink from either direct field or qb_sync
+  const mappedInvoices = invoices.map((inv: any) => ({
+    ...inv,
+    qbLink: inv.qbLink || inv.qb_sync?.invoiceLink || null
+  }))
+
+  return NextResponse.json({ success: true, invoices: mappedInvoices })
 }

@@ -636,16 +636,19 @@ export default function ClientInvoicesPage() {
                           <td className="px-4 py-3 text-sm text-gray-600">{new Date(invoice.createdAt).toLocaleDateString()}</td>
                           <td className="px-4 py-3">
                             <div className="flex gap-2">
-                              {/* View Button */}
+                              {/* View in QuickBooks Button */}
                               {invoice.qbLink ? (
                                 <a
                                   href={invoice.qbLink}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors inline-block"
+                                  className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 transition-colors"
                                   title="View in QuickBooks"
                                 >
-                                  View
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                  </svg>
+                                  QuickBooks
                                 </a>
                               ) : (
                                 <button
@@ -772,14 +775,19 @@ export default function ClientInvoicesPage() {
 
                 {viewingInvoice.qbLink && (
                   <div className="pt-4 border-t">
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-3">QuickBooks Invoice</p>
                     <a
                       href={viewingInvoice.qbLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
                     >
-                      View in QuickBooks →
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                      View in QuickBooks
                     </a>
+                    <p className="text-xs text-gray-500 mt-2">Opens in new tab - Same link sent via email</p>
                   </div>
                 )}
               </div>
