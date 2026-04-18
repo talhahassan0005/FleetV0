@@ -1,8 +1,10 @@
 // src/app/api/admin/pods/route.ts
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import connectToDatabase from '@/lib/db'
-import { POD, Load, User } from '@/lib/models'
+import { getDatabase } from '@/lib/prisma'
+import { ObjectId } from 'mongodb'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions)
@@ -12,48 +14,80 @@ export async function GET(req: Request) {
   }
 
   try {
-    await connectToDatabase()
+    const db = await getDatabase()
 
     const url = new URL(req.url)
     const statusFilter = url.searchParams.get('status')
 
-    // Build query
-    let query: any = {}
+    // Build query for documents collection (POD type)
+    let query: any = { docType: 'POD' }
+    
+    // Map status filter to approval status
     if (statusFilter) {
-      query.status = statusFilter
+      if (statusFilter === 'PENDING') {
+        query.adminApprovalStatus = 'PENDING_ADMIN'
+      } else if (statusFilter === 'APPROVED') {
+        query.adminApprovalStatus = 'APPROVED'
+      }
     }
 
-    // Fetch PODs and populate related data
-    const pods = await POD.find(query)
-      .populate('loadId', 'ref origin destination')
-      .populate('transporterId', 'companyName email')
+    // Fetch PODs from documents collection
+    const pods = await db.collection('documents')
+      .find(query)
       .sort({ createdAt: -1 })
+      .toArray()
 
-    // Get client names from loads
-    const podsWithClientNames = await Promise.all(
-      pods.map(async (pod) => {
-        const load = await Load.findById(pod.loadId).populate('clientId', 'email companyName')
-        return {
-          _id: pod._id,
-          loadRef: pod.loadId?.ref || 'Unknown',
-          transporterName: pod.transporterId?.companyName || 'Unknown',
-          clientName: load?.clientId?.companyName || 'Unknown',
-          deliveryDate: pod.deliveryDate,
-          deliveryTime: pod.deliveryTime,
-          notes: pod.notes,
-          status: pod.status,
-          loadId: pod.loadId?._id,
-          uploadedAt: pod.createdAt,
-          podFile: pod.podFile,
-          mimeType: pod.mimeType,
+    // Enrich with load, transporter, and client details
+    const podsWithDetails = await Promise.all(
+      pods.map(async (pod: any) => {
+        try {
+          // Get load details
+          const load = await db.collection('loads').findOne({ _id: pod.loadId })
+          
+          // Get transporter details
+          const transporter = await db.collection('users').findOne({ _id: pod.userId })
+          
+          // Get client details from load
+          const client = load ? await db.collection('users').findOne({ _id: load.clientId }) : null
+
+          return {
+            _id: pod._id.toString(),
+            loadRef: load?.ref || 'Unknown',
+            transporterName: transporter?.companyName || transporter?.name || 'Unknown',
+            clientName: client?.companyName || client?.name || 'Unknown',
+            deliveryDate: pod.createdAt, // Using upload date as delivery date
+            deliveryTime: null,
+            notes: pod.adminComments || '',
+            status: pod.adminApprovalStatus === 'APPROVED' ? 'APPROVED' : 'PENDING',
+            loadId: pod.loadId?.toString(),
+            uploadedAt: pod.createdAt,
+            podFile: pod.fileUrl, // ← This is the fix - use fileUrl from documents
+            mimeType: pod.fileMimeType || 'application/pdf',
+          }
+        } catch (err) {
+          console.error('[AdminPODs] Error enriching POD:', err)
+          return {
+            _id: pod._id.toString(),
+            loadRef: 'Error',
+            transporterName: 'Unknown',
+            clientName: 'Unknown',
+            deliveryDate: pod.createdAt,
+            deliveryTime: null,
+            notes: '',
+            status: 'PENDING',
+            loadId: pod.loadId?.toString(),
+            uploadedAt: pod.createdAt,
+            podFile: pod.fileUrl,
+            mimeType: pod.fileMimeType || 'application/pdf',
+          }
         }
       })
     )
 
     return Response.json({
       success: true,
-      pods: podsWithClientNames,
-      count: podsWithClientNames.length,
+      pods: podsWithDetails,
+      count: podsWithDetails.length,
     })
   } catch (error) {
     console.error('[AdminPODs] Error:', error)

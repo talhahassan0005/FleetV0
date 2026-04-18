@@ -1,9 +1,11 @@
 // src/app/api/admin/pods/[podId]/route.ts
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import connectToDatabase from '@/lib/db'
-import { POD, Load, User } from '@/lib/models'
+import { getDatabase } from '@/lib/prisma'
+import { ObjectId } from 'mongodb'
 import { sendEmail } from '@/lib/email'
+
+export const dynamic = 'force-dynamic'
 
 export async function PATCH(req: Request, { params }: { params: { podId: string } }) {
   const session = await getServerSession(authOptions)
@@ -13,42 +15,45 @@ export async function PATCH(req: Request, { params }: { params: { podId: string 
   }
 
   try {
-    await connectToDatabase()
-
+    const db = await getDatabase()
     const body = await req.json()
     const { status, rejectionReason } = body
 
-    const pod = await POD.findById(params.podId)
+    const podId = new ObjectId(params.podId)
+    const pod = await db.collection('documents').findOne({ _id: podId, docType: 'POD' })
 
     if (!pod) {
       return Response.json({ error: 'POD not found' }, { status: 404 })
     }
 
-    if (!['PENDING', 'VERIFIED', 'APPROVED'].includes(status)) {
-      return Response.json({ error: 'Invalid status' }, { status: 400 })
+    // Map old status to new approval status
+    let updateData: any = {
+      updatedAt: new Date()
+    }
+
+    if (status === 'APPROVED') {
+      updateData.adminApprovalStatus = 'APPROVED'
+      updateData.adminApprovedAt = new Date()
+      updateData.adminApprovedBy = new ObjectId(session.user.id)
+      updateData.clientApprovalStatus = 'PENDING_CLIENT' // Forward to client
+    } else if (status === 'PENDING' && rejectionReason) {
+      updateData.adminApprovalStatus = 'PENDING_ADMIN'
+      updateData.rejectionReason = rejectionReason
     }
 
     // Update POD
-    pod.status = status
-    pod.verifiedBy = session.user.id
-    pod.verifiedAt = new Date()
-
-    if (status === 'PENDING' && rejectionReason) {
-      pod.rejectionReason = rejectionReason
-    } else {
-      pod.rejectionReason = undefined
-    }
-
-    await pod.save()
+    await db.collection('documents').updateOne(
+      { _id: podId },
+      { $set: updateData }
+    )
 
     // Get transporter and load info for email
-    const transporter = await User.findById(pod.transporterId)
-    const load = await Load.findById(pod.loadId).populate('clientId')
+    const transporter = await db.collection('users').findOne({ _id: pod.userId })
+    const load = await db.collection('loads').findOne({ _id: pod.loadId })
+    const client = load ? await db.collection('users').findOne({ _id: load.clientId }) : null
 
     // Send email notifications
     try {
-      const podLink = `${process.env.NEXTAUTH_URL}/admin/pod-management`
-
       if (status === 'APPROVED') {
         // Email to transporter
         if (transporter?.email) {
@@ -71,23 +76,23 @@ export async function PATCH(req: Request, { params }: { params: { podId: string 
         }
 
         // Email to client
-        if (load?.clientId?.email) {
+        if (client?.email) {
           const clientEmailHtml = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin:0 auto; padding:20px; background:#f5f5f5;">
               <div style="background:white; padding:30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
                 <h2 style="color:#3ab54a; margin-top:0;">✓ POD Approved - Ready to Invoice - ${load?.ref}</h2>
-                <p>Hi ${load?.clientId?.companyName},</p>
+                <p>Hi ${client?.companyName},</p>
                 <p>POD for load <strong>${load?.ref}</strong> has been verified and approved.</p>
-                <p>You can now create an invoice for this delivery.</p>
+                <p>You can now review and approve the POD to proceed with invoicing.</p>
                 <p style="margin:30px 0;">
-                  <a href="${process.env.NEXTAUTH_URL}/client/invoices" style="background-color:#3ab54a; color:white; padding:12px 24px; text-decoration:none; border-radius:4px; display:inline-block; font-weight:bold;">Create Invoice →</a>
+                  <a href="${process.env.NEXTAUTH_URL}/client/pods" style="background-color:#3ab54a; color:white; padding:12px 24px; text-decoration:none; border-radius:4px; display:inline-block; font-weight:bold;">Review POD →</a>
                 </p>
                 <hr style="border:none; border-top:1px solid #eee; margin:30px 0;">
                 <p style="color:#999; font-size:12px;">FleetXChange Team</p>
               </div>
             </div>
           `
-          await sendEmail(load.clientId.email, `✓ POD Approved - Ready to Invoice - Load ${load?.ref}`, clientEmailHtml)
+          await sendEmail(client.email, `✓ POD Approved - Ready to Invoice - Load ${load?.ref}`, clientEmailHtml)
         }
       } else if (status === 'PENDING' && rejectionReason) {
         // Email to transporter about rejection
@@ -121,8 +126,8 @@ export async function PATCH(req: Request, { params }: { params: { podId: string 
     return Response.json({
       success: true,
       pod: {
-        _id: pod._id,
-        status: pod.status,
+        _id: podId.toString(),
+        status: status,
         loadRef: load?.ref,
       },
       message: `POD ${status === 'APPROVED' ? 'approved' : 'rejected'}. Parties notified.`,
