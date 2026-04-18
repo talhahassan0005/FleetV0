@@ -64,6 +64,67 @@ export async function POST(
     if (existingReview) {
       // If already approved or rejected, don't allow changes - idempotent behavior
       if (existingReview.status === 'APPROVED' || existingReview.status === 'REJECTED') {
+        // Document already reviewed, but still check if account needs verification
+        if (existingReview.status === 'APPROVED' && doc.userId) {
+          const user = await db.collection('users').findOne({ _id: doc.userId })
+          
+          if (user && !user.isVerified) {
+            console.log(`[Document Review] Re-checking verification for ${user.role}: ${user.email}`)
+            
+            const approvedDocs = await db.collection('documents').find({
+              userId: doc.userId,
+              verificationStatus: 'APPROVED'
+            }).toArray()
+
+            const approvedDocTypes = approvedDocs.map((d: any) => d.docType)
+            console.log(`[Document Review] Approved doc types:`, approvedDocTypes)
+
+            // CLIENT verification: needs COMPANY + CUSTOMS
+            if (user.role === 'CLIENT') {
+              const hasCompany = approvedDocTypes.includes('COMPANY')
+              const hasCustoms = approvedDocTypes.includes('CUSTOMS')
+              
+              console.log(`[Document Review] CLIENT check: COMPANY=${hasCompany}, CUSTOMS=${hasCustoms}`)
+              
+              if (hasCompany && hasCustoms) {
+                await db.collection('users').updateOne(
+                  { _id: doc.userId },
+                  { 
+                    $set: { 
+                      isVerified: true, 
+                      verifiedAt: new Date(),
+                      updatedAt: new Date()
+                    } 
+                  }
+                )
+                console.log(`[Document Review] ✅ CLIENT account verified: ${user.email}`)
+              }
+            }
+
+            // TRANSPORTER verification: needs COMPANY + REGISTRATION
+            if (user.role === 'TRANSPORTER') {
+              const hasCompany = approvedDocTypes.includes('COMPANY')
+              const hasRegistration = approvedDocTypes.includes('REGISTRATION')
+              
+              console.log(`[Document Review] TRANSPORTER check: COMPANY=${hasCompany}, REGISTRATION=${hasRegistration}`)
+              
+              if (hasCompany && hasRegistration) {
+                await db.collection('users').updateOne(
+                  { _id: doc.userId },
+                  { 
+                    $set: { 
+                      isVerified: true, 
+                      verifiedAt: new Date(),
+                      updatedAt: new Date()
+                    } 
+                  }
+                )
+                console.log(`[Document Review] ✅ TRANSPORTER account verified: ${user.email}`)
+              }
+            }
+          }
+        }
+        
         return NextResponse.json(
           { 
             error: `Document already ${existingReview.status.toLowerCase()}. Cannot change approval status.`,
