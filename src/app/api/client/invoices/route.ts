@@ -13,41 +13,41 @@ export async function GET() {
 
   const db = await getDatabase()
   const clientId = session.user.id
+  const clientObjectId = new mongoose.Types.ObjectId(clientId)
+
+  console.log('[ClientInvoices] Fetching invoices for client:', clientId)
 
   // Query invoices where this client is the recipient:
   const invoices = await db.collection('invoices').find({
     $or: [
-      { clientId: new mongoose.Types.ObjectId(clientId) },
+      { clientId: clientObjectId },
       { clientId: clientId },
-      { userId: new mongoose.Types.ObjectId(clientId) },
-      { partyId: new mongoose.Types.ObjectId(clientId) },
+      { userId: clientObjectId },
+      { partyId: clientObjectId },
     ],
     invoiceType: 'CLIENT_INVOICE',
   })
   .sort({ createdAt: -1 })
-  .project({
-    _id: 1,
-    invoiceNumber: 1,
-    invoiceType: 1,
-    amount: 1,
-    currency: 1,
-    paymentStatus: 1,
-    paymentAmount: 1,
-    createdAt: 1,
-    dueDate: 1,
-    loadRef: 1,
-    clientApprovalStatus: 1,
-    rejectionReason: 1,
-    clientApprovedAt: 1,
-    clientApprovedBy: 1,
-    qbLink: 1,
-    'qb_sync.invoiceLink': 1
-  })
   .toArray()
+
+  console.log('[ClientInvoices] Found', invoices.length, 'invoices')
 
   // Map invoices to include qbLink from either direct field or qb_sync
   const mappedInvoices = invoices.map((inv: any) => ({
-    ...inv,
+    _id: inv._id.toString(),
+    invoiceNumber: inv.invoiceNumber,
+    invoiceType: inv.invoiceType,
+    amount: inv.amount,
+    currency: inv.currency,
+    paymentStatus: inv.paymentStatus,
+    paymentAmount: inv.paymentAmount,
+    createdAt: inv.createdAt,
+    dueDate: inv.dueDate,
+    loadRef: inv.loadRef,
+    clientApprovalStatus: inv.clientApprovalStatus,
+    rejectionReason: inv.rejectionReason,
+    clientApprovedAt: inv.clientApprovedAt,
+    clientApprovedBy: inv.clientApprovedBy?.toString(),
     qbLink: inv.qbLink || inv.qb_sync?.invoiceLink || null
   }))
 

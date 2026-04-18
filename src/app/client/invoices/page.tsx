@@ -36,6 +36,17 @@ interface LoadForInvoice {
   pod?: POD
   invoices: Invoice[]
   invoiceCount: number
+  qbInvoices?: Array<{
+    _id: string
+    invoiceNumber: string
+    amount: number
+    currency: string
+    paymentStatus: string
+    clientApprovalStatus: string
+    qbLink?: string
+  }>
+  hasInvoice?: boolean
+  invoiceStatus?: string | null
 }
 
 interface QBInvoice {
@@ -376,7 +387,8 @@ export default function ClientInvoicesPage() {
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Route</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Amount</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Invoices</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">PODs</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Invoice Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -400,6 +412,27 @@ export default function ClientInvoicesPage() {
                               <span className="text-green-600">✓ {load.invoiceCount}</span>
                             ) : (
                               <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {load.hasInvoice && load.qbInvoices && load.qbInvoices.length > 0 ? (
+                              <div className="flex flex-col gap-1">
+                                {load.qbInvoices.map(inv => (
+                                  <span key={inv._id} className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                                    inv.clientApprovalStatus === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                                    inv.clientApprovalStatus === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                                    'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {inv.invoiceNumber}: {
+                                      inv.clientApprovalStatus === 'APPROVED' ? '✓ Approved' :
+                                      inv.clientApprovalStatus === 'REJECTED' ? '✗ Rejected' :
+                                      '⏳ Pending'
+                                    }
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-xs">No Invoice</span>
                             )}
                           </td>
                         </tr>

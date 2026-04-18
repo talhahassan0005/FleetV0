@@ -37,7 +37,13 @@ export async function GET(req: Request) {
           clientApprovalStatus: { $ne: 'APPROVED' } // Exclude already approved by client
         }).toArray()
 
-        console.log(`[ClientLoadsWithPODs] Load ${load.ref}: PODs pending client approval = ${podDocs.length}`)
+        // Get QB invoices for this load
+        const qbInvoices = await db.collection('invoices').find({
+          loadId: load._id,
+          invoiceType: 'CLIENT_INVOICE'
+        }).toArray()
+
+        console.log(`[ClientLoadsWithPODs] Load ${load.ref}: PODs=${podDocs.length}, Invoices=${qbInvoices.length}`)
         
         if (podDocs.length > 0) {
           console.log(`[ClientLoadsWithPODs]   POD details:`, podDocs.map(doc => ({
@@ -72,6 +78,17 @@ export async function GET(req: Request) {
             rejectionReason: doc.rejectionReason,
           })),
           invoiceCount: podDocs.length, // Count of PODs pending client approval
+          qbInvoices: qbInvoices.map(inv => ({
+            _id: inv._id.toString(),
+            invoiceNumber: inv.invoiceNumber,
+            amount: inv.amount,
+            currency: inv.currency,
+            paymentStatus: inv.paymentStatus,
+            clientApprovalStatus: inv.clientApprovalStatus,
+            qbLink: inv.qbLink || inv.qb_sync?.invoiceLink,
+          })),
+          hasInvoice: qbInvoices.length > 0,
+          invoiceStatus: qbInvoices.length > 0 ? qbInvoices[0].clientApprovalStatus : null,
         }
       })
     )
