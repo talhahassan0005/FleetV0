@@ -14,34 +14,6 @@ export default function AdminDocumentsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('ALL')
   const [filterStatus, setFilterStatus] = useState('ALL')
-  const [fixingDocs, setFixingDocs] = useState(false)
-
-  const handleFixOldDocuments = async () => {
-    if (!confirm('Fix old documents without verification status and verify eligible accounts?')) {
-      return
-    }
-
-    try {
-      setFixingDocs(true)
-      const res = await fetch('/api/admin/fix-documents', {
-        method: 'POST',
-      })
-
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Failed to fix documents')
-      }
-
-      const data = await res.json()
-      alert(`Success!\n\nFixed ${data.fixed} documents\nVerified ${data.verified} accounts`)
-      await fetchDocuments()
-    } catch (err: any) {
-      console.error('Fix documents error:', err)
-      alert(err.message || 'Failed to fix documents')
-    } finally {
-      setFixingDocs(false)
-    }
-  }
 
   const fetchDocuments = async () => {
     try {
@@ -168,22 +140,13 @@ export default function AdminDocumentsPage() {
               <h3 className="font-condensed font-bold text-lg text-[#1a2a5e] uppercase tracking-wide">
                 All Documents ({filteredDocuments.length}{documents.length !== filteredDocuments.length ? ` of ${documents.length}` : ''})
               </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleFixOldDocuments}
-                  disabled={fixingDocs}
-                  className="px-3 py-1.5 rounded text-xs font-semibold bg-orange-100 text-orange-700 hover:bg-orange-200 disabled:opacity-50"
-                >
-                  {fixingDocs ? 'Fixing...' : '🔧 Fix Old Docs'}
-                </button>
-                <button
-                  onClick={fetchDocuments}
-                  disabled={loading}
-                  className="px-3 py-1.5 rounded text-xs font-semibold bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
-                >
-                  {loading ? 'Loading...' : 'Refresh'}
-                </button>
-              </div>
+              <button
+                onClick={fetchDocuments}
+                disabled={loading}
+                className="px-3 py-1.5 rounded text-xs font-semibold bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
+              >
+                {loading ? 'Loading...' : 'Refresh'}
+              </button>
             </div>
 
             {/* Search and Filters */}
