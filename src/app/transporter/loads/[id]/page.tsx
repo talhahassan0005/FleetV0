@@ -19,6 +19,15 @@ interface Load {
   status: string
   createdAt: string
   clientId: string
+  documents?: Array<{
+    _id: string
+    originalName: string
+    fileUrl: string
+    fileMimeType: string
+    docType: string
+    uploadedByRole: string
+    createdAt: string
+  }>
 }
 
 export default function TransporterLoadDetailPage({ params }: { params: { id: string } }) {
@@ -243,6 +252,33 @@ export default function TransporterLoadDetailPage({ params }: { params: { id: st
                     {load.description}
                   </p>
                 </div>
+
+                {/* Client Documents */}
+                {load.documents && load.documents.length > 0 && (
+                  <div className="p-6 border-t">
+                    <p className="text-xs text-gray-600 uppercase font-semibold mb-3">CLIENT DOCUMENTS</p>
+                    <div className="space-y-2">
+                      {load.documents.map((doc) => (
+                        <a
+                          key={doc._id}
+                          href={doc.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
+                        >
+                          <span className="text-2xl">📄</span>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-[#1a2a5e]">{doc.originalName}</p>
+                            <p className="text-xs text-gray-500">
+                              {doc.docType} • Uploaded {new Date(doc.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <span className="text-[#3ab54a] text-sm font-semibold">View →</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -17,11 +17,31 @@ export async function GET(req: NextRequest) {
     
     const filter: any = {}
     if (status) filter.status = status
-    if (clientId) filter.clientId = clientId
+    if (clientId) {
+      // Try to convert to ObjectId, if it fails, use as string
+      try {
+        filter.clientId = new ObjectId(clientId)
+      } catch (err) {
+        filter.clientId = clientId
+      }
+    }
     
     const loads = await db.collection('loads').find(filter).sort({ createdAt: -1 }).limit(50).toArray()
     
-    return NextResponse.json({ success: true, loads, count: loads.length })
+    // Add quotes count for each load
+    const loadsWithQuotes = await Promise.all(
+      loads.map(async (load) => {
+        const quotesCount = await db.collection('quotes').countDocuments({ loadId: load._id })
+        return {
+          ...load,
+          _id: load._id.toString(),
+          clientId: load.clientId?.toString?.() || load.clientId,
+          quotesCount
+        }
+      })
+    )
+    
+    return NextResponse.json({ success: true, loads: loadsWithQuotes, count: loadsWithQuotes.length })
   } catch (err: any) {
     console.error('[GetLoads] Error:', err)
     return NextResponse.json({ error: 'Failed to fetch loads' }, { status: 500 })

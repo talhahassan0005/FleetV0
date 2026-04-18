@@ -35,9 +35,10 @@ export default function ClientDashboard() {
 
     const fetchLoads = async () => {
       try {
-        const res = await fetch('/api/client/loads')
+        const res = await fetch('/api/loads?clientId=' + session.user.id)
         if (res.ok) {
           const data = await res.json()
+          console.log('Fetched loads data:', data)
           setLoads(data.loads || [])
         } else if (res.status === 401) {
           router.push('/login')

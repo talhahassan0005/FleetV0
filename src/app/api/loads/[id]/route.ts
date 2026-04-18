@@ -34,7 +34,27 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       !['QUOTING', 'APPROVED', 'PENDING'].includes(load.status))
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  return NextResponse.json(load)
+  // Fetch documents associated with this load
+  const documents = await db.collection('documents').find({
+    loadId: loadId,
+    docType: { $nin: ['POD', 'INVOICE'] } // Exclude POD and INVOICE from load details
+  }).toArray()
+
+  // Serialize documents
+  const serializedDocs = documents.map((doc: any) => ({
+    _id: doc._id?.toString(),
+    originalName: doc.originalName,
+    fileUrl: doc.fileUrl,
+    fileMimeType: doc.fileMimeType,
+    docType: doc.docType,
+    uploadedByRole: doc.uploadedByRole,
+    createdAt: doc.createdAt
+  }))
+
+  return NextResponse.json({
+    ...load,
+    documents: serializedDocs
+  })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
