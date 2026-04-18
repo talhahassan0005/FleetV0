@@ -5,7 +5,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
-import { uploadFile } from '@/lib/cloudinary'
 import { ObjectId } from 'mongodb'
 
 export async function POST(req: NextRequest) {
@@ -23,39 +22,40 @@ export async function POST(req: NextRequest) {
     }
 
     const db = await getDatabase()
-    const form = await req.formData()
+    
+    // Parse JSON body instead of FormData (files are already uploaded to Cloudinary)
+    const body = await req.json()
+    
+    const {
+      loadId,
+      deliveryDate,
+      deliveryTime,
+      notes = '',
+      podFileUrl,
+      podFileName,
+      podPublicId,
+      invoiceFileUrl,
+      invoiceFileName,
+      invoicePublicId
+    } = body
 
-    // Debug: Log all form keys
-    const formKeys = Array.from(form.keys())
-    console.log('[PODUpload] 📋 Form keys:', formKeys)
-
-    // Parse form data
-    const podFile = form.get('podFile') as File
-    const invoiceFile = form.get('invoiceFile') as File
-    const deliveryDate = form.get('deliveryDate') as string
-    const deliveryTime = form.get('deliveryTime') as string
-    const notes = form.get('notes') as string || ''
-
-    let loadId = form.get('loadId') as string
-    if (!loadId) loadId = form.get('load_id') as string
-
-    console.log('[PODUpload] 📦 POD File:', podFile?.name, 'Size:', podFile?.size)
-    console.log('[PODUpload] 📄 Invoice File:', invoiceFile?.name, 'Size:', invoiceFile?.size)
+    console.log('[PODUpload] 📦 POD File URL:', podFileUrl)
+    console.log('[PODUpload] 📄 Invoice File URL:', invoiceFileUrl)
     console.log('[PODUpload] 📅 Delivery:', deliveryDate, 'Time:', deliveryTime)
     console.log('[PODUpload] 📝 Notes:', notes)
 
-    if (!podFile) {
-      console.log('[PODUpload] ❌ No POD file found')
+    if (!podFileUrl || !podFileName) {
+      console.log('[PODUpload] ❌ No POD file URL found')
       return NextResponse.json(
-        { error: 'POD file is required' },
+        { error: 'POD file URL is required' },
         { status: 400 }
       )
     }
 
-    if (!invoiceFile) {
-      console.log('[PODUpload] ❌ No invoice file found')
+    if (!invoiceFileUrl || !invoiceFileName) {
+      console.log('[PODUpload] ❌ No invoice file URL found')
       return NextResponse.json(
-        { error: 'Invoice file is required' },
+        { error: 'Invoice file URL is required' },
         { status: 400 }
       )
     }
@@ -124,37 +124,20 @@ export async function POST(req: NextRequest) {
 
     console.log('[PODUpload] ✅ Quote found with status:', quote.status)
 
-    // Upload POD document
-    console.log('[PODUpload] 📤 Uploading POD file:', podFile.name)
-    const podArrayBuffer = await podFile.arrayBuffer()
-    const podBuffer = Buffer.from(podArrayBuffer)
-    const { publicId: podPublicId, secureUrl: podUrl } = await uploadFile(
-      podBuffer,
-      podFile.name,
-      'pods'
-    )
-    console.log('[PODUpload] ✅ POD uploaded:', podPublicId)
-
-    // Upload Invoice document
-    console.log('[PODUpload] 📤 Uploading Invoice file:', invoiceFile.name)
-    const invoiceArrayBuffer = await invoiceFile.arrayBuffer()
-    const invoiceBuffer = Buffer.from(invoiceArrayBuffer)
-    const { publicId: invoicePublicId, secureUrl: invoiceUrl } = await uploadFile(
-      invoiceBuffer,
-      invoiceFile.name,
-      'invoices'
-    )
-    console.log('[PODUpload] ✅ Invoice uploaded:', invoicePublicId)
+    // Files are already uploaded to Cloudinary from frontend
+    // Just use the provided URLs
+    console.log('[PODUpload] ✅ Using pre-uploaded POD URL:', podFileUrl)
+    console.log('[PODUpload] ✅ Using pre-uploaded Invoice URL:', invoiceFileUrl)
 
     // Create POD document record
     const podDocResult = await db.collection('documents').insertOne({
       userId: transporterId,
       loadId: loadObjectId,
       docType: 'POD',
-      filename: podPublicId,
-      originalName: podFile.name,
-      fileUrl: podUrl,
-      fileMimeType: podFile.type || 'application/octet-stream',
+      filename: podPublicId || podFileName,
+      originalName: podFileName,
+      fileUrl: podFileUrl,
+      fileMimeType: 'application/octet-stream',
       uploadedByRole: 'TRANSPORTER',
       visibleTo: 'ADMIN,CLIENT,TRANSPORTER',
       
@@ -178,10 +161,10 @@ export async function POST(req: NextRequest) {
       userId: transporterId,
       loadId: loadObjectId,
       docType: 'INVOICE',
-      filename: invoicePublicId,
-      originalName: invoiceFile.name,
-      fileUrl: invoiceUrl,
-      fileMimeType: invoiceFile.type || 'application/octet-stream',
+      filename: invoicePublicId || invoiceFileName,
+      originalName: invoiceFileName,
+      fileUrl: invoiceFileUrl,
+      fileMimeType: 'application/octet-stream',
       uploadedByRole: 'TRANSPORTER',
       visibleTo: 'CLIENT,ADMIN,TRANSPORTER',
       // LINK TO POD: For syncing approvals
@@ -227,17 +210,17 @@ export async function POST(req: NextRequest) {
         pod: {
           _id: podDocResult.insertedId.toString(),
           loadId: loadId,
-          filename: podPublicId,
-          originalName: podFile.name,
-          fileUrl: podUrl,
+          filename: podPublicId || podFileName,
+          originalName: podFileName,
+          fileUrl: podFileUrl,
           uploadedAt: new Date().toISOString(),
         },
         invoice: {
           _id: invoiceDocResult.insertedId.toString(),
           loadId: loadId,
-          filename: invoicePublicId,
-          originalName: invoiceFile.name,
-          fileUrl: invoiceUrl,
+          filename: invoicePublicId || invoiceFileName,
+          originalName: invoiceFileName,
+          fileUrl: invoiceFileUrl,
           uploadedAt: new Date().toISOString(),
         },
         deliveryDate: deliveryDate,

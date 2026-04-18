@@ -190,19 +190,39 @@ export default function UploadPODPage() {
       return
     }
 
-    const formData = new FormData()
-    formData.append('loadId', selectedLoadId)
-    formData.append('deliveryDate', deliveryDate)
-    formData.append('deliveryTime', deliveryTime)
-    formData.append('notes', notes)
-    formData.append('podFile', podFile)
-    formData.append('invoiceFile', invoiceFile)
-
     try {
       setSubmitting(true)
+      
+      // Step 1: Upload POD file directly to Cloudinary
+      console.log('[UploadPOD] Uploading POD file to Cloudinary...')
+      const { uploadToCloudinary } = await import('@/lib/cloudinary-client')
+      
+      const podUploadResult = await uploadToCloudinary(podFile, 'pods')
+      console.log('[UploadPOD] POD uploaded:', podUploadResult.secureUrl)
+      
+      // Step 2: Upload Invoice file directly to Cloudinary
+      console.log('[UploadPOD] Uploading Invoice file to Cloudinary...')
+      const invoiceUploadResult = await uploadToCloudinary(invoiceFile, 'invoices')
+      console.log('[UploadPOD] Invoice uploaded:', invoiceUploadResult.secureUrl)
+      
+      // Step 3: Send metadata + file URLs to API (not the actual files)
+      const payload = {
+        loadId: selectedLoadId,
+        deliveryDate,
+        deliveryTime,
+        notes,
+        podFileUrl: podUploadResult.secureUrl,
+        podFileName: podFile.name,
+        podPublicId: podUploadResult.publicId,
+        invoiceFileUrl: invoiceUploadResult.secureUrl,
+        invoiceFileName: invoiceFile.name,
+        invoicePublicId: invoiceUploadResult.publicId
+      }
+      
       const res = await fetch('/api/pod/upload', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       })
 
       const data = await res.json()
@@ -213,7 +233,7 @@ export default function UploadPODPage() {
       }
 
       setSuccess(true)
-      setSuccessMessage(`POD and Invoice uploaded successfully! (ID: ${data.podId})`)
+      setSuccessMessage(`POD and Invoice uploaded successfully!`)
       
       // Reset form
       setTimeout(() => {
@@ -226,9 +246,9 @@ export default function UploadPODPage() {
         setSuccess(false)
       }, 3000)
 
-    } catch (err) {
-      setError('Network error. Please try again.')
-      console.error(err)
+    } catch (err: any) {
+      setError(err.message || 'Network error. Please try again.')
+      console.error('[UploadPOD] Error:', err)
     } finally {
       setSubmitting(false)
     }
