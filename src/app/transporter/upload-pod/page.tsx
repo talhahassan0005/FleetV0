@@ -75,9 +75,9 @@ export default function UploadPODPage() {
         if (!res.ok) throw new Error('Failed to fetch loads')
         
         const data = await res.json()
-        // Filter for loads ready for POD upload (assigned or in transit, but not yet delivered)
-        const readyForPOD = data.loads?.filter((l: Load) => 
-          ['ASSIGNED', 'IN_TRANSIT'].includes(l.status)
+        // Filter for loads ready for POD upload (ACCEPTED status means transporter's quote was accepted)
+        const readyForPOD = data.data?.filter((l: Load) => 
+          ['ACCEPTED', 'ASSIGNED', 'IN_TRANSIT'].includes(l.status)
         ) || []
         console.log('[UploadPOD] Loads ready for POD upload:', readyForPOD.length)
         setLoads(readyForPOD)
