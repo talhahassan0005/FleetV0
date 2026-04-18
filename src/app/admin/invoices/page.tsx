@@ -34,7 +34,7 @@ interface Invoice {
   tonnage?: number
   progressPercentage?: number
   podId?: string
-  clientApprovalStatus?: boolean | null
+  clientApprovalStatus?: boolean | string | null
   clientRejectionReason?: string
   qbLink?: string
 }
@@ -392,12 +392,12 @@ export default function AdminInvoicesPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        {invoice.clientApprovalStatus === true ? (
+                        {invoice.clientApprovalStatus === true || invoice.clientApprovalStatus === 'APPROVED' ? (
                           <div className="flex items-center gap-2 px-3 py-1 rounded-full border bg-green-100 text-green-800 border-green-300 w-fit">
                             <CheckCircle className="w-4 h-4" />
                             <span className="font-medium text-xs">✓ Approved</span>
                           </div>
-                        ) : invoice.clientApprovalStatus === false ? (
+                        ) : invoice.clientApprovalStatus === false || invoice.clientApprovalStatus === 'REJECTED' ? (
                           <div className="flex items-center gap-2 px-3 py-1 rounded-full border bg-red-100 text-red-800 border-red-300 w-fit">
                             <AlertCircle className="w-4 h-4" />
                             <span className="font-medium text-xs">✕ Rejected</span>
