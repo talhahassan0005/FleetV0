@@ -16,9 +16,12 @@ interface POD {
   transporterName: string
   uploadedAt: string
   adminApprovedAt: string
+  clientApprovedAt?: string
+  clientRejectedAt?: string
   podFileName: string
   podUrl: string
-  status: string
+  clientApprovalStatus: string
+  rejectionReason?: string
   loadId: string
   amount: number
   currency: string
@@ -52,7 +55,7 @@ export default function ClientPodsPage() {
   const fetchPendingPODs = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/client/pods/pending-approval')
+      const res = await fetch('/api/client/pods/all')
       if (!res.ok) throw new Error('Failed to fetch PODs')
 
       const data = await res.json()
@@ -147,24 +150,28 @@ export default function ClientPodsPage() {
         )}
 
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-[#1a2a5e] mb-2">PODs Pending Your Approval</h2>
+          <h2 className="text-2xl font-bold text-[#1a2a5e] mb-2">POD Management</h2>
           <p className="text-gray-600">
-            {pods.length} POD(s) require your review and approval before invoices can be created
+            View and manage all PODs for your loads
           </p>
         </div>
 
         {pods.length === 0 ? (
           <div className="p-8 bg-gray-50 rounded-lg text-center border border-gray-200">
             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-2">No pending PODs</p>
-            <p className="text-sm text-gray-500">All PODs have been approved</p>
+            <p className="text-gray-600 mb-2">No PODs found</p>
+            <p className="text-sm text-gray-500">PODs will appear here once transporters upload delivery proof</p>
           </div>
         ) : (
           <div className="space-y-4">
             {pods.map((pod) => (
               <div
                 key={pod._id}
-                className="bg-white rounded-lg shadow p-6 border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow"
+                className={`bg-white rounded-lg shadow p-6 border-l-4 hover:shadow-lg transition-shadow ${
+                  pod.clientApprovalStatus === 'APPROVED' ? 'border-l-green-500' :
+                  pod.clientApprovalStatus === 'REJECTED' ? 'border-l-red-500' :
+                  'border-l-blue-500'
+                }`}
               >
                 <div className="grid md:grid-cols-5 gap-4 mb-4">
                   <div>
@@ -186,8 +193,16 @@ export default function ClientPodsPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase">Cargo Type</p>
-                    <p className="text-sm">{pod.cargoType || 'Freight'}</p>
+                    <p className="text-xs text-gray-500 uppercase">Status</p>
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                      pod.clientApprovalStatus === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                      pod.clientApprovalStatus === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {pod.clientApprovalStatus === 'APPROVED' ? '✓ Approved' :
+                       pod.clientApprovalStatus === 'REJECTED' ? '✗ Rejected' :
+                       '⏳ Pending'}
+                    </span>
                   </div>
                 </div>
 
@@ -199,13 +214,40 @@ export default function ClientPodsPage() {
                       {new Date(pod.adminApprovedAt).toLocaleTimeString()}
                     </p>
                   </div>
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-xs text-gray-500 mb-1">POD Uploaded:</p>
-                    <p className="text-sm">
-                      {new Date(pod.uploadedAt).toLocaleDateString()}
-                    </p>
-                  </div>
+                  {pod.clientApprovalStatus === 'APPROVED' && pod.clientApprovedAt && (
+                    <div className="bg-green-50 p-3 rounded">
+                      <p className="text-xs text-gray-500 mb-1">Client Approved:</p>
+                      <p className="text-sm font-semibold text-green-800">
+                        {new Date(pod.clientApprovedAt).toLocaleDateString()} at{' '}
+                        {new Date(pod.clientApprovedAt).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  )}
+                  {pod.clientApprovalStatus === 'REJECTED' && pod.clientRejectedAt && (
+                    <div className="bg-red-50 p-3 rounded">
+                      <p className="text-xs text-gray-500 mb-1">Client Rejected:</p>
+                      <p className="text-sm font-semibold text-red-800">
+                        {new Date(pod.clientRejectedAt).toLocaleDateString()} at{' '}
+                        {new Date(pod.clientRejectedAt).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  )}
+                  {pod.clientApprovalStatus === 'PENDING_CLIENT' && (
+                    <div className="bg-gray-50 p-3 rounded">
+                      <p className="text-xs text-gray-500 mb-1">POD Uploaded:</p>
+                      <p className="text-sm">
+                        {new Date(pod.uploadedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
                 </div>
+
+                {pod.clientApprovalStatus === 'REJECTED' && pod.rejectionReason && (
+                  <div className="bg-red-50 border border-red-200 p-3 rounded mb-4">
+                    <p className="text-xs text-red-600 font-semibold mb-1">Rejection Reason:</p>
+                    <p className="text-sm text-red-800">{pod.rejectionReason}</p>
+                  </div>
+                )}
 
                 <div className="bg-gray-50 p-3 rounded mb-4">
                   <p className="text-xs text-gray-500 mb-1">POD Document:</p>
@@ -221,24 +263,28 @@ export default function ClientPodsPage() {
                 </div>
 
                 <div className="flex gap-3">
+                  {pod.clientApprovalStatus === 'PENDING_CLIENT' && (
+                    <>
+                      <button
+                        onClick={() => handleApproveClick(pod._id, 'approve')}
+                        disabled={approving === pod._id}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#3ab54a] text-white rounded font-semibold hover:bg-[#2d9e3c] disabled:opacity-50 transition-colors"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        {approving === pod._id ? 'Processing...' : 'Approve POD'}
+                      </button>
+                      <button
+                        onClick={() => handleApproveClick(pod._id, 'reject')}
+                        disabled={approving === pod._id}
+                        className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Reject POD
+                      </button>
+                    </>
+                  )}
                   <button
-                    onClick={() => handleApproveClick(pod._id, 'approve')}
-                    disabled={approving === pod._id}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#3ab54a] text-white rounded font-semibold hover:bg-[#2d9e3c] disabled:opacity-50 transition-colors"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    {approving === pod._id ? 'Processing...' : 'Approve POD'}
-                  </button>
-                  <button
-                    onClick={() => handleApproveClick(pod._id, 'reject')}
-                    disabled={approving === pod._id}
-                    className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    Reject POD
-                  </button>
-                  <button
-                    onClick={() => window.open(pod.podUrl)}
+                    onClick={() => window.open(pod.podUrl, '_blank')}
                     className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded font-semibold hover:bg-gray-50 transition-colors"
                   >
                     <Download className="w-4 h-4" />
