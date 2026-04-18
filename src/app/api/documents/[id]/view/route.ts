@@ -58,40 +58,22 @@ export async function GET(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    // CASE 1: Cloudinary URL (fileUrl starts with http/https) - PROXY IT!
+    // CASE 1: Cloudinary URL (fileUrl starts with http/https) - Return URL directly for client to open
     if (document.fileUrl && document.fileUrl.startsWith('http')) {
-      console.log('[ViewDocument] Proxying Cloudinary URL for inline viewing')
+      console.log('[ViewDocument] Returning Cloudinary URL directly')
       
-      try {
-        // Fetch from Cloudinary
-        const response = await fetch(document.fileUrl)
-        
-        if (!response.ok) {
-          console.error('[ViewDocument] Failed to fetch from Cloudinary:', response.status)
-          return NextResponse.json({ error: 'Failed to fetch file from storage' }, { status: 500 })
-        }
-        
-        // Get the file as buffer
-        const arrayBuffer = await response.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
-        const mimeType = document.fileMimeType || 'application/octet-stream'
-        
-        console.log('[ViewDocument] Cloudinary file fetched, size:', buffer.length, 'serving as inline')
-        
-        // Serve with inline disposition so browser displays it
-        return new NextResponse(buffer, {
-          status: 200,
-          headers: {
-            'Content-Type': mimeType,
-            'Content-Length': buffer.length.toString(),
-            'Content-Disposition': `inline; filename="${document.originalName}"`,
-            'Cache-Control': 'public, max-age=86400',
-          },
-        })
-      } catch (err: any) {
-        console.error('[ViewDocument] Error proxying Cloudinary file:', err)
-        return NextResponse.json({ error: 'Failed to retrieve file' }, { status: 500 })
+      // For Cloudinary URLs, just return the URL - let browser handle it
+      // Remove any fl_attachment transformation that might cause issues
+      let cleanUrl = document.fileUrl
+      if (cleanUrl.includes('/fl_attachment/')) {
+        cleanUrl = cleanUrl.replace('/fl_attachment/', '/')
       }
+      
+      return NextResponse.json({ 
+        url: cleanUrl,
+        filename: document.originalName,
+        mimeType: document.fileMimeType || 'application/pdf'
+      })
     }
 
     // CASE 2: Check if fileUrl contains LOCAL path (broken format from old uploads)

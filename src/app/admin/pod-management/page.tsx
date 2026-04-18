@@ -283,14 +283,12 @@ export default function AdminPODManagementPage() {
                           <div className="text-3xl">📄</div>
                           <div>
                             <p className="font-semibold text-gray-700">PDF Document</p>
-                            <a
-                              href={selectedPOD.podFile}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              onClick={() => window.open(selectedPOD.podFile, '_blank')}
                               className="text-[#3ab54a] hover:underline text-sm"
                             >
                               Open PDF →
-                            </a>
+                            </button>
                           </div>
                         </div>
                       )}

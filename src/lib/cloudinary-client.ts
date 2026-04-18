@@ -17,7 +17,7 @@ export async function uploadToCloudinary(
       throw new Error('Failed to get upload signature')
     }
 
-    const { signature, timestamp, cloudName, apiKey, folder: uploadFolder } = await signatureRes.json()
+    const { signature, timestamp, cloudName, apiKey, folder: uploadFolder, type } = await signatureRes.json()
 
     // Upload directly to Cloudinary
     const formData = new FormData()
@@ -26,6 +26,9 @@ export async function uploadToCloudinary(
     formData.append('timestamp', timestamp.toString())
     formData.append('api_key', apiKey)
     formData.append('folder', uploadFolder)
+    if (type) {
+      formData.append('type', type) // Public upload
+    }
 
     // Determine resource type
     const ext = file.name.split('.').pop()?.toLowerCase()

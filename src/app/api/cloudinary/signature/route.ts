@@ -16,10 +16,12 @@ export async function POST(req: NextRequest) {
 
     const timestamp = Math.round(Date.now() / 1000)
     
+    // Sign request for PUBLIC upload (not authenticated)
     const signature = cloudinary.utils.api_sign_request(
       {
         timestamp,
-        folder: folder || 'fleetxchange/pods'
+        folder: folder || 'fleetxchange/pods',
+        type: 'upload' // Public upload
       },
       process.env.CLOUDINARY_API_SECRET!
     )
@@ -29,7 +31,8 @@ export async function POST(req: NextRequest) {
       timestamp,
       cloudName: process.env.CLOUDINARY_CLOUD_NAME,
       apiKey: process.env.CLOUDINARY_API_KEY,
-      folder: folder || 'fleetxchange/pods'
+      folder: folder || 'fleetxchange/pods',
+      type: 'upload' // Public upload
     })
   } catch (error) {
     console.error('[CloudinarySignature] Error:', error)
