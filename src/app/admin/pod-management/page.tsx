@@ -283,15 +283,34 @@ export default function AdminPODManagementPage() {
                           <div className="text-3xl">📄</div>
                           <div>
                             <p className="font-semibold text-gray-700">PDF Document</p>
-                            <button
-                              onClick={() => window.open(selectedPOD.podFile, '_blank')}
+                            <a
+                              href={selectedPOD.podFile}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="text-[#3ab54a] hover:underline text-sm"
                             >
                               Open PDF →
-                            </button>
+                            </a>
                           </div>
                         </div>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* View Full Document Button */}
+                {selectedPOD.podFile && (
+                  <div>
+                    <a
+                      href={selectedPOD.podFile}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full px-4 py-3 bg-blue-600 text-white text-center rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      📄 View Full Document
+                    </a>
+                  </div>
+                )}
                     </div>
                   </div>
                 )}
