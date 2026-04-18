@@ -8,13 +8,11 @@ import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
   try {
-    console.log('[Documents API] Starting fetch...')
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[Documents API] User:', session.user.email, 'Role:', session.user.role)
     const db = await getDatabase()
     const userId = new ObjectId(session.user.id)
     const userRole = session.user.role
@@ -23,7 +21,6 @@ export async function GET(req: NextRequest) {
     let query: any = {}
     
     if (userRole === 'ADMIN') {
-      console.log('[Documents API] Fetching all documents for ADMIN...')
       // ADMIN can see ALL documents with user information
       const documents = await db.collection('documents')
         .aggregate([
@@ -53,6 +50,7 @@ export async function GET(req: NextRequest) {
               filename: 1,
               originalName: 1,
               fileUrl: 1,
+              fileData: 1,
               fileMimeType: 1,
               uploadedByRole: 1,
               visibleTo: 1,
@@ -74,8 +72,6 @@ export async function GET(req: NextRequest) {
         ])
         .toArray()
 
-      console.log('[Documents API] Found', documents.length, 'documents')
-
       // Convert ObjectIds to strings for JSON serialization
       const serializedDocs = documents.map((doc: any) => ({
         ...doc,
@@ -91,7 +87,6 @@ export async function GET(req: NextRequest) {
         } : null
       }))
 
-      console.log('[Documents API] Returning response...')
       return NextResponse.json({
         success: true,
         data: serializedDocs,
@@ -116,8 +111,8 @@ export async function GET(req: NextRequest) {
       })
     }
   } catch (err: any) {
-    console.error('[Documents API] Error:', err)
-    return NextResponse.json({ error: 'Server error', details: err.message }, { status: 500 })
+    console.error('Documents fetch error:', err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
 

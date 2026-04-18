@@ -14,6 +14,34 @@ export default function AdminDocumentsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('ALL')
   const [filterStatus, setFilterStatus] = useState('ALL')
+  const [fixingDocs, setFixingDocs] = useState(false)
+
+  const handleFixOldDocuments = async () => {
+    if (!confirm('Fix old documents without verification status and verify eligible accounts?')) {
+      return
+    }
+
+    try {
+      setFixingDocs(true)
+      const res = await fetch('/api/admin/fix-documents', {
+        method: 'POST',
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to fix documents')
+      }
+
+      const data = await res.json()
+      alert(`Success!\n\nFixed ${data.fixed} documents\nVerified ${data.verified} accounts`)
+      await fetchDocuments()
+    } catch (err: any) {
+      console.error('Fix documents error:', err)
+      alert(err.message || 'Failed to fix documents')
+    } finally {
+      setFixingDocs(false)
+    }
+  }
 
   const fetchDocuments = async () => {
     try {

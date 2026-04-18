@@ -62,13 +62,8 @@ export async function POST(
     )
 
     if (existingReview) {
-      // If already approved or rejected, don't allow changes
+      // If already approved or rejected, don't allow changes - idempotent behavior
       if (existingReview.status === 'APPROVED' || existingReview.status === 'REJECTED') {
-        // But still check if account needs verification (for already approved docs)
-        if (existingReview.status === 'APPROVED' && doc.userId) {
-          await checkAndVerifyAccount(db, doc.userId)
-        }
-        
         return NextResponse.json(
           { 
             error: `Document already ${existingReview.status.toLowerCase()}. Cannot change approval status.`,
@@ -116,8 +111,65 @@ export async function POST(
     console.log(`[Document Review] Document ${docId} status updated to: ${status}`)
 
     // AUTO-VERIFY ACCOUNT: Check if user should be verified after approval
-    if (status === 'APPROVED' && doc.userId) {
-      await checkAndVerifyAccount(db, doc.userId)
+    // Only check for non-POD and non-INVOICE documents
+    if (status === 'APPROVED' && doc.userId && doc.docType !== 'POD' && doc.docType !== 'INVOICE') {
+      const user = await db.collection('users').findOne({ _id: doc.userId })
+      
+      if (user && !user.isVerified) {
+        console.log(`[Account Verification] Checking ${user.role}: ${user.email}`)
+        
+        // Get all APPROVED documents for this user (excluding POD and INVOICE)
+        const approvedDocs = await db.collection('documents').find({
+          userId: doc.userId,
+          verificationStatus: 'APPROVED',
+          docType: { $nin: ['POD', 'INVOICE'] }
+        }).toArray()
+
+        const approvedDocTypes = approvedDocs.map((d: any) => d.docType)
+        console.log(`[Account Verification] Approved doc types (excluding POD/INVOICE):`, approvedDocTypes)
+
+        let shouldVerify = false
+
+        // CLIENT verification: needs COMPANY + CUSTOM
+        if (user.role === 'CLIENT') {
+          const hasCompany = approvedDocTypes.includes('COMPANY')
+          const hasCustom = approvedDocTypes.includes('CUSTOM') || approvedDocTypes.includes('CUSTOMS')
+          
+          console.log(`[Account Verification] CLIENT: COMPANY=${hasCompany}, CUSTOM=${hasCustom}`)
+          
+          if (hasCompany && hasCustom) {
+            shouldVerify = true
+          }
+        }
+
+        // TRANSPORTER verification: needs COMPANY + VEHICLE
+        if (user.role === 'TRANSPORTER') {
+          const hasCompany = approvedDocTypes.includes('COMPANY')
+          const hasVehicle = approvedDocTypes.includes('VEHICLE') || approvedDocTypes.includes('REGISTRATION')
+          
+          console.log(`[Account Verification] TRANSPORTER: COMPANY=${hasCompany}, VEHICLE=${hasVehicle}`)
+          
+          if (hasCompany && hasVehicle) {
+            shouldVerify = true
+          }
+        }
+
+        if (shouldVerify) {
+          await db.collection('users').updateOne(
+            { _id: doc.userId },
+            { 
+              $set: { 
+                isVerified: true, 
+                verifiedAt: new Date(),
+                updatedAt: new Date()
+              } 
+            }
+          )
+          console.log(`[Account Verification] ✅ ${user.role} account verified: ${user.email}`)
+        } else {
+          console.log(`[Account Verification] ⚠️ Not enough documents to verify ${user.role}`)
+        }
+      }
     }
 
     const updated = await db.collection('documents').findOne({
@@ -131,71 +183,5 @@ export async function POST(
   } catch (err: any) {
     console.error('Review error:', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
-  }
-}
-
-// Helper function to check and verify account
-async function checkAndVerifyAccount(db: any, userId: any) {
-  try {
-    const user = await db.collection('users').findOne({ _id: userId })
-    
-    if (!user || user.isVerified) {
-      return // Already verified or user not found
-    }
-
-    console.log(`[Account Verification] Checking ${user.role}: ${user.email}`)
-    
-    // Get all APPROVED documents for this user
-    const approvedDocs = await db.collection('documents').find({
-      userId: userId,
-      verificationStatus: 'APPROVED'
-    }).toArray()
-
-    const approvedDocTypes = approvedDocs.map((d: any) => d.docType)
-    console.log(`[Account Verification] Approved docs:`, approvedDocTypes)
-
-    let shouldVerify = false
-
-    // CLIENT: needs COMPANY + CUSTOMS
-    if (user.role === 'CLIENT') {
-      const hasCompany = approvedDocTypes.includes('COMPANY')
-      const hasCustoms = approvedDocTypes.includes('CUSTOMS')
-      
-      console.log(`[Account Verification] CLIENT: COMPANY=${hasCompany}, CUSTOMS=${hasCustoms}`)
-      
-      if (hasCompany && hasCustoms) {
-        shouldVerify = true
-      }
-    }
-
-    // TRANSPORTER: needs COMPANY + REGISTRATION
-    if (user.role === 'TRANSPORTER') {
-      const hasCompany = approvedDocTypes.includes('COMPANY')
-      const hasRegistration = approvedDocTypes.includes('REGISTRATION')
-      
-      console.log(`[Account Verification] TRANSPORTER: COMPANY=${hasCompany}, REGISTRATION=${hasRegistration}`)
-      
-      if (hasCompany && hasRegistration) {
-        shouldVerify = true
-      }
-    }
-
-    if (shouldVerify) {
-      await db.collection('users').updateOne(
-        { _id: userId },
-        { 
-          $set: { 
-            isVerified: true, 
-            verifiedAt: new Date(),
-            updatedAt: new Date()
-          } 
-        }
-      )
-      console.log(`[Account Verification] ✅ ${user.role} account verified: ${user.email}`)
-    } else {
-      console.log(`[Account Verification] ⚠️ Not enough documents to verify ${user.role}`)
-    }
-  } catch (err) {
-    console.error('[Account Verification] Error:', err)
   }
 }
