@@ -311,9 +311,6 @@ export default function AdminPODManagementPage() {
                     </a>
                   </div>
                 )}
-                    </div>
-                  </div>
-                )}
 
                 {/* Action Buttons */}
                 {selectedPOD.status !== 'APPROVED' && (
