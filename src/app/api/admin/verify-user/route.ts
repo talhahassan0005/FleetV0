@@ -52,13 +52,30 @@ export async function POST(req: NextRequest) {
     if (user.role === 'TRANSPORTER') {
       const required = [
         'COMPANY',
+        'REGISTRATION', // Also check for REGISTRATION (alternative name)
         'BANK_CONFIRMATION', 
         'AUTHORIZATION',
         'INSURANCE',
         'TAX_CLEARANCE',
         'VEHICLE_LIST'
       ]
-      missingDocs = required.filter(type => !approvedDocTypes.includes(type))
+      
+      // Check if either COMPANY or REGISTRATION exists
+      const hasCompanyDoc = approvedDocTypes.includes('COMPANY') || approvedDocTypes.includes('REGISTRATION')
+      const hasBankConfirmation = approvedDocTypes.includes('BANK_CONFIRMATION')
+      const hasAuthorization = approvedDocTypes.includes('AUTHORIZATION')
+      const hasInsurance = approvedDocTypes.includes('INSURANCE')
+      const hasTaxClearance = approvedDocTypes.includes('TAX_CLEARANCE')
+      const hasVehicleList = approvedDocTypes.includes('VEHICLE_LIST')
+      
+      missingDocs = []
+      if (!hasCompanyDoc) missingDocs.push('COMPANY/REGISTRATION')
+      if (!hasBankConfirmation) missingDocs.push('BANK_CONFIRMATION')
+      if (!hasAuthorization) missingDocs.push('AUTHORIZATION')
+      if (!hasInsurance) missingDocs.push('INSURANCE')
+      if (!hasTaxClearance) missingDocs.push('TAX_CLEARANCE')
+      if (!hasVehicleList) missingDocs.push('VEHICLE_LIST')
+      
       shouldVerify = missingDocs.length === 0
     }
 

@@ -132,11 +132,12 @@ export async function POST(
 
         // CLIENT verification: needs COMPANY + AUTHORIZATION + TAX_CLEARANCE (all 3 required)
         if (user.role === 'CLIENT') {
-          const hasCompany = approvedDocTypes.includes('COMPANY')
+          // Accept both COMPANY and REGISTRATION as company document
+          const hasCompany = approvedDocTypes.includes('COMPANY') || approvedDocTypes.includes('REGISTRATION')
           const hasAuthorization = approvedDocTypes.includes('AUTHORIZATION')
           const hasTaxClearance = approvedDocTypes.includes('TAX_CLEARANCE')
           
-          console.log(`[Account Verification] CLIENT: COMPANY=${hasCompany}, AUTHORIZATION=${hasAuthorization}, TAX_CLEARANCE=${hasTaxClearance}`)
+          console.log(`[Account Verification] CLIENT: COMPANY/REGISTRATION=${hasCompany}, AUTHORIZATION=${hasAuthorization}, TAX_CLEARANCE=${hasTaxClearance}`)
           
           if (hasCompany && hasAuthorization && hasTaxClearance) {
             shouldVerify = true
@@ -145,14 +146,15 @@ export async function POST(
 
         // TRANSPORTER verification: needs all 6 documents
         if (user.role === 'TRANSPORTER') {
-          const hasCompany = approvedDocTypes.includes('COMPANY')
+          // Accept both COMPANY and REGISTRATION as company document
+          const hasCompany = approvedDocTypes.includes('COMPANY') || approvedDocTypes.includes('REGISTRATION')
           const hasBankConfirmation = approvedDocTypes.includes('BANK_CONFIRMATION')
           const hasAuthorization = approvedDocTypes.includes('AUTHORIZATION')
           const hasInsurance = approvedDocTypes.includes('INSURANCE')
           const hasTaxClearance = approvedDocTypes.includes('TAX_CLEARANCE')
           const hasVehicleList = approvedDocTypes.includes('VEHICLE_LIST')
           
-          console.log(`[Account Verification] TRANSPORTER: COMPANY=${hasCompany}, BANK_CONFIRMATION=${hasBankConfirmation}, AUTHORIZATION=${hasAuthorization}, INSURANCE=${hasInsurance}, TAX_CLEARANCE=${hasTaxClearance}, VEHICLE_LIST=${hasVehicleList}`)
+          console.log(`[Account Verification] TRANSPORTER: COMPANY/REGISTRATION=${hasCompany}, BANK_CONFIRMATION=${hasBankConfirmation}, AUTHORIZATION=${hasAuthorization}, INSURANCE=${hasInsurance}, TAX_CLEARANCE=${hasTaxClearance}, VEHICLE_LIST=${hasVehicleList}`)
           console.log(`[Account Verification] TRANSPORTER approved doc types:`, approvedDocTypes)
           
           if (hasCompany && hasBankConfirmation && hasAuthorization && hasInsurance && hasTaxClearance && hasVehicleList) {
