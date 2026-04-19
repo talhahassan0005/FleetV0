@@ -139,7 +139,17 @@ export default function AdminDocumentsPage() {
         throw new Error(error.error || error.details || 'Failed to submit review')
       }
 
-      await fetchDocuments()
+      const result = await res.json()
+      
+      // BUG FIX #1: Optimistic update - update local state immediately instead of refetching
+      setDocuments(prevDocs => 
+        prevDocs.map(doc => 
+          doc._id === docId 
+            ? { ...doc, verificationStatus: status, reviews: result.data?.reviews || doc.reviews }
+            : doc
+        )
+      )
+      
       alert('Review submitted successfully!')
       
       // Close modal after successful review

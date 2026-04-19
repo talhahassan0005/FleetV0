@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Topbar, PageLayout } from '@/components/ui'
+import { useVerificationStatus } from '@/hooks/useVerificationStatus'
 
 interface Load {
   _id: string
@@ -21,10 +22,15 @@ interface Load {
 export default function AvailableLoadsPage() {
   const { data: session } = useSession()
   const router = useRouter()
+  const { isVerified, refreshVerificationStatus } = useVerificationStatus()
   const [loads, setLoads] = useState<Load[]>([])
   const [loading, setLoading] = useState(true)
-  const [verified, setVerified] = useState(true)
   const [error, setError] = useState('')
+
+  // BUG FIX #3: Refresh verification status on mount
+  useEffect(() => {
+    refreshVerificationStatus()
+  }, [])
 
   useEffect(() => {
     if (!session?.user?.role || session.user.role !== 'TRANSPORTER') {
@@ -46,13 +52,6 @@ export default function AvailableLoadsPage() {
         }
 
         const data = await res.json()
-        
-        if (!data.verified) {
-          setVerified(false)
-          setLoads([])
-          return
-        }
-
         setLoads(data.loads || [])
         setError('')
       } catch (err) {
@@ -83,7 +82,7 @@ export default function AvailableLoadsPage() {
     )
   }
 
-  if (!verified) {
+  if (!isVerified) {
     return (
       <>
         <Topbar title="Available Loads" />

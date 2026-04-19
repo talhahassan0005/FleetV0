@@ -153,6 +153,7 @@ export async function POST(
           const hasVehicleList = approvedDocTypes.includes('VEHICLE_LIST')
           
           console.log(`[Account Verification] TRANSPORTER: COMPANY=${hasCompany}, BANK_CONFIRMATION=${hasBankConfirmation}, AUTHORIZATION=${hasAuthorization}, INSURANCE=${hasInsurance}, TAX_CLEARANCE=${hasTaxClearance}, VEHICLE_LIST=${hasVehicleList}`)
+          console.log(`[Account Verification] TRANSPORTER approved doc types:`, approvedDocTypes)
           
           if (hasCompany && hasBankConfirmation && hasAuthorization && hasInsurance && hasTaxClearance && hasVehicleList) {
             shouldVerify = true

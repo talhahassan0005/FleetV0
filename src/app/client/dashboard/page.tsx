@@ -5,12 +5,19 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout, StatCard, DashboardCardsSkeleton, ChartSkeleton } from '@/components/ui'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { useVerificationStatus } from '@/hooks/useVerificationStatus'
 
 export default function ClientDashboardPage() {
   const { data: session } = useSession()
   const router = useRouter()
+  const { isVerified, verificationStatus, verificationComment, refreshVerificationStatus } = useVerificationStatus()
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  // BUG FIX #2: Refresh verification status on mount
+  useEffect(() => {
+    refreshVerificationStatus()
+  }, [])
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -57,7 +64,7 @@ export default function ClientDashboardPage() {
       {/* Verification Status Section */}
       <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto">
-          {session?.user?.isVerified ? (
+          {isVerified ? (
             <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded">
               <div className="text-xl">✅</div>
               <div className="flex-1">
@@ -70,15 +77,15 @@ export default function ClientDashboardPage() {
               <div className="text-xl">⚠️</div>
               <div className="flex-1">
                 <p className="font-semibold text-amber-900">Account Not Verified</p>
-                {session?.user?.verificationStatus === 'REJECTED' ? (
+                {verificationStatus === 'REJECTED' ? (
                   <div>
                     <p className="text-sm text-amber-800">Your verification was rejected.</p>
-                    {session?.user?.verificationComment && (
-                      <p className="text-sm text-amber-700 italic mt-1">Reason: {session.user.verificationComment}</p>
+                    {verificationComment && (
+                      <p className="text-sm text-amber-700 italic mt-1">Reason: {verificationComment}</p>
                     )}
                     <p className="text-sm text-amber-800 mt-1">Please upload updated documents to resubmit.</p>
                   </div>
-                ) : session?.user?.verificationStatus === 'PENDING' ? (
+                ) : verificationStatus === 'PENDING' ? (
                   <p className="text-sm text-amber-800">Your documents are under review. You'll be notified once complete.</p>
                 ) : (
                   <p className="text-sm text-amber-800">Complete account verification to post loads. You can post loads until verification.</p>

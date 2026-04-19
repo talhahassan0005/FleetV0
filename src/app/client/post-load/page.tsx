@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
 import Link from 'next/link'
+import { useVerificationStatus } from '@/hooks/useVerificationStatus'
 
 export default function PostLoadPage() {
   const router = useRouter()
   const { data: session } = useSession()
+  const { isVerified, refreshVerificationStatus } = useVerificationStatus()
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
   const [form, setForm] = useState({
@@ -16,6 +18,11 @@ export default function PostLoadPage() {
     collectionDate: '', deliveryDate: '', description: '', postedPrice: '0',
     currency: 'ZAR', country: 'ZA',
   })
+
+  // BUG FIX #2: Refresh verification status on mount
+  useEffect(() => {
+    refreshVerificationStatus()
+  }, [])
 
   // Currency options
   const CURRENCY_OPTIONS = [
@@ -89,7 +96,7 @@ export default function PostLoadPage() {
       </Topbar>
       
       {/* Account Verification Banner */}
-      {session?.user && !session.user.isVerified && (
+      {session?.user && !isVerified && (
         <div className="bg-amber-50 border-b-2 border-amber-300 px-6 py-4">
           <div className="max-w-7xl mx-auto flex items-start gap-3">
             <div className="mt-0.5">⚠️</div>

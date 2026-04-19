@@ -3,10 +3,17 @@
 import { useEffect, useState } from 'react'
 import { Topbar, PageLayout, StatCard, DashboardCardsSkeleton, ChartSkeleton } from '@/components/ui'
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { useVerificationStatus } from '@/hooks/useVerificationStatus'
 
 export default function TransporterDashboardPage() {
+  const { refreshVerificationStatus } = useVerificationStatus()
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  // BUG FIX #3: Refresh verification status on mount
+  useEffect(() => {
+    refreshVerificationStatus()
+  }, [])
 
   useEffect(() => {
     const fetchStats = async () => {

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout, Skeleton } from '@/components/ui'
+import { useVerificationStatus } from '@/hooks/useVerificationStatus'
 import { 
   initializeSocket, 
   getSocket, 
@@ -61,6 +62,7 @@ const formatTime = (dateString?: string) => {
 
 export default function TransporterChatPage() {
   const { data: session, status } = useSession()
+  const { refreshVerificationStatus } = useVerificationStatus()
   const [mounted, setMounted] = useState(false)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
@@ -82,6 +84,8 @@ export default function TransporterChatPage() {
 
   useEffect(() => {
     setMounted(true)
+    // BUG FIX #3: Refresh verification status on mount
+    refreshVerificationStatus()
   }, [])
 
   useEffect(() => {
