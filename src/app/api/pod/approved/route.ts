@@ -37,13 +37,15 @@ export async function GET(req: Request) {
           _id: pod.loadId
         })
 
-        // Check if an invoice has been SYNCED TO QB already
-        // (has qbInvoiceLink means it was successfully created in QB)
-        const existingQBInvoice = await db.collection('documents').findOne({
-          loadId: pod.loadId,
-          docType: 'INVOICE',
-          qbInvoiceLink: { $exists: true, $ne: null }  // Only invoice if it has QB link
+        // Check if invoice exists for this POD
+        // Invoice is stored in 'invoices' collection, not 'documents'
+        const existingInvoice = await db.collection('invoices').findOne({
+          podId: pod._id,
+          invoiceType: { $in: ['CLIENT_INVOICE', 'TRANSPORTER_INVOICE'] }
         })
+
+        // Also check if POD has invoiceStatus field set to INVOICED
+        const hasInvoiceStatus = pod.invoiceStatus === 'INVOICED'
 
         return {
           _id: pod._id.toString(),
@@ -62,8 +64,9 @@ export async function GET(req: Request) {
           weight: load?.weight || 0,
           currency: load?.currency || 'ZAR',
           transporterAmount: load?.finalPrice || 0,
-          // Check if invoice already exists
-          hasInvoice: !!existingQBInvoice,
+          // Check if invoice already exists (either in invoices collection or POD has invoiceStatus)
+          hasInvoice: !!existingInvoice || hasInvoiceStatus,
+          invoiceStatus: pod.invoiceStatus || 'NOT_INVOICED',
         }
       })
     )
