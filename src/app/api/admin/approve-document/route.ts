@@ -56,20 +56,33 @@ export async function POST(req: NextRequest) {
 
     console.log('[AdminApprove] User role:', user.role, 'Current verification status:', user.verificationStatus)
 
+    // Define required document types based on user role
+    let requiredDocTypes: string[] = []
+    if (user.role === 'CLIENT') {
+      requiredDocTypes = ['COMPANY', 'AUTHORIZATION', 'TAX_CLEARANCE']
+    } else if (user.role === 'TRANSPORTER') {
+      requiredDocTypes = ['COMPANY', 'BANK_CONFIRMATION', 'AUTHORIZATION', 'INSURANCE', 'TAX_CLEARANCE', 'VEHICLE_LIST']
+    }
+
     // Check if all required documents for the user are approved
     const userDocuments = await db.collection('documents')
       .find({ 
         userId: new ObjectId(userId),
-        docType: { $in: ['COMPANY', 'REGISTRATION', 'CUSTOMS'] } // Required document types
+        docType: { $in: requiredDocTypes }
       })
       .toArray()
 
-    console.log('[AdminApprove] Total required documents:', userDocuments.length)
+    console.log('[AdminApprove] Total required documents:', userDocuments.length, 'Required:', requiredDocTypes.length)
     console.log('[AdminApprove] Document statuses:', userDocuments.map(d => ({ type: d.docType, status: d.verificationStatus })))
 
-    const allApproved = userDocuments.length > 0 && userDocuments.every(doc => doc.verificationStatus === 'APPROVED')
+    // Check if all required doc types are present and approved
+    const approvedDocTypes = userDocuments
+      .filter(doc => doc.verificationStatus === 'APPROVED')
+      .map(doc => doc.docType)
+    
+    const allApproved = requiredDocTypes.every(type => approvedDocTypes.includes(type))
 
-    console.log('[AdminApprove] All documents approved?', allApproved)
+    console.log('[AdminApprove] All documents approved?', allApproved, 'Approved types:', approvedDocTypes)
 
     if (allApproved) {
       // Mark user as verified

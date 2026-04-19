@@ -201,8 +201,11 @@ export default function AdminDocumentsPage() {
                 >
                   <option value="ALL">All Types</option>
                   <option value="COMPANY">Company Registration</option>
-                  <option value="REGISTRATION">Vehicle Registration</option>
-                  <option value="CUSTOMS">Customs Clearance</option>
+                  <option value="BANK_CONFIRMATION">Bank Confirmation</option>
+                  <option value="AUTHORIZATION">Letter Authorizing Company to Work with Fleetxchange</option>
+                  <option value="INSURANCE">Insurance</option>
+                  <option value="TAX_CLEARANCE">Tax Clearance</option>
+                  <option value="VEHICLE_LIST">Vehicle List</option>
                   <option value="INVOICE">Invoice</option>
                   <option value="POD">POD</option>
                   <option value="OTHER">Other</option>

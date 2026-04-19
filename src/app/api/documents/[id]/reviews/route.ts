@@ -130,26 +130,31 @@ export async function POST(
 
         let shouldVerify = false
 
-        // CLIENT verification: needs COMPANY + CUSTOM
+        // CLIENT verification: needs COMPANY + AUTHORIZATION + TAX_CLEARANCE (all 3 required)
         if (user.role === 'CLIENT') {
           const hasCompany = approvedDocTypes.includes('COMPANY')
-          const hasCustom = approvedDocTypes.includes('CUSTOM') || approvedDocTypes.includes('CUSTOMS')
+          const hasAuthorization = approvedDocTypes.includes('AUTHORIZATION')
+          const hasTaxClearance = approvedDocTypes.includes('TAX_CLEARANCE')
           
-          console.log(`[Account Verification] CLIENT: COMPANY=${hasCompany}, CUSTOM=${hasCustom}`)
+          console.log(`[Account Verification] CLIENT: COMPANY=${hasCompany}, AUTHORIZATION=${hasAuthorization}, TAX_CLEARANCE=${hasTaxClearance}`)
           
-          if (hasCompany && hasCustom) {
+          if (hasCompany && hasAuthorization && hasTaxClearance) {
             shouldVerify = true
           }
         }
 
-        // TRANSPORTER verification: needs COMPANY + VEHICLE
+        // TRANSPORTER verification: needs all 6 documents
         if (user.role === 'TRANSPORTER') {
           const hasCompany = approvedDocTypes.includes('COMPANY')
-          const hasVehicle = approvedDocTypes.includes('VEHICLE') || approvedDocTypes.includes('REGISTRATION')
+          const hasBankConfirmation = approvedDocTypes.includes('BANK_CONFIRMATION')
+          const hasAuthorization = approvedDocTypes.includes('AUTHORIZATION')
+          const hasInsurance = approvedDocTypes.includes('INSURANCE')
+          const hasTaxClearance = approvedDocTypes.includes('TAX_CLEARANCE')
+          const hasVehicleList = approvedDocTypes.includes('VEHICLE_LIST')
           
-          console.log(`[Account Verification] TRANSPORTER: COMPANY=${hasCompany}, VEHICLE=${hasVehicle}`)
+          console.log(`[Account Verification] TRANSPORTER: COMPANY=${hasCompany}, BANK_CONFIRMATION=${hasBankConfirmation}, AUTHORIZATION=${hasAuthorization}, INSURANCE=${hasInsurance}, TAX_CLEARANCE=${hasTaxClearance}, VEHICLE_LIST=${hasVehicleList}`)
           
-          if (hasCompany && hasVehicle) {
+          if (hasCompany && hasBankConfirmation && hasAuthorization && hasInsurance && hasTaxClearance && hasVehicleList) {
             shouldVerify = true
           }
         }

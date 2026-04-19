@@ -71,40 +71,57 @@ export async function POST(
     }
 
     // If ADMIN is approving a verification document, check if user should be verified
-    if (role === 'ADMIN' && approved && updatedDocument.docType && ['COMPANY', 'REGISTRATION', 'CUSTOMS'].includes(updatedDocument.docType)) {
+    if (role === 'ADMIN' && approved && updatedDocument.docType && ['COMPANY', 'BANK_CONFIRMATION', 'AUTHORIZATION', 'INSURANCE', 'TAX_CLEARANCE', 'VEHICLE_LIST'].includes(updatedDocument.docType)) {
       console.log('[ApproveDocument] 🔍 Admin approved verification document, checking user verification status...')
       
       const userId = updatedDocument.userId
       if (userId) {
-        // Check if all required documents for the user are approved
-        const userDocuments = await db.collection('documents')
-          .find({ 
-            userId: userId,
-            docType: { $in: ['COMPANY', 'REGISTRATION', 'CUSTOMS'] }
-          })
-          .toArray()
+        const user = await db.collection('users').findOne({ _id: userId })
+        
+        if (user && !user.isVerified) {
+          // Check if all required documents for the user are approved
+          let requiredDocTypes: string[] = []
+          
+          if (user.role === 'CLIENT') {
+            requiredDocTypes = ['COMPANY', 'AUTHORIZATION', 'TAX_CLEARANCE']
+          } else if (user.role === 'TRANSPORTER') {
+            requiredDocTypes = ['COMPANY', 'BANK_CONFIRMATION', 'AUTHORIZATION', 'INSURANCE', 'TAX_CLEARANCE', 'VEHICLE_LIST']
+          }
+          
+          const userDocuments = await db.collection('documents')
+            .find({ 
+              userId: userId,
+              docType: { $in: requiredDocTypes }
+            })
+            .toArray()
 
-        console.log('[ApproveDocument] User required documents:', userDocuments.length)
-        console.log('[ApproveDocument] Document statuses:', userDocuments.map(d => ({ type: d.docType, status: d.verificationStatus })))
+          console.log('[ApproveDocument] User required documents:', userDocuments.length, 'Required:', requiredDocTypes.length)
+          console.log('[ApproveDocument] Document statuses:', userDocuments.map(d => ({ type: d.docType, status: d.verificationStatus })))
 
-        const allApproved = userDocuments.length > 0 && userDocuments.every(doc => doc.verificationStatus === 'APPROVED')
+          // Check if all required doc types are present and approved
+          const approvedDocTypes = userDocuments
+            .filter(doc => doc.verificationStatus === 'APPROVED')
+            .map(doc => doc.docType)
+          
+          const allApproved = requiredDocTypes.every(type => approvedDocTypes.includes(type))
 
-        if (allApproved) {
-          const userUpdateResult = await db.collection('users').updateOne(
-            { _id: userId },
-            {
-              $set: {
-                isVerified: true,
-                verificationStatus: 'VERIFIED',
-                verifiedAt: new Date(),
-                verifiedBy: session.user.email || session.user.id,
-                updatedAt: new Date(),
-              },
-            }
-          )
-          console.log('[ApproveDocument] ✅ User account verified! Update result:', userUpdateResult)
-        } else {
-          console.log('[ApproveDocument] ⚠️ Not all required documents approved yet')
+          if (allApproved) {
+            const userUpdateResult = await db.collection('users').updateOne(
+              { _id: userId },
+              {
+                $set: {
+                  isVerified: true,
+                  verificationStatus: 'VERIFIED',
+                  verifiedAt: new Date(),
+                  verifiedBy: session.user.email || session.user.id,
+                  updatedAt: new Date(),
+                },
+              }
+            )
+            console.log('[ApproveDocument] ✅ User account verified! Update result:', userUpdateResult)
+          } else {
+            console.log('[ApproveDocument] ⚠️ Not all required documents approved yet. Approved:', approvedDocTypes, 'Required:', requiredDocTypes)
+          }
         }
       }
     }

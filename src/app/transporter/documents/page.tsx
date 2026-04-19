@@ -14,8 +14,11 @@ export default function TransporterDocumentsPage() {
 
   const docTypes = [
     { value: 'COMPANY', label: 'Company Registration' },
-    { value: 'REGISTRATION', label: 'Vehicle Registration' },
-    { value: 'CUSTOMS', label: 'Customs Clearance' },
+    { value: 'BANK_CONFIRMATION', label: 'Bank Confirmation' },
+    { value: 'AUTHORIZATION', label: 'Letter Authorizing Company to Work with Fleetxchange' },
+    { value: 'INSURANCE', label: 'Insurance' },
+    { value: 'TAX_CLEARANCE', label: 'Tax Clearance' },
+    { value: 'VEHICLE_LIST', label: 'Vehicle List' },
     { value: 'INVOICE', label: 'Invoice/Receipt' },
     { value: 'OTHER', label: 'Other' },
   ]

@@ -19,8 +19,8 @@ export default function ClientDocumentsPage() {
 
   const docTypes = [
     { value: 'COMPANY', label: 'Company Registration' },
-    { value: 'REGISTRATION', label: 'Tax Registration' },
-    { value: 'CUSTOMS', label: 'Customs Clearance' },
+    { value: 'AUTHORIZATION', label: 'Letter Authorizing Company to Work with Fleetxchange' },
+    { value: 'TAX_CLEARANCE', label: 'Tax Clearance' },
     { value: 'POD', label: 'Proof of Delivery' },
     { value: 'INVOICE', label: 'Invoice' },
     { value: 'OTHER', label: 'Other' },
@@ -189,12 +189,11 @@ export default function ClientDocumentsPage() {
           <div className="p-6">
             {!session?.user?.isVerified && (
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-900">
-                <p className="font-semibold mb-1">Acceptable Verification Documents:</p>
+                <p className="font-semibold mb-1">Required Verification Documents (All 3 Required):</p>
                 <ul className="text-xs space-y-1 ml-4">
-                  <li>• Company Registration Certificate</li>
-                  <li>• Tax Registration Document</li>
-                  <li>• Customs Clearance Certificate</li>
-                  <li>• Business License or Similar Official Document</li>
+                  <li>• Company Registration</li>
+                  <li>• Letter Authorizing Company to Work with Fleetxchange</li>
+                  <li>• Tax Clearance</li>
                 </ul>
               </div>
             )}
