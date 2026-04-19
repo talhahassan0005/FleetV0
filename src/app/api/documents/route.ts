@@ -64,7 +64,8 @@ export async function GET(req: NextRequest) {
               'user.name': 1,
               'user.email': 1,
               'user.companyName': 1,
-              'user.role': 1
+              'user.role': 1,
+              'user.isVerified': 1
             }
           }
         ])
@@ -79,10 +80,12 @@ export async function GET(req: NextRequest) {
         loadId: doc.loadId?.toString?.() || doc.loadId,
         user: doc.user ? {
           _id: doc.user._id?.toString?.() || doc.user._id,
+          userId: doc.user._id?.toString?.() || doc.user._id,
           name: doc.user.name,
           email: doc.user.email,
           companyName: doc.user.companyName,
-          role: doc.user.role
+          role: doc.user.role,
+          isVerified: doc.user.isVerified || false
         } : null
       }))
 

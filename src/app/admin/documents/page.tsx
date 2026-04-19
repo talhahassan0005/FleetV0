@@ -15,6 +15,37 @@ export default function AdminDocumentsPage() {
   const [filterType, setFilterType] = useState('ALL')
   const [filterStatus, setFilterStatus] = useState('ALL')
   const [fixingDocs, setFixingDocs] = useState(false)
+  const [verifyingUser, setVerifyingUser] = useState<string | null>(null)
+
+  const handleManualVerify = async (userId: string, userEmail: string) => {
+    if (!confirm(`Manually trigger verification check for ${userEmail}?`)) {
+      return
+    }
+
+    try {
+      setVerifyingUser(userId)
+      const res = await fetch('/api/admin/verify-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+
+      const data = await res.json()
+      
+      if (data.success) {
+        alert(`✅ Success!\n\n${data.message}\n\nUser: ${data.user.email}\nRole: ${data.user.role}\nVerified: ${data.user.isVerified}`)
+      } else {
+        alert(`⚠️ Verification Check Result:\n\n${data.message}\n\nMissing Documents:\n${data.missingDocuments?.join('\n') || 'None'}\n\nApproved Documents:\n${data.approvedDocuments?.join('\n') || 'None'}`)
+      }
+      
+      await fetchDocuments()
+    } catch (err: any) {
+      console.error('Manual verify error:', err)
+      alert(err.message || 'Failed to verify user')
+    } finally {
+      setVerifyingUser(null)
+    }
+  }
 
   const handleFixOldDocuments = async () => {
     if (!confirm('Fix old documents without verification status and verify eligible accounts?')) {
@@ -293,15 +324,41 @@ export default function AdminDocumentsPage() {
                           <span className="font-semibold">Client:</span> {doc.user.name || 'N/A'}
                           {doc.user.companyName && ` (${doc.user.companyName})`}
                           {doc.user.email && ` • ${doc.user.email}`}
+                          {doc.user.role && (
+                            <span className="ml-2">
+                              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                                doc.user.isVerified 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : 'bg-amber-100 text-amber-700'
+                              }`}>
+                                {doc.user.isVerified ? '✓ Verified' : '⏳ Unverified'}
+                              </span>
+                            </span>
+                          )}
                         </p>
                       )}
                       {doc.reviews && doc.reviews.length > 0 && (
                         <p className="text-xs text-[#3ab54a] mt-1">✓ {doc.reviews.length} review(s)</p>
                       )}
                     </div>
-                    <button className="px-3 py-1.5 rounded text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200">
-                      Review
-                    </button>
+                    <div className="flex gap-2">
+                      <button className="px-3 py-1.5 rounded text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200">
+                        Review
+                      </button>
+                      {doc.user && !doc.user.isVerified && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleManualVerify(doc.user._id?.toString() || doc.user.userId, doc.user.email)
+                          }}
+                          disabled={verifyingUser === (doc.user._id?.toString() || doc.user.userId)}
+                          className="px-3 py-1.5 rounded text-xs font-semibold bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
+                          title="Check if user can be verified"
+                        >
+                          {verifyingUser === (doc.user._id?.toString() || doc.user.userId) ? '...' : '✓ Verify'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
