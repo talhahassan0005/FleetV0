@@ -24,16 +24,17 @@ export async function GET(req: NextRequest) {
 
     const db = await getDatabase()
 
-    // Get PODs approved by BOTH admin and client
+    // Get PODs approved by BOTH admin and client, but NOT yet invoiced
     const readyPODs = await db.collection('documents').find({
       docType: 'POD',
       adminApprovalStatus: 'APPROVED',
-      clientApprovalStatus: 'APPROVED'
+      clientApprovalStatus: 'APPROVED',
+      invoiceStatus: { $ne: 'INVOICED' } // Exclude already invoiced PODs
     })
     .sort({ createdAt: -1 })
     .toArray()
 
-    console.log('[ForInvoiceCreation] Found', readyPODs.length, 'PODs ready for invoicing')
+    console.log('[ForInvoiceCreation] Found', readyPODs.length, 'PODs ready for invoicing (not yet invoiced)')
 
     // Enrich with load and transporter details
     const enrichedPODs = await Promise.all(
@@ -58,6 +59,8 @@ export async function GET(req: NextRequest) {
           loadId: pod.loadId.toString(),
           amount: load?.finalPrice,
           currency: load?.currency || 'ZAR',
+          invoiceStatus: pod.invoiceStatus || 'NOT_INVOICED', // Add invoice status
+          invoicedAt: pod.invoicedAt || null,
         }
       })
     )

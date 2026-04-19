@@ -89,6 +89,14 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // CRITICAL FIX: Check if POD is already invoiced
+    if (pod.invoiceStatus === 'INVOICED') {
+      return NextResponse.json(
+        { error: 'This POD has already been invoiced. Cannot create duplicate invoice.' },
+        { status: 400 }
+      )
+    }
+
     // Get transporter details
     const transporter = await db.collection('users').findOne({
       _id: new ObjectId(transporterId)
@@ -537,72 +545,101 @@ export async function POST(req: NextRequest) {
           console.log('[Invoice] 📝 Creating QB Bill for transporter...');
           console.log('[Invoice] Using vendorId:', transporter.quickbooks?.vendorId);
           
-          const qbBill = await createQBBill(realmId, {
-            vendorId: transporter.quickbooks?.vendorId,
-            vendorDisplayName: transporter.companyName || transporter.email,
-            lineItems: [
-              {
-                description: `Load ${load.ref} - Tonnage: ${tonnageForThisInvoice}t`,
-                amount: transporterAmount,
-              },
-            ],
-            billNumber: transporterInvNum,
-          }, load.currency);
+          try {
+            const qbBill = await createQBBill(realmId, {
+              vendorId: transporter.quickbooks?.vendorId,
+              vendorDisplayName: transporter.companyName || transporter.email,
+              lineItems: [
+                {
+                  description: `Load ${load.ref} - Tonnage: ${tonnageForThisInvoice}t`,
+                  amount: transporterAmount,
+                },
+              ],
+              billNumber: transporterInvNum,
+            }, load.currency);
 
-          console.log('[Invoice] 🔍 QB Bill creation response:', JSON.stringify(qbBill, null, 2));
-          
-          if (!qbBill?.billId) {
-            console.error('[Invoice] ❌ CRITICAL: QB Bill creation returned no billId!');
-            console.error('[Invoice] Response was:', qbBill);
-            throw new Error('QB Bill creation failed: No bill ID returned');
-          }
-          console.log('[Invoice] ✅ QB Bill created with ID:', qbBill.billId);
-
-          // IMMEDIATELY save qbLink to database:
-          const qbBillLinkToSave = `https://app.qbo.intuit.com/app/bill?txnId=${qbBill.billId}`;
-          console.log('[Invoice] 💾 Saving QB Bill link to DB:', qbBillLinkToSave);
-          console.log('[Invoice] 💾 Saving to invoice ID:', transporterInvoiceResult.insertedId.toString());
-          
-          const billUpdateResult = await db.collection('invoices').updateOne(
-            { _id: transporterInvoiceResult.insertedId },
-            {
-              $set: {
-                qbLink: qbBillLinkToSave,
-                'qbSync.billId': qbBill.billId,
-                'qbSync.syncToken': qbBill.syncToken,
-                'qbSync.lastSyncedAt': new Date(),
-                updatedAt: new Date(),
-              }
+            console.log('[Invoice] 🔍 QB Bill creation response:', JSON.stringify(qbBill, null, 2));
+            
+            if (!qbBill?.billId) {
+              console.error('[Invoice] ❌ CRITICAL: QB Bill creation returned no billId!');
+              console.error('[Invoice] Response was:', qbBill);
+              throw new Error('QB Bill creation failed: No bill ID returned');
             }
-          );
-          console.log('[Invoice] 💾 Bill update result:', JSON.stringify({
-            matched: billUpdateResult.matchedCount,
-            modified: billUpdateResult.modifiedCount,
-            acknowledged: billUpdateResult.acknowledged
-          }));
-          
-          // Verify the update worked
-          const verifyBillUpdate = await db.collection('invoices').findOne({ _id: transporterInvoiceResult.insertedId });
-          console.log('[Invoice] 🔍 Verification - Bill qbLink after save:', verifyBillUpdate?.qbLink || 'NULL');
-          if (!verifyBillUpdate?.qbLink) {
-            console.error('[Invoice] ❌ CRITICAL: Bill qbLink was NOT saved to database!');
+            console.log('[Invoice] ✅ QB Bill created with ID:', qbBill.billId);
+
+            // IMMEDIATELY save qbLink to database:
+            const qbBillLinkToSave = `https://app.qbo.intuit.com/app/bill?txnId=${qbBill.billId}`;
+            console.log('[Invoice] 💾 Saving QB Bill link to DB:', qbBillLinkToSave);
+            console.log('[Invoice] 💾 Saving to invoice ID:', transporterInvoiceResult.insertedId.toString());
+            
+            const billUpdateResult = await db.collection('invoices').updateOne(
+              { _id: transporterInvoiceResult.insertedId },
+              {
+                $set: {
+                  qbLink: qbBillLinkToSave,
+                  'qbSync.billId': qbBill.billId,
+                  'qbSync.syncToken': qbBill.syncToken,
+                  'qbSync.lastSyncedAt': new Date(),
+                  updatedAt: new Date(),
+                }
+              }
+            );
+            console.log('[Invoice] 💾 Bill update result:', JSON.stringify({
+              matched: billUpdateResult.matchedCount,
+              modified: billUpdateResult.modifiedCount,
+              acknowledged: billUpdateResult.acknowledged
+            }));
+            
+            // Verify the update worked
+            const verifyBillUpdate = await db.collection('invoices').findOne({ _id: transporterInvoiceResult.insertedId });
+            console.log('[Invoice] 🔍 Verification - Bill qbLink after save:', verifyBillUpdate?.qbLink || 'NULL');
+            if (!verifyBillUpdate?.qbLink) {
+              console.error('[Invoice] ❌ CRITICAL: Bill qbLink was NOT saved to database!');
+            }
+
+            // QB Bill /send is not supported in sandbox - skip silently
+            console.log('[Invoice] ℹ️ QB Bill email skipped (not supported in sandbox)');
+
+            // Generate QB links from invoice IDs for local variables
+            qbBillLink = generateQBBillLink(qbBill.billId);
+            
+            console.log('[Invoice] 🔗 Generated QB Bill link:', qbBillLink);
+          } catch (billError: any) {
+            console.error('[Invoice] ❌ QB Bill creation failed:', billError.message);
+            console.error('[Invoice] Error code:', billError.code || 'N/A');
+            
+            // Check if it's a subscription limitation error
+            if (billError.message?.includes('Feature Not Supported') || billError.message?.includes('5030')) {
+              console.warn('[Invoice] ⚠️ QB Bill feature not available in current subscription (Simple Start)');
+              console.warn('[Invoice] ℹ️ Transporter invoice will be created WITHOUT QB link');
+              console.warn('[Invoice] ℹ️ Upgrade to QuickBooks Plus or Advanced to enable Bill feature');
+              
+              // Save note to transporter invoice
+              await db.collection('invoices').updateOne(
+                { _id: transporterInvoiceResult.insertedId },
+                {
+                  $set: {
+                    qbSyncError: 'QB Bill feature not available in Simple Start subscription',
+                    qbSyncErrorCode: '5030',
+                    qbSyncErrorAt: new Date(),
+                    notes: (await db.collection('invoices').findOne({ _id: transporterInvoiceResult.insertedId }))?.notes + 
+                           '\n\n⚠️ QB Bill not created: Feature requires QuickBooks Plus or Advanced subscription',
+                    updatedAt: new Date(),
+                  }
+                }
+              );
+            } else {
+              // Other errors - rethrow
+              throw billError;
+            }
+            
+            // Bill link remains null
+            qbBillLink = null;
           }
-
-          // QB Bill /send is not supported in sandbox - skip silently
-          console.log('[Invoice] ℹ️ QB Bill email skipped (not supported in sandbox)');
-
-          // Generate QB links from invoice IDs for local variables
-          qbInvoiceLink = generateQBInvoiceLink(qbInvoice.invoiceId);
-          qbBillLink = generateQBBillLink(qbBill.billId);
-          
-          console.log('[Invoice] 🔗 Generated QB links:', {
-            invoiceLink: qbInvoiceLink,
-            billLink: qbBillLink
-          });
 
           console.log('[Invoice] 🎉 QB Integration Complete!');
           console.log('[Invoice]   Invoice Link:', qbInvoiceLink);
-          console.log('[Invoice]   Bill Link:', qbBillLink);
+          console.log('[Invoice]   Bill Link:', qbBillLink || 'NOT CREATED (subscription limitation)');
         } catch (qbError: any) {
           console.error('[Invoice] ❌ QB sync error:', qbError.message);
           console.error('[Invoice] Error details:', qbError.stack);
@@ -685,6 +722,26 @@ export async function POST(req: NextRequest) {
       message: `Invoices generated for ${tonnageForThisInvoice} tons (Progress: ${progressPercentage}%)`,
       createdAt: new Date(),
     })
+
+    // CRITICAL FIX: Update POD status to INVOICED to prevent duplicate invoice creation
+    console.log('[Invoice] 📝 Updating POD status to INVOICED...');
+    const podUpdateResult = await db.collection('documents').updateOne(
+      { _id: new ObjectId(podId), docType: 'POD' },
+      {
+        $set: {
+          invoiceStatus: 'INVOICED',
+          invoicedAt: new Date(),
+          updatedAt: new Date(),
+        }
+      }
+    );
+    console.log('[Invoice] 📝 POD status update result:', {
+      matched: podUpdateResult.matchedCount,
+      modified: podUpdateResult.modifiedCount
+    });
+    if (podUpdateResult.modifiedCount === 0) {
+      console.warn('[Invoice] ⚠️ POD status was not updated - POD may not exist or already invoiced');
+    }
 
     // Re-fetch both invoices to get updated qbLink:
     console.log('[Invoice] 🔄 Re-fetching invoices to get updated qbLink...');
