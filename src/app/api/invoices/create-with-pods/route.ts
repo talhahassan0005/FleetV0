@@ -261,6 +261,19 @@ export async function POST(req: NextRequest) {
       try {
         qbCredentials = await getQBCredentialsByCurrency(load.currency);
         console.log('[Invoice] QB credential lookup result:', qbCredentials ? '✅ FOUND' : '❌ NOT FOUND');
+        
+        // VALIDATION: Ensure QB account currency matches load currency
+        if (qbCredentials && qbCredentials.country) {
+          const qbCurrency = qbCredentials.country === 'ZA' ? 'ZAR' : 
+                            qbCredentials.country === 'BW' ? 'BWP' :
+                            qbCredentials.country === 'US' ? 'USD' : 'ZAR';
+          
+          if (qbCurrency !== load.currency) {
+            console.error(`[Invoice] ❌ CURRENCY MISMATCH: Load currency (${load.currency}) does not match QB account currency (${qbCurrency})`);
+            throw new Error(`Cannot create invoice: Load currency (${load.currency}) does not match QB account (${qbCurrency}). Please connect QB account for ${load.currency}.`);
+          }
+          console.log(`[Invoice] ✅ Currency validation passed: ${load.currency} matches QB account`);
+        }
       } catch (err: any) {
         console.error('[Invoice] ⚠️ QB credential lookup error:', err.message);
         qbCredentials = null;
