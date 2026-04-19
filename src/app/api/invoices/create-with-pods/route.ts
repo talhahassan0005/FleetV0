@@ -477,6 +477,7 @@ export async function POST(req: NextRequest) {
                 'qbSync.invoiceId': qbInvoice.invoiceId,
                 'qbSync.syncToken': qbInvoice.syncToken,
                 'qbSync.lastSyncedAt': new Date(),
+                updatedAt: new Date(),
               }
             }
           );
@@ -485,6 +486,13 @@ export async function POST(req: NextRequest) {
             modified: updateResult.modifiedCount,
             acknowledged: updateResult.acknowledged
           }));
+          
+          // Verify the update worked
+          const verifyUpdate = await db.collection('invoices').findOne({ _id: clientInvoiceResult.insertedId });
+          console.log('[Invoice] 🔍 Verification - Invoice qbLink after save:', verifyUpdate?.qbLink || 'NULL');
+          if (!verifyUpdate?.qbLink) {
+            console.error('[Invoice] ❌ CRITICAL: Invoice qbLink was NOT saved to database!');
+          }
           console.log('[Invoice] QB Invoice Response:', JSON.stringify(qbInvoice, null, 2));
 
           // Finalize QB Invoice to make it visible in QB UI
@@ -563,6 +571,7 @@ export async function POST(req: NextRequest) {
                 'qbSync.billId': qbBill.billId,
                 'qbSync.syncToken': qbBill.syncToken,
                 'qbSync.lastSyncedAt': new Date(),
+                updatedAt: new Date(),
               }
             }
           );
@@ -571,6 +580,13 @@ export async function POST(req: NextRequest) {
             modified: billUpdateResult.modifiedCount,
             acknowledged: billUpdateResult.acknowledged
           }));
+          
+          // Verify the update worked
+          const verifyBillUpdate = await db.collection('invoices').findOne({ _id: transporterInvoiceResult.insertedId });
+          console.log('[Invoice] 🔍 Verification - Bill qbLink after save:', verifyBillUpdate?.qbLink || 'NULL');
+          if (!verifyBillUpdate?.qbLink) {
+            console.error('[Invoice] ❌ CRITICAL: Bill qbLink was NOT saved to database!');
+          }
 
           // QB Bill /send is not supported in sandbox - skip silently
           console.log('[Invoice] ℹ️ QB Bill email skipped (not supported in sandbox)');
