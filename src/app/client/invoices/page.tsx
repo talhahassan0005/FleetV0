@@ -519,14 +519,12 @@ export default function ClientInvoicesPage() {
                             </div>
                             <div className="ml-4 flex gap-2">
                               {/* View Button - Opens in new tab */}
-                              <a
-                                href={invoice.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors inline-block"
+                              <button
+                                onClick={() => invoice.fileUrl && window.open(invoice.fileUrl, '_blank')}
+                                className="flex items-center gap-1 px-3 py-1 bg-[#1a2a5e] text-white rounded text-xs font-semibold hover:bg-[#152247] transition-colors"
                               >
-                                View
-                              </a>
+                                View Document
+                              </button>
                               
                               {/* Approve Button */}
                               <button

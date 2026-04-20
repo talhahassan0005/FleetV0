@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
-import { CheckCircle, AlertCircle, Clock, FileText, Download, MessageSquare } from 'lucide-react'
+import { CheckCircle, AlertCircle, Clock, FileText, MessageSquare } from 'lucide-react'
 
 interface POD {
   _id: string
@@ -323,15 +323,13 @@ export default function PODManagementPage() {
                           <p className="font-semibold text-gray-900">{pod.originalName}</p>
                         </div>
                       </div>
-                      <a
-                        href={`/api/documents/${pod._id}/view`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-semibold border border-blue-200"
+                      <button
+                        onClick={() => pod.fileUrl && window.open(pod.fileUrl, '_blank')}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                       >
-                        <Download className="w-4 h-4" />
-                        Download POD
-                      </a>
+                        <FileText className="w-4 h-4" />
+                        View Document
+                      </button>
                     </div>
                   </div>
 

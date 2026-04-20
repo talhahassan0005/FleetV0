@@ -70,7 +70,7 @@ export async function GET(req: Request) {
           invoices: podDocs.map(doc => ({
             _id: doc._id.toString(),
             filename: doc.originalName,
-            fileUrl: doc.fileUrl,
+            fileUrl: (() => { try { const p = JSON.parse(doc.fileUrl); return p.url || doc.fileUrl } catch { return doc.fileUrl } })(),
             uploadedAt: doc.createdAt,
             uploadedBy: doc.uploadedByRole,
             approved: doc.clientApprovalStatus === 'APPROVED',

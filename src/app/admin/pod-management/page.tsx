@@ -301,14 +301,31 @@ export default function AdminPODManagementPage() {
                 {/* View Full Document Button */}
                 {selectedPOD.podFile && (
                   <div>
-                    <a
-                      href={selectedPOD.podFile}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={async () => {
+                        try {
+                          // Check if podFile is already a direct Cloudinary URL
+                          if (selectedPOD.podFile.startsWith('http')) {
+                            window.open(selectedPOD.podFile, '_blank')
+                          } else {
+                            // It's an API route - fetch JSON and extract URL
+                            const res = await fetch(selectedPOD.podFile)
+                            const data = await res.json()
+                            if (data.url) {
+                              window.open(data.url, '_blank')
+                            } else {
+                              alert('Unable to open document')
+                            }
+                          }
+                        } catch (err) {
+                          console.error('Error opening document:', err)
+                          alert('Failed to open document')
+                        }
+                      }}
                       className="block w-full px-4 py-3 bg-blue-600 text-white text-center rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                     >
                       📄 View Full Document
-                    </a>
+                    </button>
                   </div>
                 )}
 

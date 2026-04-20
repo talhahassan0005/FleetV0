@@ -191,7 +191,7 @@ export default function AdminPodsPage() {
                 <div className="bg-gray-50 p-3 rounded mb-4">
                   <p className="text-xs text-gray-500 mb-1">POD File:</p>
                   <a
-                    href={pod.podUrl}
+                    href={(() => { try { const p = JSON.parse(pod.podUrl); return p.url || pod.podUrl; } catch { return pod.podUrl; } })()}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-[#3ab54a] hover:text-[#2d9e3c] font-semibold"
