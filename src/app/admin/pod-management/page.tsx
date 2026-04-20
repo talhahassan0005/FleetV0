@@ -302,29 +302,10 @@ export default function AdminPODManagementPage() {
                 {selectedPOD.podFile && (
                   <div>
                     <button
-                      onClick={async () => {
-                        try {
-                          // Check if podFile is already a direct Cloudinary URL
-                          if (selectedPOD.podFile.startsWith('http')) {
-                            window.open(selectedPOD.podFile, '_blank')
-                          } else {
-                            // It's an API route - fetch JSON and extract URL
-                            const res = await fetch(selectedPOD.podFile)
-                            const data = await res.json()
-                            if (data.url) {
-                              window.open(data.url, '_blank')
-                            } else {
-                              alert('Unable to open document')
-                            }
-                          }
-                        } catch (err) {
-                          console.error('Error opening document:', err)
-                          alert('Failed to open document')
-                        }
-                      }}
-                      className="block w-full px-4 py-3 bg-blue-600 text-white text-center rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                      onClick={() => selectedPOD.podFile && window.open(selectedPOD.podFile, '_blank')}
+                      className="block w-full px-4 py-3 bg-[#1a2a5e] text-white text-center rounded-lg font-semibold hover:bg-[#152247] transition-colors"
                     >
-                      📄 View Full Document
+                      📄 View Document
                     </button>
                   </div>
                 )}
