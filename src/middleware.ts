@@ -40,11 +40,30 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
+        const pathname = req.nextUrl.pathname
+        
         // Allow access to login/register pages without token
-        if (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/register') {
+        if (pathname === '/login' || pathname === '/register') {
           return true
         }
-        // For protected routes, require token
+        
+        // Skip auth for API routes and static files
+        if (
+          pathname.startsWith('/api/') ||
+          pathname.startsWith('/_next/') ||
+          pathname.startsWith('/images/') ||
+          pathname.includes('.')
+        ) {
+          return true
+        }
+        
+        // For admin routes, just check if user has ADMIN role
+        // Don't check adminRole here - let page components handle that
+        if (pathname.startsWith('/admin')) {
+          return token?.role === 'ADMIN'
+        }
+        
+        // For other protected routes, require token
         return !!token
       }
     }
