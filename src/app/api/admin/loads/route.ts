@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getDatabase } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
+import { hasPermission } from '@/lib/rbac'
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,6 +16,11 @@ export async function GET(req: NextRequest) {
         { error: 'Unauthorized' },
         { status: 403 }
       )
+    }
+
+    const adminRole = (session.user as any).adminRole
+    if (!hasPermission(adminRole, 'loads')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const db = await getDatabase()

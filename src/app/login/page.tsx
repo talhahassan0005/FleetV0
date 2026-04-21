@@ -36,7 +36,7 @@ function LoginContent() {
 
   // Redirect after successful login
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user && !loading) {
       const role = session.user.role || 'CLIENT'
       if (role === 'ADMIN') {
         router.push('/admin')
@@ -46,15 +46,18 @@ function LoginContent() {
         router.push('/client/dashboard')
       }
     }
-  }, [session, router])
+  }, [session, router, loading])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
     const res = await signIn('credentials', { email, password, redirect: false })
-    setLoading(false)
-    if (res?.error) { setError('Invalid email or password.'); return }
-    // Session hook will trigger redirect via useEffect
+    if (res?.error) { 
+      setLoading(false)
+      setError('Invalid email or password.'); 
+      return 
+    }
+    // Keep loading state active - session hook will trigger redirect
   }
 
   return (

@@ -40,6 +40,7 @@ export default function CreateInvoicePage() {
   const [transporterInvoiceNumber, setTransporterInvoiceNumber] = useState('')
   const [transporterAmount, setTransporterAmount] = useState('')
   const [markupPercentage, setMarkupPercentage] = useState('10')
+  const [selectedCurrency, setSelectedCurrency] = useState('ZAR')
   const [notes, setNotes] = useState('')
 
   // Calculated fields
@@ -71,29 +72,48 @@ export default function CreateInvoicePage() {
   const fetchApprovedPODs = async () => {
     try {
       setLoading(true)
-      // Get ONLY approved PODs from the admin endpoint
-      const res = await fetch('/api/pod/approved')
+      console.log('[CreateInvoice] Fetching PODs ready for invoice creation...')
+      
+      // Use the correct endpoint for PODs ready for invoice creation
+      const res = await fetch('/api/admin/pods/for-invoice-creation')
       if (!res.ok) {
-        console.error('[CreateInvoice] Failed to fetch approved PODs, status:', res.status)
-        setError('Failed to load approved PODs')
+        console.error('[CreateInvoice] Failed to fetch PODs, status:', res.status)
+        const errorData = await res.json()
+        setError(`Failed to load PODs: ${errorData.error || 'Unknown error'}`)
         setPods([])
         return
       }
 
       const data = await res.json()
-      console.log('[CreateInvoice] Got approved PODs:', data.pods?.length)
+      console.log('[CreateInvoice] Got PODs ready for invoicing:', data.data?.length || 0)
+      console.log('[CreateInvoice] PODs data:', data.data)
       
-      // Display all approved PODs (already filtered by API)
-      const approvedPods = data.pods || []
+      // Map the data to match our interface
+      const mappedPods = (data.data || []).map((pod: any) => ({
+        _id: pod._id,
+        loadId: pod.loadId,
+        userId: pod.transporterId, // Map transporterId to userId
+        filename: pod.podFileName,
+        fileUrl: pod.podUrl,
+        uploadedAt: new Date().toISOString(), // Placeholder
+        uploadedBy: 'TRANSPORTER',
+        approved: true,
+        loadRef: pod.loadRef,
+        origin: pod.origin,
+        destination: pod.destination,
+        cargoType: 'General', // Placeholder
+        weight: 0, // Placeholder
+        currency: pod.currency,
+        transporterAmount: pod.amount || 0
+      }))
       
-      console.log('[CreateInvoice] Approved PODs ready for invoice creation:', approvedPods.length)
-      setPods(approvedPods)
+      console.log('[CreateInvoice] Mapped PODs:', mappedPods.length)
+      setPods(mappedPods)
       setError('')
     } catch (err) {
       console.error('[CreateInvoice] Error:', err)
-      setError(`Failed to load approved PODs: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      setError(`Failed to load PODs: ${err instanceof Error ? err.message : 'Unknown error'}`)
       setPods([])
-      // Not critical - can manually fill in fields
     } finally {
       setLoading(false)
     }
@@ -104,6 +124,7 @@ export default function CreateInvoicePage() {
     const pod = pods.find(p => p._id === podId)
     if (pod) {
       setTransporterAmount(pod.transporterAmount.toString())
+      setSelectedCurrency(pod.currency || 'ZAR')
     }
   }
 
@@ -127,11 +148,12 @@ export default function CreateInvoicePage() {
         body: JSON.stringify({
           loadId: pods.find(p => p._id === selectedPodId)?.loadId,
           podId: selectedPodId,
-          transporterId: pods.find(p => p._id === selectedPodId)?.userId,  // ✅ USE: userId from POD data
+          transporterId: pods.find(p => p._id === selectedPodId)?.userId,
           tonnageForThisInvoice: parseFloat(tonnageForThisInvoice),
           transporterInvoiceNumber,
           transporterAmount: parseFloat(transporterAmount),
           markupPercentage: parseFloat(markupPercentage),
+          currency: selectedCurrency,
           notes,
         }),
       })
@@ -254,6 +276,22 @@ export default function CreateInvoicePage() {
               <p className="text-xs text-gray-500 mt-1">From transporter's QuickBooks</p>
             </div>
 
+            {/* Currency */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Currency *
+              </label>
+              <select
+                value={selectedCurrency}
+                onChange={(e) => setSelectedCurrency(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab54a]/50 text-black bg-white"
+              >
+                {['ZAR','USD','BWP','ZMW','ZWL','MZN','NAD','TZS','KES','UGX'].map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Transporter Amount */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -261,7 +299,7 @@ export default function CreateInvoicePage() {
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-3 text-gray-500 font-semibold">
-                  {selectedPodId && pods.find(p => p._id === selectedPodId)?.currency || 'ZAR'}
+                  {selectedCurrency}
                 </span>
                 <input
                   type="number"
@@ -302,7 +340,7 @@ export default function CreateInvoicePage() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Transporter Invoice Amount:</span>
                   <span className="font-semibold">
-                    {transporterAmount ? `${selectedPodId && pods.find(p => p._id === selectedPodId)?.currency || 'ZAR'} ${parseFloat(transporterAmount).toFixed(2)}` : '-'}
+                    {transporterAmount ? `${selectedCurrency} ${parseFloat(transporterAmount).toFixed(2)}` : '-'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -314,7 +352,7 @@ export default function CreateInvoicePage() {
                 <div className="flex justify-between pt-2 border-t border-gray-300">
                   <span className="text-gray-600">Client Invoice Amount (to collect):</span>
                   <span className="font-bold text-lg text-green-600">
-                    {clientAmount ? `${selectedPodId && pods.find(p => p._id === selectedPodId)?.currency || 'ZAR'} ${clientAmount.toFixed(2)}` : '0.00'}
+                    {clientAmount ? `${selectedCurrency} ${clientAmount.toFixed(2)}` : '0.00'}
                   </span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-gray-300">

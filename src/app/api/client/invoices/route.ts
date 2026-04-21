@@ -49,6 +49,7 @@ export async function GET() {
     clientApprovedAt: inv.clientApprovedAt,
     clientApprovedBy: inv.clientApprovedBy?.toString(),
     qbLink: inv.qbLink || inv.qb_sync?.invoiceLink || null
+    // markupPercentage, markupAmount intentionally excluded
   }))
 
   return NextResponse.json({ success: true, invoices: mappedInvoices })

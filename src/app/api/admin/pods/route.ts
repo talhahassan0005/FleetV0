@@ -6,11 +6,18 @@ import { ObjectId } from 'mongodb'
 
 export const dynamic = 'force-dynamic'
 
+import { requirePermission } from '@/lib/rbac'
+
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions)
 
   if (!session?.user?.role || session.user.role !== 'ADMIN') {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const adminRole = (session.user as any).adminRole
+  if (!requirePermission(adminRole, 'pods')) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   try {

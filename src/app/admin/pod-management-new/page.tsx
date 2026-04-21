@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
+import { hasPermission } from '@/lib/rbac'
 import { CheckCircle, AlertCircle, Clock, FileText, MessageSquare } from 'lucide-react'
 
 interface POD {
@@ -56,37 +57,54 @@ export default function PODManagementPage() {
 
   // Auth check
   useEffect(() => {
+    if (session === null) {
+      router.push('/login')
+      return
+    }
+    
     if (session && session.user.role !== 'ADMIN') {
       router.push('/login')
+      return
+    }
+
+    const adminRole = (session?.user as any)?.adminRole
+    if (session && adminRole && !hasPermission(adminRole, 'pods')) {
+      router.push('/admin/unauthorized')
+      return
     }
   }, [session, router])
 
   // Fetch PODs
   useEffect(() => {
+    let isMounted = true
+    
     const fetchPODs = async () => {
       try {
         setLoading(true)
         setError('')
         console.log('[AdminPODs] Starting fetch with session:', session?.user?.role)
         
+        // Wait for session to be loaded
+        if (session === undefined) {
+          console.log('[AdminPODs] Session still loading...')
+          return
+        }
+        
         // Quick auth check
         if (!session?.user?.id || session.user.role !== 'ADMIN') {
           console.log('[AdminPODs] Not admin, redirecting...')
-          setError('Admin access required')
-          setLoading(false)
+          if (isMounted) {
+            setError('Admin access required')
+            setLoading(false)
+          }
           return
         }
 
         console.log('[AdminPODs] Fetching PODs from /api/pod/upload')
         
-        // Fetch PODs with timeout
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+        const res = await fetch('/api/pod/upload')
         
-        const res = await fetch('/api/pod/upload', {
-          signal: controller.signal
-        })
-        clearTimeout(timeoutId)
+        if (!isMounted) return
         
         console.log('[AdminPODs] Response status:', res.status)
         
@@ -95,6 +113,9 @@ export default function PODManagementPage() {
         }
 
         const data = await res.json()
+        
+        if (!isMounted) return
+        
         console.log('[AdminPODs] Got PODs:', data.data?.length || 0)
         
         // For now, just set PODs without enrichment to debug
@@ -111,23 +132,33 @@ export default function PODManagementPage() {
           clientName: 'Client',
         }))
         
-        setPods(podsWithDefaults)
-        setError('')
+        if (isMounted) {
+          setPods(podsWithDefaults)
+          setError('')
+        }
       } catch (err: any) {
         console.error('[AdminPODs] Error:', err)
-        if (err.name === 'AbortError') {
-          setError('Request timeout - server took too long')
-        } else {
-          setError(`Failed: ${err.message}`)
+        if (isMounted) {
+          if (err.name === 'AbortError') {
+            setError('Request cancelled')
+          } else {
+            setError(`Failed: ${err.message}`)
+          }
+          setPods([])
         }
-        setPods([])
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     if (session?.user?.id) {
       fetchPODs()
+    }
+    
+    return () => {
+      isMounted = false
     }
   }, [session])
 

@@ -6,11 +6,18 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+import { requirePermission } from '@/lib/rbac';
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || session.user.role !== 'ADMIN') {
       return NextResponse.json({ isConnected: false }, { status: 401 });
+    }
+
+    const adminRole = (session.user as any).adminRole;
+    if (!requirePermission(adminRole, 'quickbooks')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const db = await getDatabase();

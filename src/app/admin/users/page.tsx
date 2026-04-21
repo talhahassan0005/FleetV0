@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { hasPermission } from '@/lib/rbac'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 
 interface User {
@@ -27,10 +28,21 @@ export default function AdminUsersPage() {
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [rejectModal, setRejectModal] = useState<{ userId: string; email: string } | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
+  const [showSubAdminModal, setShowSubAdminModal] = useState(false)
+  const [subAdminForm, setSubAdminForm] = useState({ email: '', password: '', companyName: '', adminRole: 'pod_manager' })
+  const [subAdmins, setSubAdmins] = useState<any[]>([])
+
+  const isSuperAdmin = session?.user?.role === 'ADMIN' && (!(session.user as any).adminRole || (session.user as any).adminRole === 'superadmin')
 
   useEffect(() => {
     if (!session?.user?.role || session.user.role !== 'ADMIN') {
       router.push('/login')
+      return
+    }
+
+    const adminRole = (session.user as any).adminRole
+    if (!hasPermission(adminRole, 'users')) {
+      router.push('/admin/unauthorized')
       return
     }
 
@@ -55,7 +67,14 @@ export default function AdminUsersPage() {
     }
 
     fetchUsers()
-  }, [session, router, roleFilter])
+
+    if (isSuperAdmin) {
+      fetch('/api/admin/sub-admins')
+        .then(r => r.json())
+        .then(d => setSubAdmins(d.admins || []))
+        .catch(console.error)
+    }
+  }, [session, router, roleFilter, isSuperAdmin])
 
   const handleApproveUser = async (userId: string) => {
     try {
@@ -114,6 +133,34 @@ export default function AdminUsersPage() {
     }
   }
 
+  const handleCreateSubAdmin = async () => {
+    if (!subAdminForm.email || !subAdminForm.password || !subAdminForm.adminRole) {
+      alert('All fields required')
+      return
+    }
+    try {
+      const res = await fetch('/api/admin/sub-admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subAdminForm),
+      })
+      if (res.ok) {
+        alert('Sub-admin created')
+        setShowSubAdminModal(false)
+        setSubAdminForm({ email: '', password: '', companyName: '', adminRole: 'pod_manager' })
+        const r = await fetch('/api/admin/sub-admins')
+        const d = await r.json()
+        setSubAdmins(d.admins || [])
+      } else {
+        const err = await res.json()
+        alert(err.error || 'Failed to create sub-admin')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error creating sub-admin')
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-6">
@@ -125,7 +172,17 @@ export default function AdminUsersPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1a2a5e] mb-4">Users Management</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-[#1a2a5e]">Users Management</h1>
+          {isSuperAdmin && (
+            <button
+              onClick={() => setShowSubAdminModal(true)}
+              className="px-4 py-2 bg-[#3ab54a] text-white rounded font-semibold hover:bg-[#2d9e3c] transition-colors"
+            >
+              + Create Sub-Admin
+            </button>
+          )}
+        </div>
         
         <div className="flex gap-2 mb-4">
           {[['', 'All Users'], ['CLIENT', 'Clients Only'], ['TRANSPORTER', 'Transporters Only']].map(([r, label]) => (
@@ -142,6 +199,19 @@ export default function AdminUsersPage() {
             </Link>
           ))}
         </div>
+
+        {isSuperAdmin && subAdmins.length > 0 && (
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+            <h3 className="font-semibold text-sm text-blue-900 mb-2">Sub-Admin Accounts</h3>
+            <div className="space-y-1">
+              {subAdmins.map(a => (
+                <div key={a._id} className="text-xs text-blue-800">
+                  {a.email} - <span className="font-semibold">{a.adminRole.replace('_', ' ')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -277,6 +347,41 @@ export default function AdminUsersPage() {
                   'Confirm Rejection'
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sub-Admin Creation Modal */}
+      {showSubAdminModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-[#1a2a5e] mb-4">Create Sub-Admin Account</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-semibold mb-1">Email *</label>
+                <input type="email" value={subAdminForm.email} onChange={e => setSubAdminForm({...subAdminForm, email: e.target.value})} className="w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1">Password *</label>
+                <input type="password" value={subAdminForm.password} onChange={e => setSubAdminForm({...subAdminForm, password: e.target.value})} className="w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1">Company Name</label>
+                <input type="text" value={subAdminForm.companyName} onChange={e => setSubAdminForm({...subAdminForm, companyName: e.target.value})} className="w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1">Role *</label>
+                <select value={subAdminForm.adminRole} onChange={e => setSubAdminForm({...subAdminForm, adminRole: e.target.value})} className="w-full px-3 py-2 border rounded">
+                  <option value="pod_manager">POD Manager</option>
+                  <option value="operations">Operations</option>
+                  <option value="finance">Finance</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setShowSubAdminModal(false)} className="flex-1 px-4 py-2 bg-gray-200 rounded font-semibold">Cancel</button>
+              <button onClick={handleCreateSubAdmin} className="flex-1 px-4 py-2 bg-[#3ab54a] text-white rounded font-semibold">Create</button>
             </div>
           </div>
         </div>

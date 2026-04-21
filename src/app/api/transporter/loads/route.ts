@@ -75,6 +75,7 @@ export async function GET(req: NextRequest) {
         status: load.status,
         quoteStatus: quote?.status,
         quoteAmount: quote?.amount,
+        // finalPrice, commission, markup intentionally excluded from transporter view
         client: {
           _id: client?._id.toString(),
           name: client?.name || 'Unknown Client',

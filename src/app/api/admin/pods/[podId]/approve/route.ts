@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
+import { requirePermission } from '@/lib/rbac'
 import { ObjectId } from 'mongodb'
 import { sendEmail, podApprovedByAdminEmail } from '@/lib/email'
 import { notifyPODApprovedByClient } from '@/lib/notifications'
@@ -31,6 +32,11 @@ export async function PATCH(
         { error: 'Only admins can approve PODs' },
         { status: 403 }
       )
+    }
+
+    const adminRole = (session.user as any).adminRole
+    if (!requirePermission(adminRole, 'pods')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const db = await getDatabase()

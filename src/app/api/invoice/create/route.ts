@@ -7,10 +7,11 @@ import { ObjectId } from 'mongodb'
 
 interface InvoiceCreateBody {
   podId: string
-  tonnageForThisInvoice: number // Partial tonnage
+  tonnageForThisInvoice: number
   transporterInvoiceNumber?: string
   transporterInvoiceAmount: number
   comments?: string
+  currency?: string
 }
 
 export async function POST(req: NextRequest) {
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     const db = await getDatabase()
     const body = await req.json() as InvoiceCreateBody
 
-    const { podId, tonnageForThisInvoice, transporterInvoiceNumber, transporterInvoiceAmount, comments = '' } = body
+    const { podId, tonnageForThisInvoice, transporterInvoiceNumber, transporterInvoiceAmount, comments = '', currency = 'ZAR' } = body
 
     // Validation
     if (!podId || !tonnageForThisInvoice || !transporterInvoiceAmount) {
@@ -116,18 +117,20 @@ export async function POST(req: NextRequest) {
       transporterInvoice: {
         invoiceNumber: transporterInvoiceNumber || `TR-${Date.now()}`,
         amount: transporterInvoiceAmount,
-        date: pod.podDocument.uploadedAt, // Use POD upload date
-        pdfUrl: pod.transporterInvoice.url
+        date: pod.podDocument.uploadedAt,
+        pdfUrl: pod.transporterInvoice.url,
+        currency
       },
 
       // Client invoice (with markup)
       clientInvoice: {
-        invoiceNumber, // System generated
+        invoiceNumber,
         amount: clientInvoiceAmount,
         date: new Date(),
         markup: markupAmount,
         markupPercentage,
-        sentVia: 'quickbooks' // Will integrate with QB later
+        sentVia: 'quickbooks',
+        currency
       },
 
       paymentStatus: 'UNPAID',

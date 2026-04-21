@@ -5,17 +5,39 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 
-const navMap: Record<string, { label: string; href: string; icon: React.ReactNode }[]> = {
-  ADMIN: [
-    { label: 'Dashboard', href: '/admin/dashboard',  icon: <GridIcon /> },
-    { label: 'All Loads', href: '/admin/loads',      icon: <TruckIcon /> },
-    { label: 'Invoices', href: '/admin/invoices',    icon: <ReceiptIcon /> },
+const ADMIN_ALL_NAV = [
+  { label: 'Dashboard',      href: '/admin/dashboard',              icon: <GridIcon /> },
+  { label: 'All Loads',      href: '/admin/loads',                  icon: <TruckIcon /> },
+  { label: 'Invoices',       href: '/admin/invoices',               icon: <ReceiptIcon /> },
+  { label: 'POD Management', href: '/admin/pod-management-new',     icon: <ReceiptIcon /> },
+  { label: 'Users',          href: '/admin/users',                  icon: <UsersIcon /> },
+  { label: 'Documents',      href: '/admin/documents',              icon: <DocumentIcon /> },
+  { label: 'QuickBooks',     href: '/admin/dashboard/quickbooks',   icon: <QBIcon /> },
+  { label: 'My Profile',     href: '/admin/profile',                icon: <UserIcon /> },
+]
+
+const ADMIN_NAV_BY_ROLE: Record<string, typeof ADMIN_ALL_NAV> = {
+  superadmin: ADMIN_ALL_NAV,
+  pod_manager: [
+    { label: 'Dashboard',      href: '/admin/dashboard',          icon: <GridIcon /> },
     { label: 'POD Management', href: '/admin/pod-management-new', icon: <ReceiptIcon /> },
-    { label: 'Users',     href: '/admin/users',      icon: <UsersIcon /> },
-    { label: 'Documents', href: '/admin/documents',  icon: <DocumentIcon /> },
-    { label: 'QuickBooks', href: '/admin/dashboard/quickbooks', icon: <QBIcon /> },
-    { label: 'My Profile', href: '/admin/profile',   icon: <UserIcon /> },
+    { label: 'My Profile',     href: '/admin/profile',            icon: <UserIcon /> },
   ],
+  operations: [
+    { label: 'Dashboard',      href: '/admin/dashboard',          icon: <GridIcon /> },
+    { label: 'All Loads',      href: '/admin/loads',              icon: <TruckIcon /> },
+    { label: 'POD Management', href: '/admin/pod-management-new', icon: <ReceiptIcon /> },
+    { label: 'My Profile',     href: '/admin/profile',            icon: <UserIcon /> },
+  ],
+  finance: [
+    { label: 'Dashboard',      href: '/admin/dashboard',            icon: <GridIcon /> },
+    { label: 'Invoices',       href: '/admin/invoices',             icon: <ReceiptIcon /> },
+    { label: 'QuickBooks',     href: '/admin/dashboard/quickbooks', icon: <QBIcon /> },
+    { label: 'My Profile',     href: '/admin/profile',              icon: <UserIcon /> },
+  ],
+}
+
+const navMap: Record<string, { label: string; href: string; icon: React.ReactNode }[]> = {
   CLIENT: [
     { label: 'Dashboard',  href: '/client/dashboard',      icon: <GridIcon /> },
     { label: 'My Loads',   href: '/client',                icon: <TruckIcon /> },
@@ -26,13 +48,13 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
     { label: 'My Profile', href: '/client/profile',        icon: <UserIcon /> },
   ],
   TRANSPORTER: [
-    { label: 'Dashboard',  href: '/transporter/dashboard',  icon: <GridIcon /> },
-    { label: 'Available Loads', href: '/transporter/loads', icon: <TruckIcon /> },
-    { label: 'My Quotes',  href: '/transporter/quotes',     icon: <QuoteIcon /> },
-    { label: 'Upload POD', href: '/transporter/upload-pod', icon: <ReceiptIcon /> },
-    { label: 'Documents',  href: '/transporter/documents',  icon: <DocumentIcon /> },
-    { label: 'Chat',       href: '/transporter/chat',       icon: <ChatIcon /> },
-    { label: 'My Profile', href: '/transporter/profile',    icon: <UserIcon /> },
+    { label: 'Dashboard',       href: '/transporter/dashboard',  icon: <GridIcon /> },
+    { label: 'Available Loads', href: '/transporter/loads',      icon: <TruckIcon /> },
+    { label: 'My Quotes',       href: '/transporter/quotes',     icon: <QuoteIcon /> },
+    { label: 'Upload POD',      href: '/transporter/upload-pod', icon: <ReceiptIcon /> },
+    { label: 'Documents',       href: '/transporter/documents',  icon: <DocumentIcon /> },
+    { label: 'Chat',            href: '/transporter/chat',       icon: <ChatIcon /> },
+    { label: 'My Profile',      href: '/transporter/profile',    icon: <UserIcon /> },
   ],
 }
 
@@ -40,7 +62,15 @@ export function Sidebar() {
   const { data: session } = useSession()
   const pathname = usePathname()
   const role = session?.user?.role ?? 'CLIENT'
-  const nav = navMap[role] ?? navMap.CLIENT
+  const adminRole = (session?.user as any)?.adminRole
+
+  let nav
+  if (role === 'ADMIN') {
+    nav = ADMIN_NAV_BY_ROLE[adminRole] ?? ADMIN_ALL_NAV
+  } else {
+    nav = navMap[role] ?? navMap.CLIENT
+  }
+
   const initials = (session?.user?.companyName ?? 'FX').slice(0, 2).toUpperCase()
 
   return (
@@ -76,7 +106,7 @@ export function Sidebar() {
         </div>
         <div className="overflow-hidden">
           <div className="text-[12px] font-bold text-[#1a2a5e] truncate tracking-wide">{session?.user?.companyName ?? 'User'}</div>
-          <div className="text-[9px] text-[#3ab54a] font-bold uppercase tracking-widest">{role}</div>
+          <div className="text-[9px] text-[#3ab54a] font-bold uppercase tracking-widest">{adminRole ? `${adminRole.replace('_',' ')}` : role}</div>
         </div>
       </div>
       <button

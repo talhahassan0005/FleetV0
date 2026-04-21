@@ -13,6 +13,8 @@ const QB_REDIRECT_URI = process.env.QUICKBOOKS_REDIRECT_URI || '';
  * GET /api/quickbooks/auth?action=connect
  * Redirects user to QB OAuth login
  */
+import { requirePermission } from '@/lib/rbac';
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action');
@@ -41,11 +43,16 @@ export async function GET(request: NextRequest) {
     if (action === 'connect') {
       const session = await getServerSession(authOptions);
 
-      if (!session?.user) {
+      if (!session?.user || session.user.role !== 'ADMIN') {
         return NextResponse.json(
-          { error: 'Unauthorized - Please login first' },
+          { error: 'Unauthorized - Admin only' },
           { status: 401 }
         );
+      }
+
+      const adminRole = (session.user as any).adminRole;
+      if (!requirePermission(adminRole, 'quickbooks')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
       // Generate state for CSRF protection + pass country and currency

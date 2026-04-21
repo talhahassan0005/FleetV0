@@ -23,6 +23,8 @@ interface Load {
   [key: string]: any
 }
 
+import { hasPermission } from '@/lib/rbac'
+
 export default function AdminLoadsPage() {
   const { data: session } = useSession()
   const router = useRouter()
@@ -36,6 +38,12 @@ export default function AdminLoadsPage() {
   useEffect(() => {
     if (!session?.user?.role || session.user.role !== 'ADMIN') {
       router.push('/login')
+      return
+    }
+
+    const adminRole = (session.user as any).adminRole
+    if (!hasPermission(adminRole, 'loads')) {
+      router.push('/admin/unauthorized')
       return
     }
 

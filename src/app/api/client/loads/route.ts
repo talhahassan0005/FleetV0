@@ -109,6 +109,7 @@ export async function GET(req: NextRequest) {
             clientId: load.clientId.toString?.() || load.clientId,
             createdAt: load.createdAt,
             transporters,
+            // markup, commission intentionally excluded
           }
         }))
 

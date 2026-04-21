@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
+import { requirePermission } from '@/lib/rbac'
 import { ObjectId } from 'mongodb'
 
 export async function POST(req: NextRequest) {
@@ -243,6 +244,14 @@ export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Add RBAC check for admin users
+    if (session.user.role === 'ADMIN') {
+      const adminRole = (session.user as any).adminRole
+      if (!requirePermission(adminRole, 'pods')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
     }
 
     const db = await getDatabase()

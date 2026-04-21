@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { getQBInvoiceStatus } from '@/lib/quickbooks';
 import { getDatabase } from '@/lib/prisma';
 
+import { requirePermission } from '@/lib/rbac';
+
 /**
  * POST /api/quickbooks/sync
  * Sync payment data from QB back to MongoDB
@@ -15,11 +17,16 @@ import { getDatabase } from '@/lib/prisma';
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user || !session.user.email) {
+  if (!session?.user || !session.user.email || session.user.role !== 'ADMIN') {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
     );
+  }
+
+  const adminRole = (session.user as any).adminRole;
+  if (!requirePermission(adminRole, 'quickbooks')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {
@@ -131,11 +138,16 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user || !session.user.email) {
+  if (!session?.user || !session.user.email || session.user.role !== 'ADMIN') {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
     );
+  }
+
+  const adminRole = (session.user as any).adminRole;
+  if (!requirePermission(adminRole, 'quickbooks')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {

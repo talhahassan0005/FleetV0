@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout } from '@/components/ui'
+import { hasPermission } from '@/lib/rbac'
 import {
   DollarSign,
   Filter,
@@ -46,6 +47,8 @@ interface FilterState {
 }
 
 export default function AdminInvoicesPage() {
+  const { data: session } = useSession()
+  const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -63,7 +66,21 @@ export default function AdminInvoicesPage() {
   })
   const [updating, setUpdating] = useState(false)
 
-  // Summary stats
+  useEffect(() => {
+    if (!session?.user?.role || session.user.role !== 'ADMIN') {
+      router.push('/login')
+      return
+    }
+
+    const adminRole = (session.user as any).adminRole
+    if (!hasPermission(adminRole, 'invoices')) {
+      router.push('/admin/unauthorized')
+      return
+    }
+
+    fetchInvoices()
+  }, [session, router])
+
   const stats = {
     total: invoices.length,
     unpaid: invoices.filter(i => i.paymentStatus === 'UNPAID').length,
@@ -92,10 +109,6 @@ export default function AdminInvoicesPage() {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    fetchInvoices()
-  }, [])
 
   const handlePaymentStatusChange = async () => {
     if (!selectedInvoice) return

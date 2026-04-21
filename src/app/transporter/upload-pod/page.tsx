@@ -97,13 +97,28 @@ export default function UploadPODPage() {
 
   // Fetch submitted PODs
   useEffect(() => {
+    let isMounted = true
+    
     const fetchSubmittedPODs = async () => {
       try {
         setPodsLoading(true)
+        console.log('[TransporterPODs] Fetching PODs for transporter:', session?.user?.email)
+        
         const res = await fetch('/api/pod/upload')
-        if (!res.ok) throw new Error('Failed to fetch PODs')
+        
+        if (!isMounted) return
+        
+        console.log('[TransporterPODs] Response status:', res.status)
+        
+        if (!res.ok) {
+          const errorData = await res.json()
+          console.error('[TransporterPODs] API Error:', errorData)
+          throw new Error(errorData.error || 'Failed to fetch PODs')
+        }
         
         const data = await res.json()
+        console.log('[TransporterPODs] Raw PODs data:', data.data?.length || 0)
+        
         const transporterPODs = data.data || []
         
         // Enrich with load details
@@ -131,6 +146,7 @@ export default function UploadPODPage() {
                 clientApprovedAt: pod.clientApprovedAt,
               }
             } catch (err) {
+              console.error('[TransporterPODs] Error enriching POD:', err)
               return {
                 _id: pod._id,
                 loadId: pod.loadId,
@@ -148,13 +164,21 @@ export default function UploadPODPage() {
           })
         )
         
+        if (!isMounted) return
+        
         // Sort by date descending
         enrichedPODs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        console.log('[TransporterPODs] Enriched PODs:', enrichedPODs.length)
         setSubmittedPODs(enrichedPODs)
       } catch (err) {
-        console.error('Failed to fetch submitted PODs:', err)
+        console.error('[TransporterPODs] Failed to fetch submitted PODs:', err)
+        if (isMounted) {
+          setSubmittedPODs([])
+        }
       } finally {
-        setPodsLoading(false)
+        if (isMounted) {
+          setPodsLoading(false)
+        }
       }
     }
 
@@ -163,19 +187,25 @@ export default function UploadPODPage() {
       try {
         const res = await fetch('/api/transporter/invoices')
         if (!res.ok) {
-          console.error('Failed to fetch transporter invoices')
+          console.error('[TransporterPODs] Failed to fetch transporter invoices')
           return
         }
         const data = await res.json()
-        setTransporterInvoices(data.invoices || [])
+        if (isMounted) {
+          setTransporterInvoices(data.invoices || [])
+        }
       } catch (err) {
-        console.error('Failed to fetch transporter invoices:', err)
+        console.error('[TransporterPODs] Failed to fetch transporter invoices:', err)
       }
     }
 
-    if (session?.user) {
+    if (session?.user && session.user.role === 'TRANSPORTER') {
       fetchSubmittedPODs()
       fetchTransporterInvoices()
+    }
+    
+    return () => {
+      isMounted = false
     }
   }, [session, success])
 

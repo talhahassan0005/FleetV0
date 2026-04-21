@@ -1,7 +1,6 @@
 // src/app/api/admin/invoices/route.ts
 /**
  * GET all invoices for admin dashboard
- * Admin can view all transporter and client invoices with payment tracking
  */
 
 export const dynamic = 'force-dynamic'
@@ -10,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
+import { hasPermission } from '@/lib/rbac'
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,6 +20,11 @@ export async function GET(req: NextRequest) {
         { error: 'Only admins can view invoices' },
         { status: 403 }
       )
+    }
+
+    const adminRole = (session.user as any).adminRole
+    if (!hasPermission(adminRole, 'invoices')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const db = await getDatabase()

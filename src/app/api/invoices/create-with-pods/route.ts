@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       transporterInvoiceNumber,
       transporterAmount,
       markupPercentage = 10, // Default 10% markup
+      currency, // Add currency from request
       notes = ''
     } = body
 
@@ -176,6 +177,7 @@ export async function POST(req: NextRequest) {
         amount: transporterAmount,
         date: new Date(),
         uploadedBy: transporter.companyName,
+        currency: currency || load.currency || 'ZAR' // Add currency to transporter invoice
       },
       
       // Markup details
@@ -189,7 +191,7 @@ export async function POST(req: NextRequest) {
       
       status: 'PENDING_CLIENT_APPROVAL',
       paymentStatus: 'UNPAID',
-      currency: load.currency || 'ZAR',
+      currency: currency || load.currency || 'ZAR', // Use selected currency first
       clientApprovalStatus: 'PENDING_CLIENT_APPROVAL',
       rejectionReason: null,
       
@@ -223,6 +225,7 @@ export async function POST(req: NextRequest) {
         markup: markupAmount,
         markupPercentage,
         sentVia: 'quickbooks',
+        currency: currency || load.currency || 'ZAR' // Add currency to client invoice
       },
       
       // Original transporter invoice reference
@@ -235,7 +238,7 @@ export async function POST(req: NextRequest) {
       
       status: 'SENT_TO_CLIENT',
       paymentStatus: 'UNPAID',
-      currency: load.currency || 'ZAR',
+      currency: currency || load.currency || 'ZAR', // Use selected currency first
       clientApprovalStatus: 'PENDING_CLIENT_APPROVAL',
       rejectionReason: null,
       
@@ -254,25 +257,26 @@ export async function POST(req: NextRequest) {
     let qbBillLink: string | null = null;
 
     try {
-      console.log(`[Invoice] 🔍 Searching for QB credentials for currency ${load.currency}...`);
+      console.log(`[Invoice] 🔍 Searching for QB credentials for currency ${currency || load.currency}...`);
       
       const { getQBCredentialsByCurrency } = await import('@/lib/quickbooks');
       let qbCredentials;
       try {
-        qbCredentials = await getQBCredentialsByCurrency(load.currency);
+        qbCredentials = await getQBCredentialsByCurrency(currency || load.currency);
         console.log('[Invoice] QB credential lookup result:', qbCredentials ? '✅ FOUND' : '❌ NOT FOUND');
         
-        // VALIDATION: Ensure QB account currency matches load currency
+        // VALIDATION: Ensure QB account currency matches selected currency
         if (qbCredentials && qbCredentials.country) {
           const qbCurrency = qbCredentials.country === 'ZA' ? 'ZAR' : 
                             qbCredentials.country === 'BW' ? 'BWP' :
                             qbCredentials.country === 'US' ? 'USD' : 'ZAR';
           
-          if (qbCurrency !== load.currency) {
-            console.error(`[Invoice] ❌ CURRENCY MISMATCH: Load currency (${load.currency}) does not match QB account currency (${qbCurrency})`);
-            throw new Error(`Cannot create invoice: Load currency (${load.currency}) does not match QB account (${qbCurrency}). Please connect QB account for ${load.currency}.`);
+          const selectedCurrency = currency || load.currency;
+          if (qbCurrency !== selectedCurrency) {
+            console.error(`[Invoice] ❌ CURRENCY MISMATCH: Selected currency (${selectedCurrency}) does not match QB account currency (${qbCurrency})`);
+            throw new Error(`Cannot create invoice: Selected currency (${selectedCurrency}) does not match QB account (${qbCurrency}). Please connect QB account for ${selectedCurrency}.`);
           }
-          console.log(`[Invoice] ✅ Currency validation passed: ${load.currency} matches QB account`);
+          console.log(`[Invoice] ✅ Currency validation passed: ${selectedCurrency} matches QB account`);
         }
       } catch (err: any) {
         console.error('[Invoice] ⚠️ QB credential lookup error:', err.message);
@@ -658,7 +662,7 @@ export async function POST(req: NextRequest) {
           console.error('[Invoice] Error details:', qbError.stack);
         }
       } else {
-        console.log('[Invoice] ⚠️ No QB credentials found for currency:', load.currency);
+        console.log('[Invoice] ⚠️ No QB credentials found for currency:', currency || load.currency);
         console.log('[Invoice] ℹ️ QB invoice creation SKIPPED - Admin must connect QB account for this currency');
         console.log('[Invoice] 📧 But SMTP email notifications will still be sent to client and transporter');
         qbInvoiceLink = null;
@@ -678,7 +682,7 @@ export async function POST(req: NextRequest) {
           load.ref,
           transporterInvNum,
           transporterAmount,
-          load.currency || 'ZAR',
+          currency || load.currency || 'ZAR',
           tonnageForThisInvoice,
           progressPercentage
         );
@@ -707,7 +711,7 @@ export async function POST(req: NextRequest) {
           load.ref,
           clientInvNum,
           clientAmount,
-          load.currency || 'ZAR',
+          currency || load.currency || 'ZAR',
           tonnageForThisInvoice,
           progressPercentage
         );
