@@ -11,10 +11,14 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
 }
 
 export function hasPermission(adminRole: string | undefined, permission: string): boolean {
+  // If adminRole is undefined, treat as superadmin (for existing admins)
   const role = (adminRole || 'superadmin') as AdminRole
   const perms = PERMISSIONS[role] ?? PERMISSIONS.superadmin
+  
+  // Superadmin has all permissions
   if (perms.includes('*')) return true
   if (perms.includes(permission)) return true
+  
   // Check prefix match e.g. 'loads' covers 'loads:read'
   return perms.some(p => permission.startsWith(p + ':') || p.startsWith(permission + ':'))
 }

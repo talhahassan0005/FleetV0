@@ -20,6 +20,9 @@ export default function AdminDashboardPage() {
       router.push('/login')
       return
     }
+    
+    // Log admin role for debugging
+    console.log('[AdminDashboard] Admin role:', (session.user as any)?.adminRole || 'undefined (defaults to superadmin)')
   }, [session, status, router])
 
   useEffect(() => {
