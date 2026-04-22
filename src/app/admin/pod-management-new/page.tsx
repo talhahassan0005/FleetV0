@@ -357,7 +357,7 @@ export default function PODManagementPage() {
                       <button
                         onClick={() => {
                           // Handle both string URL and JSON object
-                          let url = pod.fileUrl
+                          let url: string | any = pod.fileUrl
                           if (typeof url === 'string') {
                             try {
                               const parsed = JSON.parse(url)
@@ -365,10 +365,10 @@ export default function PODManagementPage() {
                             } catch {
                               // Already a string URL, use as is
                             }
-                          } else if (typeof url === 'object' && url?.url) {
+                          } else if (url && typeof url === 'object' && 'url' in url) {
                             url = url.url
                           }
-                          if (url) window.open(url, '_blank')
+                          if (url && typeof url === 'string') window.open(url, '_blank')
                         }}
                         className="flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                       >
