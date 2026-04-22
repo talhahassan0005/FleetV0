@@ -2,7 +2,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/prisma'
 
+export async function GET(req: NextRequest) {
+  return migrateRoles()
+}
+
 export async function POST(req: NextRequest) {
+  return migrateRoles()
+}
+
+async function migrateRoles() {
   try {
     const db = await getDatabase()
     
