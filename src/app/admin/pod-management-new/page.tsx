@@ -355,7 +355,21 @@ export default function PODManagementPage() {
                         </div>
                       </div>
                       <button
-                        onClick={() => pod.fileUrl && window.open(pod.fileUrl, '_blank')}
+                        onClick={() => {
+                          // Handle both string URL and JSON object
+                          let url = pod.fileUrl
+                          if (typeof url === 'string') {
+                            try {
+                              const parsed = JSON.parse(url)
+                              url = parsed.url || url
+                            } catch {
+                              // Already a string URL, use as is
+                            }
+                          } else if (typeof url === 'object' && url?.url) {
+                            url = url.url
+                          }
+                          if (url) window.open(url, '_blank')
+                        }}
                         className="flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                       >
                         <FileText className="w-4 h-4" />

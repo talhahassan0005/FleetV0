@@ -438,7 +438,7 @@ export default function UploadPODPage() {
                     accept=".pdf,.jpg,.jpeg,.png,.gif"
                     onChange={(e) => setPodFile(e.target.files?.[0] || null)}
                     required
-                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 transition-all"
+                    className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 transition-all"
                   />
                 </div>
                 {podFile && (
