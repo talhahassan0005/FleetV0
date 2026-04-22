@@ -1,9 +1,18 @@
 // scripts/migrate-admin-roles.js
-require('dotenv').config()
+require('dotenv').config({ path: '../.env' })
 const { MongoClient } = require('mongodb')
 
 async function migrateAdminRoles() {
-  const client = new MongoClient(process.env.DATABASE_URL)
+  const dbUrl = process.env.DATABASE_URL || process.env.MONGODB_URI
+  
+  if (!dbUrl) {
+    console.error('❌ DATABASE_URL or MONGODB_URI not found in environment variables')
+    console.log('Available env vars:', Object.keys(process.env).filter(k => k.includes('DB') || k.includes('MONGO')))
+    process.exit(1)
+  }
+  
+  console.log('🔗 Connecting to database...')
+  const client = new MongoClient(dbUrl)
   
   try {
     await client.connect()

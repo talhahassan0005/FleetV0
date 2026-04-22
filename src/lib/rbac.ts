@@ -5,7 +5,7 @@ export type AdminRole = 'superadmin' | 'pod_manager' | 'operations' | 'finance'
 
 const PERMISSIONS: Record<AdminRole, string[]> = {
   superadmin:  ['*'],
-  pod_manager: ['pods', 'loads:read'],
+  pod_manager: ['pods'],
   operations:  ['loads', 'pods'],
   finance:     ['invoices', 'quickbooks'],
 }

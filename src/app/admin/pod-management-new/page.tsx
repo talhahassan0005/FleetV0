@@ -67,8 +67,9 @@ export default function PODManagementPage() {
       return
     }
 
+    // Check RBAC permissions - undefined adminRole defaults to superadmin
     const adminRole = (session?.user as any)?.adminRole
-    if (session && adminRole && !hasPermission(adminRole, 'pods')) {
+    if (session && !hasPermission(adminRole, 'pods')) {
       router.push('/admin/unauthorized')
       return
     }

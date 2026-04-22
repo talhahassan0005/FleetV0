@@ -40,8 +40,9 @@ export default function AdminUsersPage() {
       return
     }
 
+    // Only superadmin can access users management
     const adminRole = (session.user as any).adminRole
-    if (!hasPermission(adminRole, 'users')) {
+    if (adminRole && adminRole !== 'superadmin') {
       router.push('/admin/unauthorized')
       return
     }
