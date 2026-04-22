@@ -70,7 +70,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!load) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   // ── ADMIN ACTIONS ──────────────────────────────────────────────────────────
-  if (session.user.role === 'ADMIN') {
+  if (['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
     if (action === 'release') {
       await db.collection('loads').updateOne({ _id: loadId }, { $set: { status: 'QUOTING', updatedAt: new Date() } })
       await db.collection('loadUpdates').insertOne({ loadId, userId: new ObjectId(session.user.id), message: 'Load released to transporters for quoting.', statusChange: 'QUOTING', createdAt: new Date() })

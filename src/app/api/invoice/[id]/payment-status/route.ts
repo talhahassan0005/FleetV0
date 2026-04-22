@@ -19,7 +19,7 @@ export async function PATCH(
     const session = await getServerSession(authOptions)
     
     // Only admin can update payment status
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!session?.user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
       return NextResponse.json(
         { error: 'Only admin can update payment status' },
         { status: 403 }

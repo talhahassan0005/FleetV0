@@ -32,10 +32,10 @@ export default function AdminUsersPage() {
   const [subAdminForm, setSubAdminForm] = useState({ email: '', password: '', companyName: '', adminRole: 'pod_manager' })
   const [subAdmins, setSubAdmins] = useState<any[]>([])
 
-  const isSuperAdmin = session?.user?.role === 'ADMIN' && (!(session.user as any).adminRole || (session.user as any).adminRole === 'superadmin')
+  const isSuperAdmin = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '') && (!(session?.user as any)?.adminRole || (session?.user as any)?.adminRole === 'superadmin')
 
   useEffect(() => {
-    if (!session?.user?.role || session.user.role !== 'ADMIN') {
+    if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
       router.push('/login')
       return
     }

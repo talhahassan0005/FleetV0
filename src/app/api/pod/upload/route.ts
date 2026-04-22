@@ -247,7 +247,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Add RBAC check for admin users
-    if (session.user.role === 'ADMIN') {
+    if (['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
       const adminRole = (session.user as any).adminRole
       if (!requirePermission(adminRole, 'pods')) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -275,6 +275,8 @@ export async function GET(req: NextRequest) {
     } else if (role === 'ADMIN') {
       // Admin sees all PODs (for approval/management)
       // Keep only docType filter - no additional filters
+    } else if (['ADMIN','SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(role)) {
+      // Admin sees all PODs
     } else {
       return NextResponse.json({ error: 'Invalid role' }, { status: 403 })
     }

@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
     }
 
     // If admin uploads invoice, share with client automatically
-    if (docType === 'INVOICE' && loadId && session.user.role === 'ADMIN') {
+    if (docType === 'INVOICE' && loadId && ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
       await db.collection('documents').updateOne(
         { _id: docId },
         { $set: { visibleTo: 'CLIENT,ADMIN', updatedAt: new Date() } }

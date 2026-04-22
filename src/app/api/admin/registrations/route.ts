@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       role: session?.user?.role 
     })
 
-    if (!session?.user?.role || session.user.role !== 'ADMIN') {
+    if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

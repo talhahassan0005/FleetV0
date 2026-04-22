@@ -9,7 +9,7 @@ import bcrypt from 'bcryptjs'
 
 // Only superadmin can manage sub-admins
 function isSuperAdmin(session: any) {
-  return session?.user?.role === 'ADMIN' && (!session.user.adminRole || session.user.adminRole === 'superadmin')
+  return ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role) && (!session.user.adminRole || session.user.adminRole === 'superadmin')
 }
 
 export async function GET(req: NextRequest) {

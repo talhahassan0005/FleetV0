@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     if (action === 'connect') {
       const session = await getServerSession(authOptions);
 
-      if (!session?.user || session.user.role !== 'ADMIN') {
+      if (!session?.user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
         return NextResponse.json(
           { error: 'Unauthorized - Admin only' },
           { status: 401 }
@@ -242,7 +242,7 @@ export async function GET(request: NextRequest) {
 
       // Clear the state cookie
       const response = NextResponse.redirect(
-        new URL('/admin/dashboard/quickbooks?status=connected', request.url)
+        new URL('/admin/dashboard/quickbooks?status=connected', 'https://fleetxchange.africa')
       );
 
       response.cookies.delete('qb_state');

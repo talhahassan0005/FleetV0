@@ -91,7 +91,7 @@ export default function PODManagementPage() {
         }
         
         // Quick auth check
-        if (!session?.user?.id || session.user.role !== 'ADMIN') {
+        if (!session?.user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
           console.log('[AdminPODs] Not admin, redirecting...')
           if (isMounted) {
             setError('Admin access required')

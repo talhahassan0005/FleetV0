@@ -16,7 +16,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (status === 'loading') return // Still loading
     
-    if (!session || session.user.role !== 'ADMIN') {
+    if (!session || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session.user.role)) {
       router.push('/login')
       return
     }
@@ -26,7 +26,7 @@ export default function AdminDashboardPage() {
   }, [session, status, router])
 
   useEffect(() => {
-    if (!session || session.user.role !== 'ADMIN') return
+    if (!session || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session.user.role)) return
     
     const fetchStats = async () => {
       try {
@@ -43,7 +43,7 @@ export default function AdminDashboardPage() {
   }, [session])
 
   // Show loading while session is being checked
-  if (status === 'loading' || !session || session.user.role !== 'ADMIN') {
+  if (status === 'loading' || !session || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session.user.role)) {
     return (
       <>
         <Topbar title="Admin Dashboard" />

@@ -48,7 +48,7 @@ export default function CreateInvoicePage() {
   const [markupAmount, setMarkupAmount] = useState(0)
 
   useEffect(() => {
-    if (session && session.user.role !== 'ADMIN') {
+    if (session && !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
       router.push('/login')
     }
   }, [session, router])

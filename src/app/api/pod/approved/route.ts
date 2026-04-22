@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   const session = await getServerSession(authOptions)
 
   // Only ADMIN can fetch PODs for invoice creation
-  if (!session?.user?.id || session.user.role !== 'ADMIN') {
+  if (!session?.user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

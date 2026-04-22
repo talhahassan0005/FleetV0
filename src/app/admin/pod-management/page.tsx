@@ -60,7 +60,7 @@ export default function AdminPODManagementPage() {
   }
 
   useEffect(() => {
-    if (!session?.user?.role || session.user.role !== 'ADMIN') {
+    if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
       router.push('/login')
       return
     }

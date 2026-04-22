@@ -12,46 +12,28 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        console.log('[Auth] Attempting login for:', credentials?.email)
-        
         if (!credentials?.email || !credentials?.password) {
-          console.log('[Auth] Missing credentials')
           throw new Error('Please enter an email and password');
         }
-
         try {
           const db = await getDatabase();
-          
-          console.log('[Auth] Querying database for user:', credentials.email.toLowerCase())
           const user = await db.collection('users').findOne({
             email: credentials.email.toLowerCase(),
-          })
-
-          if (!user) {
-            console.log('[Auth] User not found:', credentials.email)
-            throw new Error('No user found');
-          }
-
-          console.log('[Auth] User found, comparing password')
+          });
+          if (!user) throw new Error('No user found');
           const isValid = await bcrypt.compare(credentials.password, user.password);
-
-          if (!isValid) {
-            console.log('[Auth] Invalid password for user:', credentials.email)
-            throw new Error('Invalid password');
-          }
-
-          console.log('[Auth] Login successful for:', credentials.email)
+          if (!isValid) throw new Error('Invalid password');
           return {
             id: user._id.toString(),
             email: user.email,
             role: user.role,
+            adminRole: user.adminRole,
             companyName: user.companyName,
-            isVerified: user.isVerified as boolean,
+            isVerified: user.isVerified,
             verificationStatus: user.verificationStatus,
             verificationComment: user.verificationComment,
           };
         } catch (err: any) {
-          console.error('[Auth] Authorization error:', err.message)
           throw new Error(err.message || 'Authorization failed');
         }
       },
@@ -62,6 +44,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
+        token.adminRole = (user as any).adminRole;
         token.companyName = (user as any).companyName;
         token.isVerified = (user as any).isVerified;
         token.verificationStatus = (user as any).verificationStatus;
@@ -73,6 +56,7 @@ export const authOptions: NextAuthOptions = {
       if (session?.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        (session.user as any).adminRole = token.adminRole;
         session.user.companyName = token.companyName as string;
         session.user.isVerified = token.isVerified as boolean;
         session.user.verificationStatus = token.verificationStatus as string | undefined;
@@ -86,5 +70,5 @@ export const authOptions: NextAuthOptions = {
     signOut: '/login',
   },
   session: { strategy: 'jwt' },
-  secret: process.env.NEXTAUTH_SECRET || 'very-secure-secret-key-1234',
+  secret: process.env.NEXTAUTH_SECRET,
 };

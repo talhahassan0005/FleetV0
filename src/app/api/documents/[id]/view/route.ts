@@ -40,7 +40,7 @@ export async function GET(
     // Check authorization - user must own the document OR be admin OR be client/transporter viewing shared documents
     const userId = new ObjectId(session.user.id)
     const isOwner = document.userId?.toString() === userId.toString()
-    const isAdmin = session.user.role === 'ADMIN'
+    const isAdmin = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')
     const isClient = session.user.role === 'CLIENT'
     const isTransporter = session.user.role === 'TRANSPORTER'
     

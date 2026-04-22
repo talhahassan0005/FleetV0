@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 export async function PATCH(req: Request, { params }: { params: { podId: string } }) {
   const session = await getServerSession(authOptions)
 
-  if (!session?.user?.role || session.user.role !== 'ADMIN') {
+  if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

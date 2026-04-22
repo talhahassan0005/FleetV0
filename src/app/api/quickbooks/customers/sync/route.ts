@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       email: (session.user as any).email,
     });
 
-    if (!admin || admin.role !== 'ADMIN') {
+    if (!admin || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(admin.role)) {
       return NextResponse.json(
         { error: 'Forbidden - Admin access required' },
         { status: 403 }
@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
       email: (session.user as any).email,
     });
 
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user.role)) {
       return NextResponse.json(
         { error: 'Forbidden - Admin only' },
         { status: 403 }

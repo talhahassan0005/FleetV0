@@ -30,7 +30,7 @@ export async function GET(
     const canView = 
       load.clientId?.toString() === userId.toString() ||
       load.transporterId?.toString() === userId.toString() ||
-      session.user.role === 'ADMIN'
+      ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')
 
     if (!canView) {
       return NextResponse.json(

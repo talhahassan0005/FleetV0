@@ -7,7 +7,7 @@ import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
-  if (!session?.user || session.user.role !== 'ADMIN')
+  if (!session?.user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? ''))
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const db = await getDatabase()
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions)
-  if (!session?.user || session.user.role !== 'ADMIN')
+  if (!session?.user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? ''))
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const db = await getDatabase()

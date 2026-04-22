@@ -37,23 +37,18 @@ function LoginContent() {
 
   // Redirect after successful login
   useEffect(() => {
-    if (session?.user && !loading) {
+    if (session?.user) {
       const role = session.user.role
-      console.log('[Login] Redirecting user with role:', role)
-      console.log('[Login] isAdmin check:', isAdmin(role))
-      
-      if (isAdmin(role)) {
-        console.log('[Login] Redirecting to admin dashboard')
-        router.push('/admin')
+      const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
+      if (adminRoles.includes(role)) {
+        router.replace('/admin/dashboard')
       } else if (role === 'TRANSPORTER') {
-        console.log('[Login] Redirecting to transporter dashboard')
-        router.push('/transporter/dashboard')
+        router.replace('/transporter/dashboard')
       } else {
-        console.log('[Login] Redirecting to client dashboard')
-        router.push('/client/dashboard')
+        router.replace('/client/dashboard')
       }
     }
-  }, [session, router, loading])
+  }, [session, router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

@@ -11,7 +11,7 @@ import { requirePermission } from '@/lib/rbac';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id || session.user.role !== 'ADMIN') {
+    if (!session?.user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
       return NextResponse.json({ isConnected: false }, { status: 401 });
     }
 

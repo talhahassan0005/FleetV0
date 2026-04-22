@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 export function VerificationBanner() {
   const { data: session } = useSession()
 
-  if (session?.user?.role === 'ADMIN') return null
+  if (['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) return null
 
   const verificationStatus = (session?.user as any)?.verificationStatus
   if (!verificationStatus) return null

@@ -86,7 +86,7 @@ export async function PATCH(
     }
 
     // Can only update own invoice or admin can update any
-    if (session.user.role !== 'ADMIN' && invoice.transporterId?.toString() !== session.user.id) {
+    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '') && invoice.transporterId?.toString() !== session.user.id) {
       return NextResponse.json(
         { error: 'You do not have permission to update this invoice' },
         { status: 403 }
@@ -100,7 +100,7 @@ export async function PATCH(
       allowedUpdates.comments = body.comments
     }
 
-    if (body.status !== undefined && session.user.role === 'ADMIN') {
+    if (body.status !== undefined && ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
       // Only admin can change status
       const validStatuses = [
         'PENDING_ADMIN_APPROVAL',
