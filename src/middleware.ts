@@ -1,5 +1,6 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
+import { isAdmin } from '@/lib/rbac'
 
 export default withAuth(
   function middleware(req) {
@@ -22,8 +23,8 @@ export default withAuth(
       return NextResponse.redirect(new URL('/login', req.url))
     }
 
-    // Role-based route protection
-    if (pathname.startsWith('/admin') && token.role !== 'ADMIN') {
+    // Role-based route protection using single role field
+    if (pathname.startsWith('/admin') && !isAdmin(token.role as string)) {
       return NextResponse.redirect(new URL('/login', req.url))
     }
 
@@ -57,10 +58,9 @@ export default withAuth(
           return true
         }
         
-        // For admin routes, just check if user has ADMIN role
-        // Don't check adminRole here - let page components handle that
+        // For admin routes, check if user is any type of admin
         if (pathname.startsWith('/admin')) {
-          return token?.role === 'ADMIN'
+          return token?.role ? isAdmin(token.role as string) : false
         }
         
         // For other protected routes, require token
@@ -72,14 +72,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder files
-     */
     '/((?!api|_next/static|_next/image|favicon.ico|images|.*\\.).*)',
   ],
 }

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
+import { isAdmin } from '@/lib/rbac'
 
 const ADMIN_ALL_NAV = [
   { label: 'Dashboard',      href: '/admin/dashboard',              icon: <GridIcon /> },
@@ -17,19 +18,19 @@ const ADMIN_ALL_NAV = [
 ]
 
 const ADMIN_NAV_BY_ROLE: Record<string, typeof ADMIN_ALL_NAV> = {
-  superadmin: ADMIN_ALL_NAV,
-  pod_manager: [
+  SUPER_ADMIN: ADMIN_ALL_NAV,
+  POD_MANAGER: [
     { label: 'Dashboard',      href: '/admin/dashboard',          icon: <GridIcon /> },
     { label: 'POD Management', href: '/admin/pod-management-new', icon: <ReceiptIcon /> },
     { label: 'My Profile',     href: '/admin/profile',            icon: <UserIcon /> },
   ],
-  operations: [
+  OPERATIONS_ADMIN: [
     { label: 'Dashboard',      href: '/admin/dashboard',          icon: <GridIcon /> },
     { label: 'All Loads',      href: '/admin/loads',              icon: <TruckIcon /> },
     { label: 'POD Management', href: '/admin/pod-management-new', icon: <ReceiptIcon /> },
     { label: 'My Profile',     href: '/admin/profile',            icon: <UserIcon /> },
   ],
-  finance: [
+  FINANCE_ADMIN: [
     { label: 'Dashboard',      href: '/admin/dashboard',            icon: <GridIcon /> },
     { label: 'Invoices',       href: '/admin/invoices',             icon: <ReceiptIcon /> },
     { label: 'QuickBooks',     href: '/admin/dashboard/quickbooks', icon: <QBIcon /> },
@@ -62,11 +63,10 @@ export function Sidebar() {
   const { data: session } = useSession()
   const pathname = usePathname()
   const role = session?.user?.role ?? 'CLIENT'
-  const adminRole = (session?.user as any)?.adminRole
 
   let nav
-  if (role === 'ADMIN') {
-    nav = ADMIN_NAV_BY_ROLE[adminRole] ?? ADMIN_ALL_NAV
+  if (isAdmin(role)) {
+    nav = ADMIN_NAV_BY_ROLE[role] ?? ADMIN_ALL_NAV
   } else {
     nav = navMap[role] ?? navMap.CLIENT
   }
@@ -83,7 +83,7 @@ export function Sidebar() {
       {/* Nav */}
       <div className="mt-2">
         <div className="text-[8px] uppercase tracking-[2px] text-slate-600/60 font-semibold px-4 py-2">
-          {role === 'ADMIN' ? 'Operations' : role === 'CLIENT' ? 'Client Portal' : 'Transporter Portal'}
+          {isAdmin(role) ? 'Operations' : role === 'CLIENT' ? 'Client Portal' : 'Transporter Portal'}
         </div>
         {nav.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -106,7 +106,7 @@ export function Sidebar() {
         </div>
         <div className="overflow-hidden">
           <div className="text-[12px] font-bold text-[#1a2a5e] truncate tracking-wide">{session?.user?.companyName ?? 'User'}</div>
-          <div className="text-[9px] text-[#3ab54a] font-bold uppercase tracking-widest">{adminRole ? `${adminRole.replace('_',' ')}` : role}</div>
+          <div className="text-[9px] text-[#3ab54a] font-bold uppercase tracking-widest">{role.replace('_', ' ')}</div>
         </div>
       </div>
       <button

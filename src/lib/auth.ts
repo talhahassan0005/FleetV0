@@ -45,7 +45,6 @@ export const authOptions: NextAuthOptions = {
             id: user._id.toString(),
             email: user.email,
             role: user.role,
-            adminRole: user.adminRole,
             companyName: user.companyName,
             isVerified: user.isVerified as boolean,
             verificationStatus: user.verificationStatus,
@@ -63,7 +62,6 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
-        token.adminRole = (user as any).adminRole;
         token.companyName = (user as any).companyName;
         token.isVerified = (user as any).isVerified;
         token.verificationStatus = (user as any).verificationStatus;
@@ -75,7 +73,6 @@ export const authOptions: NextAuthOptions = {
       if (session?.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
-        session.user.adminRole = token.adminRole as string | undefined;
         session.user.companyName = token.companyName as string;
         session.user.isVerified = token.isVerified as boolean;
         session.user.verificationStatus = token.verificationStatus as string | undefined;

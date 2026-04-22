@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
-import { hasPermission } from '@/lib/rbac'
+import { isAdmin, hasPermission } from '@/lib/rbac'
 import { CheckCircle, AlertCircle, Clock, FileText, MessageSquare } from 'lucide-react'
 
 interface POD {
@@ -62,14 +62,13 @@ export default function PODManagementPage() {
       return
     }
     
-    if (session && session.user.role !== 'ADMIN') {
+    if (session && !isAdmin(session.user.role)) {
       router.push('/login')
       return
     }
 
-    // Check RBAC permissions - undefined adminRole defaults to superadmin
-    const adminRole = (session?.user as any)?.adminRole
-    if (session && !hasPermission(adminRole, 'pods')) {
+    // Check RBAC permissions
+    if (session && !hasPermission(session.user.role, 'pods')) {
       router.push('/admin/unauthorized')
       return
     }

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
+import { isAdmin } from '@/lib/rbac'
 import { Suspense } from 'react'
 
 function LoginContent() {
@@ -37,8 +38,8 @@ function LoginContent() {
   // Redirect after successful login
   useEffect(() => {
     if (session?.user && !loading) {
-      const role = session.user.role || 'CLIENT'
-      if (role === 'ADMIN') {
+      const role = session.user.role
+      if (isAdmin(role)) {
         router.push('/admin')
       } else if (role === 'TRANSPORTER') {
         router.push('/transporter/dashboard')
