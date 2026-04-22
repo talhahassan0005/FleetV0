@@ -6,7 +6,6 @@ declare module 'next-auth' {
       id: string;
       email: string;
       role: string;
-      adminRole?: string;
       companyName: string;
       isVerified: boolean;
       verificationStatus?: string;
@@ -18,7 +17,6 @@ declare module 'next-auth' {
     id: string;
     email: string;
     role: string;
-    adminRole?: string;
     companyName: string;
     isVerified: boolean;
     verificationStatus?: string;
@@ -30,7 +28,6 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     role: string;
-    adminRole?: string;
     companyName: string;
     isVerified: boolean;
     verificationStatus?: string;

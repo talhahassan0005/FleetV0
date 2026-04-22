@@ -39,11 +39,17 @@ function LoginContent() {
   useEffect(() => {
     if (session?.user && !loading) {
       const role = session.user.role
+      console.log('[Login] Redirecting user with role:', role)
+      console.log('[Login] isAdmin check:', isAdmin(role))
+      
       if (isAdmin(role)) {
+        console.log('[Login] Redirecting to admin dashboard')
         router.push('/admin')
       } else if (role === 'TRANSPORTER') {
+        console.log('[Login] Redirecting to transporter dashboard')
         router.push('/transporter/dashboard')
       } else {
+        console.log('[Login] Redirecting to client dashboard')
         router.push('/client/dashboard')
       }
     }
