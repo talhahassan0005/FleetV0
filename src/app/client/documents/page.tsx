@@ -241,15 +241,16 @@ export default function ClientDocumentsPage() {
           ) : (
             <div className="space-y-3">
               {ownDocuments.map((doc) => {
-                // Check if document has admin approval
-                const adminReview = doc.reviews?.find((r: any) => r.reviewerRole === 'ADMIN')
-                const statusBadge = adminReview 
-                  ? adminReview.status === 'APPROVED' 
-                    ? { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: '✓', label: 'Approved' }
-                    : adminReview.status === 'REJECTED'
-                    ? { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: '✗', label: 'Rejected' }
-                    : { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: '⏳', label: 'Pending' }
+                // Check if document has admin approval - use verificationStatus field
+                const verificationStatus = doc.verificationStatus || 'PENDING'
+                const statusBadge = verificationStatus === 'APPROVED'
+                  ? { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: '✓', label: 'Approved' }
+                  : verificationStatus === 'REJECTED'
+                  ? { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: '✗', label: 'Rejected' }
                   : { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: '⏳', label: 'Under Review' }
+                
+                // Get admin review comment if exists
+                const adminReview = doc.reviews?.find((r: any) => r.reviewerRole === 'ADMIN')
                 
                 return (
                   <div key={doc._id} className="p-4 border border-gray-200 rounded">
@@ -266,9 +267,13 @@ export default function ClientDocumentsPage() {
                           href={`/api/documents/${doc._id}/view`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-3 py-1.5 rounded text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
+                          className="flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                         >
-                          View
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                          </svg>
+                          View Document
                         </a>
                         <span className={`inline-block px-3 py-1.5 rounded text-xs font-semibold ${statusBadge.bg} ${statusBadge.text} border ${statusBadge.border}`}>
                           {statusBadge.icon} {statusBadge.label}
@@ -349,9 +354,13 @@ export default function ClientDocumentsPage() {
                     href={`/api/documents/${selectedDoc._id}/view`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-block mt-3 px-3 py-1.5 rounded text-xs font-semibold bg-[#3ab54a] text-white hover:bg-green-600"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                   >
-                    📥 View Document
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    View Document
                   </a>
                 </div>
 

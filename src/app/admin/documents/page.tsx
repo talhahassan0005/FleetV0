@@ -238,18 +238,18 @@ export default function AdminDocumentsPage() {
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20"
                 >
-                  <option value="ALL">All Types</option>
-                  <option value="COMPANY">Company Registration</option>
-                  <option value="BANK_CONFIRMATION">Bank Confirmation</option>
-                  <option value="AUTHORIZATION">Letter Authorizing Company to Work with Fleetxchange</option>
-                  <option value="INSURANCE">Insurance</option>
-                  <option value="TAX_CLEARANCE">Tax Clearance</option>
-                  <option value="VEHICLE_LIST">Vehicle List</option>
-                  <option value="INVOICE">Invoice</option>
-                  <option value="POD">POD</option>
-                  <option value="OTHER">Other</option>
+                  <option value="ALL" className="text-gray-900">All Types</option>
+                  <option value="COMPANY" className="text-gray-900">Company Registration</option>
+                  <option value="BANK_CONFIRMATION" className="text-gray-900">Bank Confirmation</option>
+                  <option value="AUTHORIZATION" className="text-gray-900">Letter Authorizing Company to Work with Fleetxchange</option>
+                  <option value="INSURANCE" className="text-gray-900">Insurance</option>
+                  <option value="TAX_CLEARANCE" className="text-gray-900">Tax Clearance</option>
+                  <option value="VEHICLE_LIST" className="text-gray-900">Vehicle List</option>
+                  <option value="INVOICE" className="text-gray-900">Invoice</option>
+                  <option value="POD" className="text-gray-900">POD</option>
+                  <option value="OTHER" className="text-gray-900">Other</option>
                 </select>
               </div>
 
@@ -259,12 +259,12 @@ export default function AdminDocumentsPage() {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20"
                 >
-                  <option value="ALL">All Status</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="APPROVED">Approved</option>
-                  <option value="REJECTED">Rejected</option>
+                  <option value="ALL" className="text-gray-900">All Status</option>
+                  <option value="PENDING" className="text-gray-900">Pending</option>
+                  <option value="APPROVED" className="text-gray-900">Approved</option>
+                  <option value="REJECTED" className="text-gray-900">Rejected</option>
                 </select>
               </div>
             </div>

@@ -379,7 +379,7 @@ export default function UploadPODPage() {
                   value={selectedLoadId}
                   onChange={(e) => setSelectedLoadId(e.target.value)}
                   required
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 transition-all"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-gray-300 focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 transition-all"
                 >
                   <option value="">-- Choose an assigned load --</option>
                   {loads.length > 0 ? (
@@ -408,7 +408,7 @@ export default function UploadPODPage() {
                     value={deliveryDate}
                     onChange={(e) => setDeliveryDate(e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-200 text-gray-300 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 transition-all"
                   />
                 </div>
 
@@ -421,7 +421,7 @@ export default function UploadPODPage() {
                     value={deliveryTime}
                     onChange={(e) => setDeliveryTime(e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-200 text-gray-300 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 transition-all"
                   />
                 </div>
               </div>

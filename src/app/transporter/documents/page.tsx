@@ -193,9 +193,13 @@ export default function TransporterDocumentsPage() {
                     href={`/api/documents/${selectedDoc._id}/view`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-block mt-3 px-3 py-1.5 rounded text-xs font-semibold bg-[#3ab54a] text-white hover:bg-green-600"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                   >
-                    📥 View Document
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    View Document
                   </a>
                 </div>
 
