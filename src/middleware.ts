@@ -11,6 +11,8 @@ export default withAuth(
     const token = req.nextauth.token
     const pathname = req.nextUrl.pathname
 
+    console.log('[Middleware] Path:', pathname, 'Role:', token?.role)
+
     // Skip middleware for API routes, static files, and auth pages
     if (
       pathname.startsWith('/api/') ||
@@ -24,12 +26,18 @@ export default withAuth(
     }
 
     if (!token) {
+      console.log('[Middleware] No token, redirecting to login')
       return NextResponse.redirect(new URL('/login', req.url))
     }
 
     // Role-based route protection using single role field
-    if (pathname.startsWith('/admin') && !isAdmin(token.role as string)) {
-      return NextResponse.redirect(new URL('/login', req.url))
+    if (pathname.startsWith('/admin')) {
+      const adminCheck = isAdmin(token.role as string)
+      console.log('[Middleware] Admin check:', adminCheck, 'for role:', token.role)
+      if (!adminCheck) {
+        console.log('[Middleware] Not admin, redirecting to login')
+        return NextResponse.redirect(new URL('/login', req.url))
+      }
     }
 
     if (pathname.startsWith('/client') && token.role !== 'CLIENT') {
@@ -40,6 +48,7 @@ export default withAuth(
       return NextResponse.redirect(new URL('/login', req.url))
     }
 
+    console.log('[Middleware] Allowing access to:', pathname)
     return NextResponse.next()
   },
   {
@@ -64,7 +73,9 @@ export default withAuth(
         
         // For admin routes, check if user is any type of admin
         if (pathname.startsWith('/admin')) {
-          return token?.role ? isAdmin(token.role as string) : false
+          const result = token?.role ? isAdmin(token.role as string) : false
+          console.log('[Middleware Auth] Admin route check:', result, 'Role:', token?.role)
+          return result
         }
         
         // For other protected routes, require token
