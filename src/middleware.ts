@@ -1,6 +1,10 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
-import { isAdmin } from '@/lib/rbac'
+
+// Inline isAdmin check for Edge runtime compatibility
+function isAdmin(role: string): boolean {
+  return ['SUPER_ADMIN', 'POD_MANAGER', 'OPERATIONS_ADMIN', 'FINANCE_ADMIN'].includes(role)
+}
 
 export default withAuth(
   function middleware(req) {
