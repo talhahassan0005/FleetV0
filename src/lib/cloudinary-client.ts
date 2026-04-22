@@ -33,7 +33,7 @@ export async function uploadToCloudinary(
     // Determine resource type
     const ext = file.name.split('.').pop()?.toLowerCase()
     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')
-    const resourceType = isImage ? 'image' : 'raw'
+    const resourceType = isImage ? 'image' : 'auto'
 
     const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`
 
@@ -51,10 +51,7 @@ export async function uploadToCloudinary(
     
     let secureUrl = result.secure_url
     
-    // For PDFs, modify URL for inline viewing
-    if (ext === 'pdf' && secureUrl.includes('/raw/upload/')) {
-      secureUrl = secureUrl.replace('/raw/upload/', '/raw/upload/fl_attachment/')
-    }
+    // Keep URL as-is - no fl_attachment needed
 
     return {
       publicId: result.public_id,

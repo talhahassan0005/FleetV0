@@ -302,7 +302,7 @@ export default function AdminPODManagementPage() {
                 {selectedPOD.podFile && (
                   <div>
                     <button
-                      onClick={() => selectedPOD.podFile && window.open(selectedPOD.podFile, '_blank')}
+                      onClick={() => selectedPOD.podFile && window.open(selectedPOD.podFile.replace('/fl_attachment/', '/'), '_blank')}
                       className="block w-full px-4 py-3 bg-[#1a2a5e] text-white text-center rounded-lg font-semibold hover:bg-[#152247] transition-colors"
                     >
                       📄 View Document

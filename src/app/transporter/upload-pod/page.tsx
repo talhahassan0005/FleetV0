@@ -730,7 +730,7 @@ export default function UploadPODPage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Document</h3>
                   {selectedPOD.fileUrl && typeof selectedPOD.fileUrl === 'string' && selectedPOD.fileUrl.startsWith('http') ? (
                     <a
-                      href={selectedPOD.fileUrl}
+                      href={selectedPOD.fileUrl?.replace("/fl_attachment/", "/")}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"

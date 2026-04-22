@@ -520,7 +520,7 @@ export default function ClientInvoicesPage() {
                             <div className="ml-4 flex gap-2">
                               {/* View Button - Opens in new tab */}
                               <button
-                                onClick={() => invoice.fileUrl && window.open(invoice.fileUrl, '_blank')}
+                                onClick={() => invoice.fileUrl && window.open(invoice.fileUrl.replace('/fl_attachment/', '/'), '_blank')}
                                 className="flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

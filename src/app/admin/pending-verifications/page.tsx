@@ -170,7 +170,7 @@ export default function PendingVerificationsPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <a 
-                            href={doc.fileUrl}
+                            href={doc.fileUrl?.replace('/fl_attachment/', '/') || '#'}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-3 py-2 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
