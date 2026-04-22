@@ -368,7 +368,7 @@ export default function PODManagementPage() {
                           } else if (url && typeof url === 'object' && 'url' in url) {
                             url = url.url
                           }
-                          if (url && typeof url === 'string') window.open(url.replace('/fl_attachment/', '/'), '_blank')
+                          if (url && typeof url === 'string') window.open(url, '_blank')
                         }}
                         className="flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                       >
@@ -408,7 +408,7 @@ export default function PODManagementPage() {
                         }}
                         placeholder="e.g., Verified load details, documents in order, ready for client review..."
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 text-sm mb-3 resize-none"
+                        className="w-full px-3 py-2 border border-gray-300 text-gray-600 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 text-sm mb-3 resize-none"
                       />
                       <button
                         onClick={() => {

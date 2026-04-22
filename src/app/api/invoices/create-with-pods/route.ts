@@ -559,104 +559,16 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          console.log('[Invoice] 📝 Creating QB Bill for transporter...');
-          console.log('[Invoice] Using vendorId:', transporter.quickbooks?.vendorId);
+          // SKIP QB BILL CREATION - Only create client invoice in QuickBooks
+          console.log('[Invoice] ℹ️ Skipping QB Bill creation - Transporter invoice is for internal tracking only');
+          qbBillLink = null;
+
+          // Generate QB Invoice link for response
+          qbInvoiceLink = generateQBInvoiceLink(qbInvoice.invoiceId);
           
-          try {
-            const qbBill = await createQBBill(realmId, {
-              vendorId: transporter.quickbooks?.vendorId,
-              vendorDisplayName: transporter.companyName || transporter.email,
-              lineItems: [
-                {
-                  description: `Load ${load.ref} - Tonnage: ${tonnageForThisInvoice}t`,
-                  amount: transporterAmount,
-                },
-              ],
-              billNumber: transporterInvNum,
-            }, load.currency);
-
-            console.log('[Invoice] 🔍 QB Bill creation response:', JSON.stringify(qbBill, null, 2));
-            
-            if (!qbBill?.billId) {
-              console.error('[Invoice] ❌ CRITICAL: QB Bill creation returned no billId!');
-              console.error('[Invoice] Response was:', qbBill);
-              throw new Error('QB Bill creation failed: No bill ID returned');
-            }
-            console.log('[Invoice] ✅ QB Bill created with ID:', qbBill.billId);
-
-            // IMMEDIATELY save qbLink to database:
-            const qbBillLinkToSave = `https://app.qbo.intuit.com/app/bill?txnId=${qbBill.billId}`;
-            console.log('[Invoice] 💾 Saving QB Bill link to DB:', qbBillLinkToSave);
-            console.log('[Invoice] 💾 Saving to invoice ID:', transporterInvoiceResult.insertedId.toString());
-            
-            const billUpdateResult = await db.collection('invoices').updateOne(
-              { _id: transporterInvoiceResult.insertedId },
-              {
-                $set: {
-                  qbLink: qbBillLinkToSave,
-                  'qbSync.billId': qbBill.billId,
-                  'qbSync.syncToken': qbBill.syncToken,
-                  'qbSync.lastSyncedAt': new Date(),
-                  updatedAt: new Date(),
-                }
-              }
-            );
-            console.log('[Invoice] 💾 Bill update result:', JSON.stringify({
-              matched: billUpdateResult.matchedCount,
-              modified: billUpdateResult.modifiedCount,
-              acknowledged: billUpdateResult.acknowledged
-            }));
-            
-            // Verify the update worked
-            const verifyBillUpdate = await db.collection('invoices').findOne({ _id: transporterInvoiceResult.insertedId });
-            console.log('[Invoice] 🔍 Verification - Bill qbLink after save:', verifyBillUpdate?.qbLink || 'NULL');
-            if (!verifyBillUpdate?.qbLink) {
-              console.error('[Invoice] ❌ CRITICAL: Bill qbLink was NOT saved to database!');
-            }
-
-            // QB Bill /send is not supported in sandbox - skip silently
-            console.log('[Invoice] ℹ️ QB Bill email skipped (not supported in sandbox)');
-
-            // Generate QB links from invoice IDs for local variables
-            qbBillLink = generateQBBillLink(qbBill.billId);
-            
-            console.log('[Invoice] 🔗 Generated QB Bill link:', qbBillLink);
-          } catch (billError: any) {
-            console.error('[Invoice] ❌ QB Bill creation failed:', billError.message);
-            console.error('[Invoice] Error code:', billError.code || 'N/A');
-            
-            // Check if it's a subscription limitation error
-            if (billError.message?.includes('Feature Not Supported') || billError.message?.includes('5030')) {
-              console.warn('[Invoice] ⚠️ QB Bill feature not available in current subscription (Simple Start)');
-              console.warn('[Invoice] ℹ️ Transporter invoice will be created WITHOUT QB link');
-              console.warn('[Invoice] ℹ️ Upgrade to QuickBooks Plus or Advanced to enable Bill feature');
-              
-              // Save note to transporter invoice
-              await db.collection('invoices').updateOne(
-                { _id: transporterInvoiceResult.insertedId },
-                {
-                  $set: {
-                    qbSyncError: 'QB Bill feature not available in Simple Start subscription',
-                    qbSyncErrorCode: '5030',
-                    qbSyncErrorAt: new Date(),
-                    notes: (await db.collection('invoices').findOne({ _id: transporterInvoiceResult.insertedId }))?.notes + 
-                           '\n\n⚠️ QB Bill not created: Feature requires QuickBooks Plus or Advanced subscription',
-                    updatedAt: new Date(),
-                  }
-                }
-              );
-            } else {
-              // Other errors - rethrow
-              throw billError;
-            }
-            
-            // Bill link remains null
-            qbBillLink = null;
-          }
-
           console.log('[Invoice] 🎉 QB Integration Complete!');
           console.log('[Invoice]   Invoice Link:', qbInvoiceLink);
-          console.log('[Invoice]   Bill Link:', qbBillLink || 'NOT CREATED (subscription limitation)');
+          console.log('[Invoice]   Bill Link: SKIPPED (not needed)');
         } catch (qbError: any) {
           console.error('[Invoice] ❌ QB sync error:', qbError.message);
           console.error('[Invoice] Error details:', qbError.stack);
@@ -769,6 +681,10 @@ export async function POST(req: NextRequest) {
     console.log('[Invoice] 🔄 Client invoice qbLink after re-fetch:', updatedClientInvoice?.qbLink || 'NULL');
     console.log('[Invoice] 🔄 Transporter invoice qbLink after re-fetch:', updatedTransporterInvoice?.qbLink || 'NULL');
 
+    // Use qbInvoiceLink from QB creation if available, otherwise use from DB
+    const finalClientQbLink = qbInvoiceLink || updatedClientInvoice?.qbLink || null;
+    console.log('[Invoice] 🔗 Final client QB link for response:', finalClientQbLink);
+
     return NextResponse.json({
       success: true,
       message: 'Invoices created successfully',
@@ -778,14 +694,14 @@ export async function POST(req: NextRequest) {
           invoiceNumber: updatedTransporterInvoice?.invoiceNumber,
           amount: updatedTransporterInvoice?.amount,
           status: updatedTransporterInvoice?.status,
-          qbLink: updatedTransporterInvoice?.qbLink || null,
+          qbLink: null, // Transporter invoice doesn't need QB link
         },
         clientInvoice: {
           _id: updatedClientInvoice?._id.toString(),
           invoiceNumber: updatedClientInvoice?.invoiceNumber,
           amount: updatedClientInvoice?.amount,
           status: updatedClientInvoice?.status,
-          qbLink: updatedClientInvoice?.qbLink || null,
+          qbLink: finalClientQbLink,
         },
         progressPercentage,
         tonnageDelivered: `${displayTonnage}/${totalLoadTonnage}`,
