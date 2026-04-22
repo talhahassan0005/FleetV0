@@ -526,7 +526,7 @@ export default function ClientChatPage() {
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       placeholder="Type your message here..."
-                      className="flex-1 px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-xs md:text-sm focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 disabled:bg-gray-100"
+                      className="flex-1 px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-xs md:text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 disabled:bg-gray-100"
                       disabled={sending}
                     />
                     <button

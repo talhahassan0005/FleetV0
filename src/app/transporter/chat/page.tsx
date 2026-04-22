@@ -530,7 +530,7 @@ export default function TransporterChatPage() {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type a message..."
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-base focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 disabled:bg-gray-100"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-base text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 disabled:bg-gray-100"
                     disabled={sending}
                   />
                   <button
