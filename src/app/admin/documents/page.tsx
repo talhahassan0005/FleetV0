@@ -314,9 +314,9 @@ export default function AdminDocumentsPage() {
                           <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold">⏳ Pending</span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500">
-                        Type: <span className="font-semibold">{doc.docType}</span> • 
-                        Uploaded by: <span className="font-semibold">{doc.uploadedByRole}</span> • 
+                      <p className="text-xs text-gray-900">
+                        Type: <span className="font-semibold text-gray-900">{doc.docType}</span> • 
+                        Uploaded by: <span className="font-semibold text-gray-900">{doc.uploadedByRole}</span> • 
                         {new Date(doc.createdAt).toLocaleDateString()}
                       </p>
                       {doc.user && (

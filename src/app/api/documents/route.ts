@@ -19,7 +19,10 @@ export async function GET(req: NextRequest) {
     const userId = new ObjectId(session.user.id)
     const userRole = session.user.role
     
-    if (userRole === 'ADMIN') {
+    // Check if user is any type of admin
+    const isAdmin = ['SUPER_ADMIN', 'POD_MANAGER', 'OPERATIONS_ADMIN', 'FINANCE_ADMIN'].includes(userRole)
+    
+    if (isAdmin) {
       console.log('[Documents API] Fetching all documents for ADMIN...')
       const documents = await db.collection('documents')
         .aggregate([

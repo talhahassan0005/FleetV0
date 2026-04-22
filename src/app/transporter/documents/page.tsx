@@ -184,10 +184,10 @@ export default function TransporterDocumentsPage() {
               <div className="p-6 space-y-6">
                 {/* Document Info */}
                 <div className="bg-gray-50 p-4 rounded">
-                  <p className="text-xs text-gray-500 mb-2">DOCUMENT DETAILS</p>
-                  <div className="text-sm space-y-1">
-                    <p><span className="font-semibold">Type:</span> {selectedDoc.docType}</p>
-                    <p><span className="font-semibold">Uploaded:</span> {new Date(selectedDoc.createdAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-700 font-semibold mb-2">DOCUMENT DETAILS</p>
+                  <div className="text-sm space-y-1 text-gray-900">
+                    <p><span className="font-semibold text-gray-900">Type:</span> {selectedDoc.docType}</p>
+                    <p><span className="font-semibold text-gray-900">Uploaded:</span> {new Date(selectedDoc.createdAt).toLocaleDateString()}</p>
                   </div>
                   <a
                     href={`/api/documents/${selectedDoc._id}/view`}
@@ -202,10 +202,10 @@ export default function TransporterDocumentsPage() {
                 {/* Reviews from Client/Admin */}
                 {selectedDoc.reviews && selectedDoc.reviews.length > 0 ? (
                   <div>
-                    <p className="text-xs text-gray-500 mb-3 uppercase font-semibold">FEEDBACK ({selectedDoc.reviews.length})</p>
+                    <p className="text-xs text-gray-700 font-semibold mb-3 uppercase">FEEDBACK ({selectedDoc.reviews.length})</p>
                     <div className="space-y-3">
                       {selectedDoc.reviews.map((review: any, idx: number) => (
-                        <div key={idx} className="p-3 border border-gray-200 rounded text-sm">
+                        <div key={idx} className="p-3 border border-gray-200 rounded text-sm bg-white">
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-semibold text-[#1a2a5e]">{review.reviewerRole}</span>
                             <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
@@ -216,14 +216,14 @@ export default function TransporterDocumentsPage() {
                               {review.status}
                             </span>
                           </div>
-                          <p className="text-gray-700">{review.comment}</p>
-                          <p className="text-xs text-gray-400 mt-2">{new Date(review.timestamp).toLocaleDateString()}</p>
+                          <p className="text-gray-900">{review.comment}</p>
+                          <p className="text-xs text-gray-500 mt-2">{new Date(review.timestamp).toLocaleDateString()}</p>
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-blue-50 p-4 rounded text-sm text-blue-700">
+                  <div className="bg-blue-50 p-4 rounded text-sm text-blue-900">
                     No feedback yet. Awaiting review from admin and client.
                   </div>
                 )}
