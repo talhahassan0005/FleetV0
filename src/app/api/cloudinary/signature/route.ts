@@ -7,21 +7,20 @@ import { v2 as cloudinary } from 'cloudinary'
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { folder } = await req.json()
-
+    const { folder, resourceType } = await req.json()
     const timestamp = Math.round(Date.now() / 1000)
-    
-    // Sign request for PUBLIC upload (not authenticated)
+    const uploadFolder = folder || 'fleetxchange/pods'
+
     const signature = cloudinary.utils.api_sign_request(
       {
         timestamp,
-        folder: folder || 'fleetxchange/pods',
-        type: 'upload' // Public upload
+        folder: uploadFolder,
+        access_mode: 'public',
+        type: 'upload',
       },
       process.env.CLOUDINARY_API_SECRET!
     )
@@ -31,8 +30,8 @@ export async function POST(req: NextRequest) {
       timestamp,
       cloudName: process.env.CLOUDINARY_CLOUD_NAME,
       apiKey: process.env.CLOUDINARY_API_KEY,
-      folder: folder || 'fleetxchange/pods',
-      type: 'upload' // Public upload
+      folder: uploadFolder,
+      resourceType: resourceType || 'raw',
     })
   } catch (error) {
     console.error('[CloudinarySignature] Error:', error)

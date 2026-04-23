@@ -1,4 +1,5 @@
 'use client'
+import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -172,7 +173,7 @@ export default function TransporterInvoicesPage() {
                       <td className="px-4 py-3">
                         {invoice.fileUrl && (
                           <button
-                            onClick={() => window.open(invoice.fileUrl?.replace('/fl_attachment/', '/'), '_blank')}
+                            onClick={() => openDocument(invoice.fileUrl, invoice.fileUrl?.split('/').pop())}
                             className="flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,16 +1,29 @@
-// src/lib/document-url.ts
-// Central utility to fix Cloudinary document URLs for viewing
-
-export function getViewableUrl(url: string | undefined | null): string {
-  if (!url) return ""
+export function getDocumentViewUrl(url: string | undefined | null): string {
+  if (!url) return '#'
   
-  // Remove fl_attachment (causes 401)
-  if (url.includes("/fl_attachment/")) {
-    url = url.replace("/fl_attachment/", "/")
+  const cleanUrl = url.replace('/fl_attachment/', '/')
+  
+  if (cleanUrl.includes('/image/upload/') && cleanUrl.toLowerCase().includes('.pdf')) {
+    return cleanUrl.replace('/image/upload/', '/image/upload/f_auto,q_auto,pg_1/')
   }
   
-  // Fix raw/upload PDFs - convert to image/upload for inline viewing
-  // Actually keep as raw but remove fl_attachment
+  return cleanUrl
+}
+
+export function openDocument(url: string | undefined | null, originalName?: string): void {
+  if (!url) return
+  const viewUrl = getDocumentViewUrl(url)
   
-  return url
+  // For raw files (download) - use anchor with original name
+  if (url.includes('/raw/upload/')) {
+    const a = document.createElement('a')
+    a.href = viewUrl
+    a.download = originalName || 'document.pdf'
+    a.target = '_blank'
+    a.click()
+    return
+  }
+  
+  // For image files - open in new tab
+  window.open(viewUrl, '_blank')
 }

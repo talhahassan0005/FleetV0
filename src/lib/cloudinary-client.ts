@@ -1,61 +1,29 @@
-// src/lib/cloudinary-client.ts
-// Client-side Cloudinary upload helper
-
 export async function uploadToCloudinary(
   file: File,
   folder: string = 'pods'
 ): Promise<{ publicId: string; secureUrl: string }> {
+  const maxSize = 10 * 1024 * 1024
+  if (file.size > maxSize) {
+    throw new Error('File size must be less than 10MB')
+  }
   try {
-    // Get upload signature from backend
-    const signatureRes = await fetch('/api/cloudinary/signature', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ folder: `fleetxchange/${folder}` })
-    })
-
-    if (!signatureRes.ok) {
-      throw new Error('Failed to get upload signature')
-    }
-
-    const { signature, timestamp, cloudName, apiKey, folder: uploadFolder, type } = await signatureRes.json()
-
-    // Upload directly to Cloudinary
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('signature', signature)
-    formData.append('timestamp', timestamp.toString())
-    formData.append('api_key', apiKey)
-    formData.append('folder', uploadFolder)
-    if (type) {
-      formData.append('type', type) // Public upload
-    }
+    formData.append('upload_preset', 'fleetxchange_public')
+    formData.append('folder', `fleetxchange/${folder}`)
 
-    // Determine resource type
-    const ext = file.name.split('.').pop()?.toLowerCase()
-    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')
-    const resourceType = isImage ? 'image' : 'auto'
-
-    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`
-
-    const uploadRes = await fetch(cloudinaryUrl, {
-      method: 'POST',
-      body: formData
-    })
-
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/dv74tf1hh/image/upload`,
+      { method: 'POST', body: formData }
+    )
     if (!uploadRes.ok) {
-      const errorData = await uploadRes.json()
-      throw new Error(errorData.error?.message || 'Upload failed')
+      const err = await uploadRes.json()
+      throw new Error(err.error?.message || 'Upload failed')
     }
-
     const result = await uploadRes.json()
-    
-    let secureUrl = result.secure_url
-    
-    // Keep URL as-is - no fl_attachment needed
-
     return {
       publicId: result.public_id,
-      secureUrl: secureUrl
+      secureUrl: result.secure_url
     }
   } catch (error) {
     console.error('[CloudinaryClient] Upload error:', error)

@@ -1,4 +1,5 @@
 'use client'
+import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 // src/app/client/pods/page.tsx
 
 import { useEffect, useState } from 'react'
@@ -256,7 +257,7 @@ export default function ClientPodsPage() {
                 <div className="bg-gray-50 p-3 rounded mb-4">
                   <p className="text-xs text-gray-500 mb-1">POD Document:</p>
                   <button
-                    onClick={() => window.open((getPodUrl(pod.podUrl) || '').replace('/fl_attachment/', '/'), '_blank')}
+                    onClick={() => openDocument(getPodUrl(pod.podUrl), getPodUrl(pod.podUrl)?.split('/').pop())}
                     className="flex items-center gap-2 text-[#3ab54a] hover:text-[#2d9e3c] font-semibold cursor-pointer bg-transparent border-none p-0"
                   >
                     <Download className="w-4 h-4" />
@@ -286,7 +287,7 @@ export default function ClientPodsPage() {
                     </>
                   )}
                   <button
-                    onClick={() => window.open((getPodUrl(pod.podUrl) || '').replace('/fl_attachment/', '/'), '_blank')}
+                    onClick={() => openDocument(getPodUrl(pod.podUrl), getPodUrl(pod.podUrl)?.split('/').pop())}
                     className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded font-semibold hover:bg-gray-50 transition-colors cursor-pointer bg-white"
                   >
                     <Download className="w-4 h-4" />

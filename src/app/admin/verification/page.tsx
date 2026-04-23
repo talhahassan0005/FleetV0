@@ -1,4 +1,5 @@
 'use client'
+import { getDocumentViewUrl } from '@/lib/document-url'
 // src/app/admin/verification/page.tsx
 import { useEffect, useState } from 'react'
 import { Topbar, PageLayout } from '@/components/ui'
@@ -157,7 +158,7 @@ export default function VerificationPage() {
                           {user.documents.map((doc) => (
                             <a
                               key={doc.id}
-                              href={doc.fileUrl?.replace('/fl_attachment/', '/') || '#'}
+                              href={getDocumentViewUrl(doc.fileUrl)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-block px-3 py-1.5 rounded text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"

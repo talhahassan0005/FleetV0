@@ -58,22 +58,16 @@ export async function GET(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    // CASE 1: Cloudinary URL (fileUrl starts with http/https) - Return URL directly for client to open
+    // CASE 1: Cloudinary URL - redirect directly to viewable URL
     if (document.fileUrl && document.fileUrl.startsWith('http')) {
-      console.log('[ViewDocument] Returning Cloudinary URL directly')
+      let cleanUrl = document.fileUrl.replace('/fl_attachment/', '/')
       
-      // For Cloudinary URLs, just return the URL - let browser handle it
-      // Remove any fl_attachment transformation that might cause issues
-      let cleanUrl = document.fileUrl
-      if (cleanUrl.includes('/fl_attachment/')) {
-        cleanUrl = cleanUrl.replace('/fl_attachment/', '/')
+      // Convert raw PDF to viewable image transformation
+      if (cleanUrl.includes('/raw/upload/') && cleanUrl.toLowerCase().includes('.pdf')) {
+        cleanUrl = cleanUrl.replace('/raw/upload/', '/image/upload/f_auto,q_auto,pg_1/')
       }
       
-      return NextResponse.json({ 
-        url: cleanUrl,
-        filename: document.originalName,
-        mimeType: document.fileMimeType || 'application/pdf'
-      })
+      return NextResponse.redirect(cleanUrl)
     }
 
     // CASE 2: Check if fileUrl contains LOCAL path (broken format from old uploads)

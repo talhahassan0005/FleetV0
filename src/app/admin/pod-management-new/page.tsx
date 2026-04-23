@@ -1,4 +1,5 @@
 'use client'
+import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 // src/app/admin/pod-management-new/page.tsx
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -368,7 +369,7 @@ export default function PODManagementPage() {
                           } else if (url && typeof url === 'object' && 'url' in url) {
                             url = url.url
                           }
-                          if (url && typeof url === 'string') window.open(url, '_blank')
+                          if (url && typeof url === 'string') openDocument(url, pod.originalName || url?.split('/').pop())
                         }}
                         className="flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                       >

@@ -1,4 +1,5 @@
 'use client'
+import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 // src/app/admin/pod-management/page.tsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -302,10 +303,10 @@ export default function AdminPODManagementPage() {
                 {selectedPOD.podFile && (
                   <div>
                     <button
-                      onClick={() => selectedPOD.podFile && window.open(selectedPOD.podFile.replace('/fl_attachment/', '/'), '_blank')}
+                      onClick={() => selectedPOD.podFile && openDocument(selectedPOD.podFile, selectedPOD.podFile?.split('/').pop())}
                       className="block w-full px-4 py-3 bg-[#1a2a5e] text-white text-center rounded-lg font-semibold hover:bg-[#152247] transition-colors"
                     >
-                      📄 View Document
+                      View Document
                     </button>
                   </div>
                 )}

@@ -1,4 +1,5 @@
 'use client'
+import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 // src/app/client/invoices/page.tsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -520,7 +521,7 @@ export default function ClientInvoicesPage() {
                             <div className="ml-4 flex gap-2">
                               {/* View Button - Opens in new tab */}
                               <button
-                                onClick={() => invoice.fileUrl && window.open(invoice.fileUrl.replace('/fl_attachment/', '/'), '_blank')}
+                                onClick={() => invoice.fileUrl && openDocument(invoice.fileUrl, invoice.fileUrl?.split('/').pop())}
                                 className="flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

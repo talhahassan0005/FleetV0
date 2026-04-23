@@ -33,7 +33,7 @@ export async function uploadFile(
     
     // For PDFs, we need special handling to make them viewable in browser
     // Use 'image' type with 'fl_attachment' flag removed for inline viewing
-    const resourceType = isImage ? 'image' : 'raw'
+    const resourceType = 'image'
     
     console.log('[Cloudinary] Uploading file:', originalName, 'as', resourceType)
     
@@ -41,6 +41,8 @@ export async function uploadFile(
       const uploadOptions: any = {
         folder: `fleetxchange/${folder}`,
         resource_type: resourceType,
+        access_mode: 'public',
+        type: 'upload',
         use_filename: true,
         unique_filename: true,
       }
@@ -62,10 +64,7 @@ export async function uploadFile(
           let secureUrl = result.secure_url
           
           // For PDFs, modify URL to use fl_attachment flag for inline viewing
-          if (isPdf && secureUrl.includes('/raw/upload/')) {
-            // Change from /raw/upload/ to /raw/upload/fl_attachment/ for inline viewing
-            secureUrl = secureUrl.replace('/raw/upload/', '/raw/upload/fl_attachment/')
-          }
+          
           
           console.log('[Cloudinary] Upload success:', secureUrl)
           resolve({ publicId: result.public_id, secureUrl: secureUrl })

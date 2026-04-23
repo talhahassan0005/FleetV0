@@ -1,5 +1,6 @@
 // src/app/transporter/loads/[id]/page.tsx
 'use client'
+import { getDocumentViewUrl } from '@/lib/document-url'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -261,7 +262,7 @@ export default function TransporterLoadDetailPage({ params }: { params: { id: st
                       {load.documents.map((doc) => (
                         <a
                           key={doc._id}
-                          href={doc.fileUrl?.replace('/fl_attachment/', '/') || '#'}
+                          href={getDocumentViewUrl(doc.fileUrl)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors"

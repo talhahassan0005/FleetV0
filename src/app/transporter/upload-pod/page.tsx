@@ -1,4 +1,5 @@
 'use client'
+import { getDocumentViewUrl } from '@/lib/document-url'
 // src/app/transporter/upload-pod/page.tsx
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -730,7 +731,7 @@ export default function UploadPODPage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Document</h3>
                   {selectedPOD.fileUrl && typeof selectedPOD.fileUrl === 'string' && selectedPOD.fileUrl.startsWith('http') ? (
                     <a
-                      href={selectedPOD.fileUrl?.replace("/fl_attachment/", "/")}
+                      href={getDocumentViewUrl(selectedPOD.fileUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
@@ -738,7 +739,7 @@ export default function UploadPODPage() {
                       <FileText className="w-5 h-5 text-blue-600" />
                       <div className="flex-1">
                         <p className="font-semibold text-blue-900">{selectedPOD.originalName}</p>
-                        <p className="text-xs text-blue-700 mt-1">Click to download or view</p>
+                        <p className="text-xs text-blue-700 mt-1">Click to view document</p>
                       </div>
                       <CheckCircle className="w-5 h-5 text-blue-600" />
                     </a>
