@@ -60,9 +60,20 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
 }
 
 export function Sidebar() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const pathname = usePathname()
   const role = session?.user?.role ?? 'CLIENT'
+
+  // Prevent rendering until session is loaded to avoid flicker
+  if (status === 'loading') {
+    return (
+      <nav className="w-[210px] bg-white/70 backdrop-blur-3xl border-r border-white/40 flex flex-col h-screen sticky top-0 overflow-y-auto hide-scrollbar flex-shrink-0 shadow-[5px_0_30px_rgba(0,0,0,0.08)] z-20">
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3ab54a]"></div>
+        </div>
+      </nav>
+    )
+  }
 
   let nav
   if (isAdmin(role)) {

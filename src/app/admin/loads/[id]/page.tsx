@@ -69,19 +69,22 @@ export default function AdminLoadDetailPage() {
 
   // Second effect: Fetch the load data once we have the loadId
   useEffect(() => {
-    // Check auth first
+    // Wait for loadId to be extracted first
+    if (!loadId) {
+      return // Still waiting for ID extraction
+    }
+
+    // Check auth - but don't redirect immediately, let server-side layout handle it
     if (!session) {
+      console.log('[AdminLoadDetail] Waiting for session...')
       return // Wait for session to load
     }
 
-    if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    // Verify admin role
+    const isAdminRole = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')
+    if (!isAdminRole) {
+      console.log('[AdminLoadDetail] Not admin role, redirecting...')
       router.push('/login')
-      return
-    }
-
-    // Wait for loadId to be extracted
-    if (!loadId) {
-      // Don't set loading to false yet, still waiting for ID
       return
     }
 

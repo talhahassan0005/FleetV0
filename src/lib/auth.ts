@@ -23,6 +23,13 @@ export const authOptions: NextAuthOptions = {
           if (!user) throw new Error('No user found');
           const isValid = await bcrypt.compare(credentials.password, user.password);
           if (!isValid) throw new Error('Invalid password');
+          
+          console.log('[Auth] User authenticated:', {
+            id: user._id.toString(),
+            email: user.email,
+            role: user.role
+          });
+          
           return {
             id: user._id.toString(),
             email: user.email,
@@ -34,6 +41,7 @@ export const authOptions: NextAuthOptions = {
             verificationComment: user.verificationComment,
           };
         } catch (err: any) {
+          console.error('[Auth] Authorization failed:', err.message);
           throw new Error(err.message || 'Authorization failed');
         }
       },
@@ -49,6 +57,12 @@ export const authOptions: NextAuthOptions = {
         token.isVerified = (user as any).isVerified;
         token.verificationStatus = (user as any).verificationStatus;
         token.verificationComment = (user as any).verificationComment;
+        
+        console.log('[Auth] JWT created:', {
+          id: token.id,
+          role: token.role,
+          email: token.email
+        });
       }
       return token;
     },
@@ -69,6 +83,12 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login',
     signOut: '/login',
   },
-  session: { strategy: 'jwt' },
+  session: { 
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: false,
+  // Ensure correct URL is used in production
+  useSecureCookies: process.env.NODE_ENV === 'production',
 };

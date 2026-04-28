@@ -8,7 +8,27 @@ const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MA
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
-  if (!session?.user || !ADMIN_ROLES.includes(session.user.role)) redirect('/login')
+  
+  console.log('[AdminLayout] Session check:', {
+    hasSession: !!session,
+    hasUser: !!session?.user,
+    userRole: session?.user?.role,
+    userEmail: session?.user?.email
+  })
+  
+  // Double-check: Ensure user has valid session and admin role
+  if (!session?.user) {
+    console.log('[AdminLayout] No session - redirecting to login')
+    redirect('/login')
+  }
+  
+  if (!ADMIN_ROLES.includes(session.user.role)) {
+    console.log('[AdminLayout] ❌ Non-admin role detected:', session.user.role, '- redirecting to login')
+    redirect('/login')
+  }
+  
+  console.log('[AdminLayout] ✅ Admin access granted:', session.user.role)
+  
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar />

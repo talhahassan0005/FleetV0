@@ -12,11 +12,31 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('[ViewDocument] ========== REQUEST START ==========')
+    console.log('[ViewDocument] Document ID:', params.id)
+    console.log('[ViewDocument] Request URL:', req.url)
+    console.log('[ViewDocument] Request headers:', {
+      cookie: req.headers.get('cookie')?.substring(0, 50) + '...',
+      referer: req.headers.get('referer')
+    })
+    
+    // Get session - CRITICAL: Use same pattern as transporter
     const session = await getServerSession(authOptions)
+    
+    console.log('[ViewDocument] Session check:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userId: session?.user?.id,
+      userRole: session?.user?.role,
+      userEmail: session?.user?.email
+    })
+    
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      console.log('[ViewDocument] ❌ No session - returning 401')
+      return NextResponse.json({ error: 'Unauthorized - Please log in' }, { status: 401 })
     }
 
+    console.log('[ViewDocument] ✅ Session valid, fetching document...')
     const db = await getDatabase()
     const documentId = new ObjectId(params.id)
     
@@ -25,6 +45,7 @@ export async function GET(
     })
 
     if (!document) {
+      console.log('[ViewDocument] ❌ Document not found:', params.id)
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
@@ -34,10 +55,12 @@ export async function GET(
       fileUrl: document.fileUrl?.substring(0, 100),
       hasFileData: !!document.fileData,
       fileMimeType: document.fileMimeType,
-      originalName: document.originalName
+      originalName: document.originalName,
+      uploadedByRole: document.uploadedByRole,
+      userId: document.userId?.toString()
     })
 
-    // Check authorization - user must own the document OR be admin OR be client/transporter viewing shared documents
+    // Check authorization - SAME PATTERN AS TRANSPORTER
     const userId = new ObjectId(session.user.id)
     const isOwner = document.userId?.toString() === userId.toString()
     const isAdmin = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')
@@ -53,10 +76,22 @@ export async function GET(
                     (isClient && document.uploadedByRole === 'TRANSPORTER') ||
                     (isTransporter && document.uploadedByRole === 'CLIENT')
 
+    console.log('[ViewDocument] Authorization check:', {
+      isOwner,
+      isAdmin,
+      isClient,
+      isTransporter,
+      canView,
+      userRole: session.user.role,
+      docUploadedBy: document.uploadedByRole
+    })
+
     if (!canView) {
-      console.log('[ViewDocument] Access denied:', { isOwner, isAdmin, userRole: session.user.role, docRole: document.uploadedByRole })
+      console.log('[ViewDocument] ❌ Access denied')
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
+    
+    console.log('[ViewDocument] ✅ Access granted, serving document...')
 
     // CASE 1: Cloudinary URL - redirect directly to viewable URL
     if (document.fileUrl && document.fileUrl.startsWith('http')) {

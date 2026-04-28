@@ -6,7 +6,27 @@ import { Sidebar } from '@/components/shared/Sidebar'
 
 export default async function TransporterLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
-  if (!session?.user || session.user.role !== 'TRANSPORTER') redirect('/login')
+  
+  console.log('[TransporterLayout] Session check:', {
+    hasSession: !!session,
+    hasUser: !!session?.user,
+    userRole: session?.user?.role,
+    userEmail: session?.user?.email
+  })
+  
+  // Double-check: Ensure user has valid session and TRANSPORTER role
+  if (!session?.user) {
+    console.log('[TransporterLayout] No session - redirecting to login')
+    redirect('/login')
+  }
+  
+  if (session.user.role !== 'TRANSPORTER') {
+    console.log('[TransporterLayout] ❌ Non-transporter role detected:', session.user.role, '- redirecting to login')
+    redirect('/login')
+  }
+  
+  console.log('[TransporterLayout] ✅ Transporter access granted')
+  
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar />

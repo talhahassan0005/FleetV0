@@ -120,7 +120,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  if (!session?.user) {
+    console.log('[PostDocument] No session found')
+    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  }
 
   try {
     const db = await getDatabase()
@@ -130,24 +133,51 @@ export async function POST(req: NextRequest) {
     const loadId    = form.get('loadId') as string | null
     const visibleTo = (form.get('visibleTo') as string ?? 'ADMIN').toUpperCase()
 
-    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    if (!file) {
+      console.log('[PostDocument] No file provided')
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    }
+
+    console.log('[PostDocument] Processing upload:', {
+      userId: session.user.id,
+      userRole: session.user.role,
+      docType,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
+    })
 
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
     // Check if Cloudinary is configured
-    const useCloudinary = !!process.env.CLOUDINARY_API_KEY
+    const useCloudinary = !!(process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && process.env.CLOUDINARY_CLOUD_NAME)
+    console.log('[PostDocument] Cloudinary configured:', useCloudinary)
+    
     let fileUrl = ''
     let publicId = ''
 
     if (useCloudinary) {
-      // Use Cloudinary for production
-      const folder = docType === 'POD' ? 'pods' : docType === 'INVOICE' ? 'invoices' : 'docs'
-      const { publicId: id, secureUrl } = await uploadFile(buffer, file.name, folder)
-      publicId = id
-      fileUrl = secureUrl
+      try {
+        // Use Cloudinary for production
+        const folder = docType === 'POD' ? 'pods' : docType === 'INVOICE' ? 'invoices' : 'docs'
+        console.log('[PostDocument] Uploading to Cloudinary folder:', folder)
+        const { publicId: id, secureUrl } = await uploadFile(buffer, file.name, folder)
+        publicId = id
+        fileUrl = secureUrl
+        console.log('[PostDocument] Cloudinary upload success:', { publicId, secureUrl: secureUrl.substring(0, 50) })
+      } catch (cloudinaryErr: any) {
+        console.error('[PostDocument] Cloudinary upload failed:', cloudinaryErr)
+        // Fallback to base64 if Cloudinary fails
+        console.log('[PostDocument] Falling back to base64 storage')
+        const base64Data = buffer.toString('base64')
+        const mimeType = file.type || 'application/octet-stream'
+        publicId = `DATA:${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        fileUrl = `data:${mimeType};base64,${base64Data}`
+      }
     } else {
       // Store as base64 in MongoDB for development
+      console.log('[PostDocument] Using base64 storage (Cloudinary not configured)')
       const base64Data = buffer.toString('base64')
       const mimeType = file.type || 'application/octet-stream'
       publicId = `DATA:${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -242,8 +272,12 @@ export async function POST(req: NextRequest) {
       uploadedByRole: session.user.role,
       visibleTo:      visibleTo,
     })}, { status: 201 })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+  } catch (err: any) {
+    console.error('[PostDocument] Error:', err)
+    return NextResponse.json({ 
+      error: 'Upload failed', 
+      details: err.message || 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    }, { status: 500 })
   }
 }

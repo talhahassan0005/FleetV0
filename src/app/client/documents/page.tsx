@@ -31,6 +31,16 @@ export default function ClientDocumentsPage() {
       console.log('[ClientDocuments] Fetching documents...')
       setLoading(true)
       const res = await fetch('/api/documents')
+      
+      if (!res.ok) {
+        console.error('[ClientDocuments] API error:', res.status)
+        if (res.status === 401) {
+          console.log('[ClientDocuments] Unauthorized - session may have expired')
+        }
+        setDocuments([])
+        return
+      }
+      
       const data = await res.json()
       console.log('[ClientDocuments] Received documents:', data.data?.length || 0)
       setDocuments(data.data || [])

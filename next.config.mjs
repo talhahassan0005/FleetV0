@@ -2,6 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  // Fix Server Action errors in production
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['fleetxchange.africa', 'www.fleetxchange.africa', 'localhost:3000'],
+      bodySizeLimit: '10mb',
+    },
+  },
+  
   // Performance Optimizations for Google Ads Quality Score
   compress: true,
   poweredByHeader: false,
