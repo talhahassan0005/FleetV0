@@ -74,14 +74,19 @@ export default function AdminLoadDetailPage() {
       return // Still waiting for ID extraction
     }
 
-    // Wait for session to load
+    // Check auth - but don't redirect immediately, let server-side layout handle it
     if (!session) {
       console.log('[AdminLoadDetail] Waiting for session...')
       return // Wait for session to load
     }
 
-    // ← FIX: Removed client-side role check - middleware and AdminLayout already handle this
-    // Double-checking here causes the blink when session loads
+    // Verify admin role
+    const isAdminRole = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')
+    if (!isAdminRole) {
+      console.log('[AdminLoadDetail] Not admin role, redirecting...')
+      router.push('/login')
+      return
+    }
 
     const fetchLoad = async () => {
       try {
