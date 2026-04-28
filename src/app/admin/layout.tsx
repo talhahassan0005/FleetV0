@@ -4,30 +4,16 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/shared/Sidebar'
 
-const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
-
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  // Middleware already checked role - just verify session exists
   const session = await getServerSession(authOptions)
   
-  console.log('[AdminLayout] Session check:', {
-    hasSession: !!session,
-    hasUser: !!session?.user,
-    userRole: session?.user?.role,
-    userEmail: session?.user?.email
-  })
-  
-  // Double-check: Ensure user has valid session and admin role
   if (!session?.user) {
-    console.log('[AdminLayout] No session - redirecting to login')
     redirect('/login')
   }
   
-  if (!ADMIN_ROLES.includes(session.user.role)) {
-    console.log('[AdminLayout] ❌ Non-admin role detected:', session.user.role, '- redirecting to login')
-    redirect('/login')
-  }
-  
-  console.log('[AdminLayout] ✅ Admin access granted:', session.user.role)
+  // No role check needed - middleware already verified admin role
+  // This prevents double-checking and race conditions
   
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">

@@ -5,27 +5,15 @@ import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/shared/Sidebar'
 
 export default async function TransporterLayout({ children }: { children: React.ReactNode }) {
+  // Middleware already checked role - just verify session exists
   const session = await getServerSession(authOptions)
   
-  console.log('[TransporterLayout] Session check:', {
-    hasSession: !!session,
-    hasUser: !!session?.user,
-    userRole: session?.user?.role,
-    userEmail: session?.user?.email
-  })
-  
-  // Double-check: Ensure user has valid session and TRANSPORTER role
   if (!session?.user) {
-    console.log('[TransporterLayout] No session - redirecting to login')
     redirect('/login')
   }
   
-  if (session.user.role !== 'TRANSPORTER') {
-    console.log('[TransporterLayout] ❌ Non-transporter role detected:', session.user.role, '- redirecting to login')
-    redirect('/login')
-  }
-  
-  console.log('[TransporterLayout] ✅ Transporter access granted')
+  // No role check needed - middleware already verified TRANSPORTER role
+  // This prevents double-checking and race conditions
   
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">

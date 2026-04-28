@@ -62,9 +62,8 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
 export function Sidebar() {
   const { data: session, status } = useSession()
   const pathname = usePathname()
-  const role = session?.user?.role ?? '' // ← FIX: No default role to prevent flicker
 
-  // Prevent rendering until session is loaded to avoid flicker
+  // Show loading spinner while session loads
   if (status === 'loading') {
     return (
       <nav className="w-[210px] bg-white/70 backdrop-blur-3xl border-r border-white/40 flex flex-col h-screen sticky top-0 overflow-y-auto hide-scrollbar flex-shrink-0 shadow-[5px_0_30px_rgba(0,0,0,0.08)] z-20">
@@ -75,17 +74,29 @@ export function Sidebar() {
     )
   }
 
-  // ← FIX: Don't render anything if role is not loaded yet
-  if (!role) return null
-
-  let nav
-  if (isAdmin(role)) {
+  // ✅ FIX: Determine nav items based on URL, NOT role
+  // Middleware already verified user has correct role for this URL
+  let nav: Array<{ label: string; href: string; icon: React.ReactNode }> = []
+  let portalName = ''
+  
+  if (pathname.startsWith('/admin')) {
+    // User is in admin portal - middleware already verified admin role
+    // Get role only for determining which admin nav to show
+    const role = session?.user?.role ?? ''
     nav = ADMIN_NAV_BY_ROLE[role] ?? ADMIN_ALL_NAV
-  } else {
-    nav = navMap[role] ?? [] // ← FIX: Empty array instead of default CLIENT nav
+    portalName = 'Operations'
+  } else if (pathname.startsWith('/client')) {
+    // User is in client portal - middleware already verified CLIENT role
+    nav = navMap.CLIENT
+    portalName = 'Client Portal'
+  } else if (pathname.startsWith('/transporter')) {
+    // User is in transporter portal - middleware already verified TRANSPORTER role
+    nav = navMap.TRANSPORTER
+    portalName = 'Transporter Portal'
   }
 
   const initials = (session?.user?.companyName ?? 'FX').slice(0, 2).toUpperCase()
+  const displayRole = session?.user?.role?.replace('_', ' ') ?? ''
 
   return (
     <nav className="w-[210px] bg-white/70 backdrop-blur-3xl border-r border-white/40 flex flex-col h-screen sticky top-0 overflow-y-auto hide-scrollbar flex-shrink-0 shadow-[5px_0_30px_rgba(0,0,0,0.08)] z-20" style={{animation: 'cardGlow 3s ease-in-out infinite'}}>
@@ -97,7 +108,7 @@ export function Sidebar() {
       {/* Nav */}
       <div className="mt-2">
         <div className="text-[8px] uppercase tracking-[2px] text-slate-600/60 font-semibold px-4 py-2">
-          {isAdmin(role) ? 'Operations' : role === 'CLIENT' ? 'Client Portal' : 'Transporter Portal'}
+          {portalName}
         </div>
         {nav.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -120,7 +131,7 @@ export function Sidebar() {
         </div>
         <div className="overflow-hidden">
           <div className="text-[12px] font-bold text-[#1a2a5e] truncate tracking-wide">{session?.user?.companyName ?? 'User'}</div>
-          <div className="text-[9px] text-[#3ab54a] font-bold uppercase tracking-widest">{role.replace('_', ' ')}</div>
+          <div className="text-[9px] text-[#3ab54a] font-bold uppercase tracking-widest">{displayRole}</div>
         </div>
       </div>
       <button
