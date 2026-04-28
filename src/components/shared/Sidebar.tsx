@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { getRoleFromPath, getCompanyInitials, getTokenData } from '@/lib/client-auth'
+import { getRoleFromPath, getCompanyInitials, getCompanyName, clearToken } from '@/lib/client-auth'
 
 const ADMIN_ALL_NAV = [
   { label: 'Dashboard',      href: '/admin/dashboard',              icon: <GridIcon /> },
@@ -62,7 +62,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const role = getRoleFromPath(pathname)
-  const tokenData = getTokenData()
+  const companyName = getCompanyName() || 'FleetXchange'
 
   let nav
   if (role === 'ADMIN') {
@@ -71,7 +71,6 @@ export function Sidebar() {
     nav = navMap[role] ?? navMap.CLIENT
   }
 
-  const companyName = tokenData?.companyName || 'FleetXchange'
   const initials = getCompanyInitials(companyName)
 
   return (
@@ -112,6 +111,7 @@ export function Sidebar() {
       </div>
       <button
         onClick={async () => {
+          clearToken()
           await fetch('/api/auth/signout', { method: 'POST' })
           router.push('/login')
         }}

@@ -1,6 +1,5 @@
 // src/app/admin/loads/page.tsx
 'use client'
-import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -26,7 +25,6 @@ interface Load {
 import { hasPermission } from '@/lib/rbac'
 
 export default function AdminLoadsPage() {
-  const { data: session } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
   const status = searchParams.get('status') ?? ''
@@ -36,17 +34,6 @@ export default function AdminLoadsPage() {
   const [selectedLoadId, setSelectedLoadId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
-      router.push('/login')
-      return
-    }
-
-    const adminRole = (session.user as any).adminRole
-    if (!hasPermission(adminRole, 'loads')) {
-      router.push('/admin/unauthorized')
-      return
-    }
-
     const fetchLoads = async () => {
       try {
         const url = status 
@@ -66,7 +53,7 @@ export default function AdminLoadsPage() {
     }
 
     fetchLoads()
-  }, [session, router, status])
+  }, [status])
 
   const handleActionSuccess = () => {
     // Refresh loads after action

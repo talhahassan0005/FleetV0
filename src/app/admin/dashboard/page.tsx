@@ -1,33 +1,14 @@
 'use client'
 // src/app/admin/dashboard/page.tsx
 import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout, StatCard } from '@/components/ui'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function AdminDashboardPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  // Auth check
   useEffect(() => {
-    if (status === 'loading') return // Still loading
-    
-    if (!session || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session.user.role)) {
-      router.push('/login')
-      return
-    }
-    
-    // Log admin role for debugging
-    console.log('[AdminDashboard] Admin role:', (session.user as any)?.adminRole || 'undefined (defaults to superadmin)')
-  }, [session, status, router])
-
-  useEffect(() => {
-    if (!session || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session.user.role)) return
-    
     const fetchStats = async () => {
       try {
         const res = await fetch('/api/dashboard/admin-stats')
@@ -40,19 +21,7 @@ export default function AdminDashboardPage() {
       }
     }
     fetchStats()
-  }, [session])
-
-  // Show loading while session is being checked
-  if (status === 'loading' || !session || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session.user.role)) {
-    return (
-      <>
-        <Topbar title="Admin Dashboard" />
-        <PageLayout>
-          <div className="text-center py-12 text-gray-400">Loading...</div>
-        </PageLayout>
-      </>
-    )
-  }
+  }, [])
 
   if (loading) {
     return (
