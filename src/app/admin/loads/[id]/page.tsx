@@ -1,8 +1,6 @@
 'use client'
 // src/app/admin/loads/[id]/page.tsx
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Topbar, PageLayout } from '@/components/ui'
@@ -29,8 +27,6 @@ interface Load {
 }
 
 export default function AdminLoadDetailPage() {
-  const { data: session } = useSession()
-  const router = useRouter()
   const params = useParams() as { id?: string }
   
   // Get loadId from params or extract from URL pathname as fallback
@@ -69,24 +65,7 @@ export default function AdminLoadDetailPage() {
 
   // Second effect: Fetch the load data once we have the loadId
   useEffect(() => {
-    // Wait for loadId to be extracted first
-    if (!loadId) {
-      return // Still waiting for ID extraction
-    }
-
-    // Check auth - but don't redirect immediately, let server-side layout handle it
-    if (!session) {
-      console.log('[AdminLoadDetail] Waiting for session...')
-      return // Wait for session to load
-    }
-
-    // Verify admin role
-    const isAdminRole = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')
-    if (!isAdminRole) {
-      console.log('[AdminLoadDetail] Not admin role, redirecting...')
-      router.push('/login')
-      return
-    }
+    if (!loadId) return
 
     const fetchLoad = async () => {
       try {
@@ -127,7 +106,7 @@ export default function AdminLoadDetailPage() {
     }
 
     fetchLoad()
-  }, [loadId, session, router])
+  }, [loadId])
 
   if (loading) {
     return (

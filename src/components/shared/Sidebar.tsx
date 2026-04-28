@@ -2,9 +2,9 @@
 // src/components/shared/Sidebar.tsx
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
-import { signOut, useSession } from 'next-auth/react'
-import { isAdmin } from '@/lib/rbac'
+import { usePathname, useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { getRoleFromPath, getCompanyInitials } from '@/lib/client-auth'
 
 const ADMIN_ALL_NAV = [
   { label: 'Dashboard',      href: '/admin/dashboard',              icon: <GridIcon /> },
@@ -60,29 +60,20 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
 }
 
 export function Sidebar() {
-  const { data: session, status } = useSession()
   const pathname = usePathname()
-  const role = session?.user?.role ?? 'CLIENT'
-
-  // Prevent rendering until session is loaded to avoid flicker
-  if (status === 'loading') {
-    return (
-      <nav className="w-[210px] bg-white/70 backdrop-blur-3xl border-r border-white/40 flex flex-col h-screen sticky top-0 overflow-y-auto hide-scrollbar flex-shrink-0 shadow-[5px_0_30px_rgba(0,0,0,0.08)] z-20">
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3ab54a]"></div>
-        </div>
-      </nav>
-    )
-  }
+  const router = useRouter()
+  const { data: session } = useSession()
+  const role = getRoleFromPath(pathname)
 
   let nav
-  if (isAdmin(role)) {
-    nav = ADMIN_NAV_BY_ROLE[role] ?? ADMIN_ALL_NAV
+  if (role === 'ADMIN') {
+    nav = ADMIN_ALL_NAV
   } else {
     nav = navMap[role] ?? navMap.CLIENT
   }
 
-  const initials = (session?.user?.companyName ?? 'FX').slice(0, 2).toUpperCase()
+  const companyName = session?.user?.companyName || 'FleetXchange'
+  const initials = getCompanyInitials(companyName)
 
   return (
     <nav className="w-[210px] bg-white/70 backdrop-blur-3xl border-r border-white/40 flex flex-col h-screen sticky top-0 overflow-y-auto hide-scrollbar flex-shrink-0 shadow-[5px_0_30px_rgba(0,0,0,0.08)] z-20" style={{animation: 'cardGlow 3s ease-in-out infinite'}}>
@@ -94,7 +85,7 @@ export function Sidebar() {
       {/* Nav */}
       <div className="mt-2">
         <div className="text-[8px] uppercase tracking-[2px] text-slate-600/60 font-semibold px-4 py-2">
-          {isAdmin(role) ? 'Operations' : role === 'CLIENT' ? 'Client Portal' : 'Transporter Portal'}
+          {role === 'ADMIN' ? 'Operations' : role === 'CLIENT' ? 'Client Portal' : 'Transporter Portal'}
         </div>
         {nav.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -116,13 +107,14 @@ export function Sidebar() {
           {initials}
         </div>
         <div className="overflow-hidden">
-          <div className="text-[12px] font-bold text-[#1a2a5e] truncate tracking-wide">{session?.user?.companyName ?? 'User'}</div>
-          <div className="text-[9px] text-[#3ab54a] font-bold uppercase tracking-widest">{role.replace('_', ' ')}</div>
+          <div className="text-[12px] font-bold text-[#1a2a5e] truncate tracking-wide">{companyName}</div>
+          <div className="text-[9px] text-[#3ab54a] font-bold uppercase tracking-widest">{role}</div>
         </div>
       </div>
       <button
         onClick={async () => {
-          await signOut({ callbackUrl: '/login', redirect: true })
+          await fetch('/api/auth/signout', { method: 'POST' })
+          router.push('/login')
         }}
         className="mx-4 mb-5 text-[11px] text-[#1a2a5e]/70 bg-white/60 hover:text-[#1a2a5e] font-semibold text-center py-2 border border-slate-300 rounded-xl transition-all hover:bg-[#3ab54a]/10 hover:border-[#3ab54a]/40 shadow-sm uppercase tracking-widest active:scale-95">
         Sign out
