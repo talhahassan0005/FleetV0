@@ -62,7 +62,7 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
 export function Sidebar() {
   const { data: session, status } = useSession()
   const pathname = usePathname()
-  const role = session?.user?.role ?? 'CLIENT'
+  const role = session?.user?.role ?? '' // ← FIX: No default role to prevent flicker
 
   // Prevent rendering until session is loaded to avoid flicker
   if (status === 'loading') {
@@ -75,11 +75,14 @@ export function Sidebar() {
     )
   }
 
+  // ← FIX: Don't render anything if role is not loaded yet
+  if (!role) return null
+
   let nav
   if (isAdmin(role)) {
     nav = ADMIN_NAV_BY_ROLE[role] ?? ADMIN_ALL_NAV
   } else {
-    nav = navMap[role] ?? navMap.CLIENT
+    nav = navMap[role] ?? [] // ← FIX: Empty array instead of default CLIENT nav
   }
 
   const initials = (session?.user?.companyName ?? 'FX').slice(0, 2).toUpperCase()
