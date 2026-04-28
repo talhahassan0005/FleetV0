@@ -3,8 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { getRoleFromPath, getCompanyInitials } from '@/lib/client-auth'
+import { getRoleFromPath, getCompanyInitials, getTokenData } from '@/lib/client-auth'
 
 const ADMIN_ALL_NAV = [
   { label: 'Dashboard',      href: '/admin/dashboard',              icon: <GridIcon /> },
@@ -62,8 +61,8 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { data: session } = useSession()
   const role = getRoleFromPath(pathname)
+  const tokenData = getTokenData()
 
   let nav
   if (role === 'ADMIN') {
@@ -72,7 +71,7 @@ export function Sidebar() {
     nav = navMap[role] ?? navMap.CLIENT
   }
 
-  const companyName = session?.user?.companyName || 'FleetXchange'
+  const companyName = tokenData?.companyName || 'FleetXchange'
   const initials = getCompanyInitials(companyName)
 
   return (
