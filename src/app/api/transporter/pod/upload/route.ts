@@ -68,6 +68,8 @@ export async function POST(req: Request) {
 
     await pod.save()
 
+    // DO NOT change load status to DELIVERED - keep it IN_TRANSIT until admin approves POD
+
     // Get transporter and client info for email
     const transporter = await User.findById(session.user.id)
     const client = load.clientId

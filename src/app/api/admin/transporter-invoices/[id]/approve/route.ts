@@ -29,7 +29,7 @@ export async function POST(
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
-    // Update invoice status
+    // Update invoice status - Admin approval only, DO NOT forward to client
     await db.collection('transporter_invoices').updateOne(
       { _id: invoiceId },
       {
@@ -41,6 +41,10 @@ export async function POST(
         }
       }
     )
+
+    console.log('[ApproveInvoice] ✅ Admin approved invoice:', invoiceId.toString())
+    console.log('[ApproveInvoice]  Invoice will NOT be forwarded to client')
+    console.log('[ApproveInvoice]  Client will NOT receive invoice document')
 
     // Send email to transporter
     const transporter = await db.collection('users').findOne({ _id: invoice.transporterId })
