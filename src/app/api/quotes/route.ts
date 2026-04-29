@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     console.log('[CreateQuote] ✅ No existing quotes found. Proceeding...')
 
     const load = await db.collection('loads').findOne({ _id: loadId })
-    if (!load || !['QUOTING', 'APPROVED', 'PENDING'].includes(load.status)) {
+    if (!load || !['APPROVED', 'QUOTED'].includes(load.status)) {
       console.log('[CreateQuote] ❌ Load not available:', {
         exists: !!load,
         status: load?.status
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     console.log('[CreateQuote] ✅ Quote created:', result.insertedId.toString())
 
     // Update load status to QUOTED if this is the first quote
-    if (load.status === 'QUOTING' || load.status === 'APPROVED') {
+    if (load.status === 'APPROVED') {
       await db.collection('loads').updateOne(
         { _id: loadId },
         { $set: { status: 'QUOTED', updatedAt: new Date() } }

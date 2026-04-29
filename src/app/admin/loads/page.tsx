@@ -5,10 +5,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { AdminLoadActions } from '@/components/admin/AdminLoadActions'
 
-const STATUSES = ['', 'PENDING', 'QUOTING', 'QUOTED', 'APPROVED', 'ASSIGNED', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED']
+const STATUSES = ['', 'PENDING', 'APPROVED', 'QUOTED', 'ASSIGNED', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED']
 const STATUS_LABELS: Record<string, string> = {
-  '': 'All', PENDING: 'Pending', QUOTING: 'Quoting', QUOTED: 'Quoted',
-  APPROVED: 'Approved', ASSIGNED: 'Assigned', IN_TRANSIT: 'In Transit',
+  '': 'All', PENDING: 'Pending', APPROVED: 'Approved', QUOTED: 'Quoted',
+  ASSIGNED: 'Assigned', IN_TRANSIT: 'In Transit',
   DELIVERED: 'Delivered', CANCELLED: 'Cancelled',
 }
 

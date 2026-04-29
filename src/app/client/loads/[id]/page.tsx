@@ -36,6 +36,27 @@ export default function ClientLoadDetailPage({ params }: { params: { id: string 
   const [load, setLoad] = useState<Load | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const getStatusSteps = () => {
+    const allSteps = [
+      { key: 'PENDING', label: 'Pending Review', icon: '📝' },
+      { key: 'APPROVED', label: 'Approved', icon: '✅' },
+      { key: 'QUOTED', label: 'Quotes Received', icon: '💰' },
+      { key: 'ASSIGNED', label: 'Transporter Assigned', icon: '🚚' },
+      { key: 'IN_TRANSIT', label: 'In Transit', icon: '🛣️' },
+      { key: 'DELIVERED', label: 'Delivered', icon: '✔️' },
+    ]
+
+    const statusOrder = ['PENDING', 'APPROVED', 'QUOTED', 'ASSIGNED', 'IN_TRANSIT', 'DELIVERED']
+    const currentIndex = statusOrder.indexOf(load?.status || '')
+
+    return allSteps.map((step, index) => ({
+      ...step,
+      completed: index < currentIndex,
+      current: step.key === load?.status,
+      upcoming: index > currentIndex
+    }))
+  }
+
   useEffect(() => {
     const fetchLoad = async () => {
       try {
@@ -86,6 +107,61 @@ export default function ClientLoadDetailPage({ params }: { params: { id: string 
       >
         ← Back to My Loads
       </button>
+
+      {/* Status Tracking Timeline */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-6 p-6">
+        <h2 className="text-2xl font-bold text-[#1a2a5e] mb-6">📍 Load Tracking</h2>
+        <div className="relative">
+          <div className="flex justify-between items-start">
+            {getStatusSteps().map((step, index) => (
+              <div key={step.key} className="flex-1 relative">
+                <div className="flex flex-col items-center">
+                  {/* Circle */}
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 transition-all ${
+                    step.completed ? 'bg-green-500 border-green-500' :
+                    step.current ? 'bg-blue-500 border-blue-500 animate-pulse' :
+                    'bg-gray-200 border-gray-300'
+                  }`}>
+                    {step.completed ? '✓' : step.icon}
+                  </div>
+                  
+                  {/* Label */}
+                  <div className="mt-3 text-center">
+                    <p className={`text-sm font-bold ${
+                      step.completed ? 'text-green-600' :
+                      step.current ? 'text-blue-600' :
+                      'text-gray-400'
+                    }`}>
+                      {step.label}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Connecting Line */}
+                {index < getStatusSteps().length - 1 && (
+                  <div className={`absolute top-6 left-1/2 w-full h-1 -z-10 ${
+                    step.completed ? 'bg-green-500' : 'bg-gray-300'
+                  }`} style={{ transform: 'translateY(-50%)' }}></div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Current Status Message */}
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm font-semibold text-blue-800">
+            {load?.status === 'PENDING' && '⏳ Your load is pending admin review. You will be notified once approved.'}
+            {load?.status === 'APPROVED' && '✅ Your load has been approved! Transporters can now submit quotes.'}
+            {load?.status === 'QUOTED' && '💰 Quotes received! Our admin team is reviewing to assign the best transporter.'}
+            {load?.status === 'ASSIGNED' && '🚚 Transporter assigned! Your load will be picked up soon.'}
+            {load?.status === 'IN_TRANSIT' && '🛣️ Your load is currently in transit to the destination.'}
+            {load?.status === 'DELIVERED' && '✔️ Your load has been successfully delivered!'}
+            {load?.status === 'REJECTED' && '❌ Your load was rejected by admin.'}
+            {load?.status === 'CANCELLED' && '🚫 This load has been cancelled.'}
+          </p>
+        </div>
+      </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-6">
         {/* Load Header */}

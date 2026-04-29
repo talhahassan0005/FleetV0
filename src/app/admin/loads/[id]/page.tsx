@@ -323,7 +323,7 @@ export default function AdminLoadDetailPage() {
           )}
 
           {/* Quotes Section */}
-          {(load.status === 'APPROVED' || load.status === 'ASSIGNED') && quotes.length > 0 && (
+          {(load.status === 'APPROVED' || load.status === 'QUOTED' || load.status === 'ASSIGNED') && quotes.length > 0 && (
             <div className="bg-white rounded-lg shadow-lg p-6">
               <h2 className="text-2xl font-bold text-[#1a2a5e] mb-4 flex items-center gap-2">
                 📋 Quotes Received
@@ -367,7 +367,7 @@ export default function AdminLoadDetailPage() {
                         </span>
                         
                         {/* Admin Assignment Actions */}
-                        {load.status === 'APPROVED' && quote.status === 'PENDING' && (
+                        {(load.status === 'APPROVED' || load.status === 'QUOTED') && quote.status === 'PENDING' && (
                           <div className="mt-3">
                             {rejectingQuoteId === quote._id ? (
                               <div className="space-y-2">
