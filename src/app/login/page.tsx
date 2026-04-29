@@ -41,14 +41,14 @@ function LoginContent() {
       const role = session.user.role
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
       if (adminRoles.includes(role)) {
-        router.replace('/admin/dashboard')
+        router.push('/admin/dashboard')
       } else if (role === 'TRANSPORTER') {
-        router.replace('/transporter/dashboard')
+        router.push('/transporter/dashboard')
       } else {
-        router.replace('/client/dashboard')
+        router.push('/client/dashboard')
       }
     }
-  }, [session, loading])
+  }, [session, loading, router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
