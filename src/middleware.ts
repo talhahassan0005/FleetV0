@@ -7,11 +7,14 @@ const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MA
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
 
-  // Skip middleware for static files, API routes, and public assets
+  // Skip middleware for static files, API routes, public assets, and auth pages
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/static') ||
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/' ||
     pathname.includes('.') // files with extensions
   ) {
     return NextResponse.next()
