@@ -1,4 +1,5 @@
 'use client'
+import { openDocument } from '@/lib/document-url'
 // src/app/transporter/documents/page.tsx
 import { useEffect, useState, useCallback } from 'react'
 import { Topbar, PageLayout, DocumentsTableSkeleton } from '@/components/ui'
@@ -193,7 +194,11 @@ export default function TransporterDocumentsPage() {
                     href={`/api/documents/${selectedDoc._id}/view`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold mt-3"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      openDocument(selectedDoc.fileUrl, selectedDoc.originalName)
+                    }}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
