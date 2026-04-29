@@ -76,10 +76,12 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: false,
-  useSecureCookies: process.env.NODE_ENV === 'production',
+  // Cookie name MUST include __Secure- prefix in production (matches what NextAuth sets with secure:true)
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',

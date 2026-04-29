@@ -1,7 +1,7 @@
 'use client'
 // src/app/login/page.tsx
 import { useState, useEffect } from 'react'
-import { signIn, useSession } from 'next-auth/react'
+import { signIn, useSession, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -60,12 +60,24 @@ function LoginContent() {
       return 
     }
     if (res?.ok) {
-      // loading stays true (shows spinner) while session propagates
-      // useEffect above will redirect once session?.user is available
-      // Fallback: if session doesn't update within 3s, force navigate
-      setTimeout(() => {
-        setLoading(false)
-      }, 3000)
+      // Force session refresh — needed in production where cookie name changes
+      // useSession sometimes doesn't auto-update after signIn with redirect:false
+      const updatedSession = await getSession()
+      if (updatedSession?.user) {
+        const role = (updatedSession.user as any).role
+        const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
+        if (adminRoles.includes(role)) {
+          router.replace('/admin/dashboard')
+        } else if (role === 'TRANSPORTER') {
+          router.replace('/transporter/dashboard')
+        } else {
+          router.replace('/client/dashboard')
+        }
+      } else {
+        // getSession failed — cookie mismatch or slow propagation
+        // Last resort: reload the page, middleware will redirect based on cookie
+        window.location.reload()
+      }
     }
   }
 
