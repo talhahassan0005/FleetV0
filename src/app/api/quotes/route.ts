@@ -76,6 +76,15 @@ export async function POST(req: NextRequest) {
 
     console.log('[CreateQuote] ✅ Quote created:', result.insertedId.toString())
 
+    // Update load status to QUOTED if this is the first quote
+    if (load.status === 'QUOTING' || load.status === 'APPROVED') {
+      await db.collection('loads').updateOne(
+        { _id: loadId },
+        { $set: { status: 'QUOTED', updatedAt: new Date() } }
+      )
+      console.log('[CreateQuote] ✅ Load status updated to QUOTED')
+    }
+
     const user = await db.collection('users').findOne({ _id: userId })
     await db.collection('loadUpdates').insertOne({
       loadId,
