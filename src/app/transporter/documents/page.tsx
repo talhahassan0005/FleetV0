@@ -19,7 +19,6 @@ export default function TransporterDocumentsPage() {
     { value: 'INSURANCE', label: 'Insurance' },
     { value: 'TAX_CLEARANCE', label: 'Tax Clearance' },
     { value: 'VEHICLE_LIST', label: 'Vehicle List' },
-    { value: 'INVOICE', label: 'Invoice/Receipt' },
     { value: 'OTHER', label: 'Other' },
   ]
 
@@ -113,6 +112,7 @@ export default function TransporterDocumentsPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (file) handleUpload(file)

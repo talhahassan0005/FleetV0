@@ -21,8 +21,6 @@ export default function ClientDocumentsPage() {
     { value: 'COMPANY', label: 'Company Registration' },
     { value: 'AUTHORIZATION', label: 'Letter Authorizing Company to Work with Fleetxchange' },
     { value: 'TAX_CLEARANCE', label: 'Tax Clearance' },
-    { value: 'POD', label: 'Proof of Delivery' },
-    { value: 'INVOICE', label: 'Invoice' },
     { value: 'OTHER', label: 'Other' },
   ]
 
@@ -225,6 +223,7 @@ export default function ClientDocumentsPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (file) handleUpload(file)
