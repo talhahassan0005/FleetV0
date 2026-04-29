@@ -21,6 +21,9 @@ interface POD {
   loadId: string
   amount: number
   currency: string
+  invoiceId?: string
+  invoiceNumber?: string
+  invoicePdfUrl?: string
 }
 
 export default function AdminPodsPage() {
@@ -200,6 +203,30 @@ export default function AdminPodsPage() {
                     {pod.podFileName}
                   </a>
                 </div>
+
+                {/* Invoice Section */}
+                {pod.invoiceId && (
+                  <div className="bg-blue-50 p-3 rounded mb-4 border border-blue-200">
+                    <p className="text-xs text-blue-600 font-semibold mb-2">📄 Transporter Invoice Submitted</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{pod.invoiceNumber || 'Invoice'}</p>
+                        <p className="text-xs text-gray-600">Linked to this POD</p>
+                      </div>
+                      {pod.invoicePdfUrl && (
+                        <a
+                          href={pod.invoicePdfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded text-sm font-semibold hover:bg-blue-600 transition-colors"
+                        >
+                          <FileText className="w-4 h-4" />
+                          View Invoice
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-3">
                   <button

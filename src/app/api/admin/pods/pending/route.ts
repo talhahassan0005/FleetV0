@@ -48,6 +48,11 @@ export async function GET(req: NextRequest) {
             _id: pod.userId
           })
 
+          // Check if there's an invoice linked to this POD
+          const invoice = await db.collection('transporter_invoices').findOne({
+            podId: pod._id
+          })
+
           const enriched = {
             _id: pod._id.toString(),
             loadRef: load?.ref,
@@ -62,6 +67,9 @@ export async function GET(req: NextRequest) {
             loadId: pod.loadId?.toString(),
             amount: load?.finalPrice || 0,
             currency: load?.currency || 'ZAR',
+            invoiceId: invoice?._id?.toString(),
+            invoiceNumber: invoice?.invoiceNumber,
+            invoicePdfUrl: invoice?.invoicePdfUrl,
           }
           
           console.log('[AdminPODs] Enriched POD:', enriched)

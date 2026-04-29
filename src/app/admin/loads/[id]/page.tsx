@@ -323,7 +323,7 @@ export default function AdminLoadDetailPage() {
           )}
 
           {/* Quotes Section */}
-          {(load.status === 'APPROVED' || load.status === 'QUOTED' || load.status === 'ASSIGNED') && quotes.length > 0 && (
+          {quotes.length > 0 && (
             <div className="bg-white rounded-lg shadow-lg p-6">
               <h2 className="text-2xl font-bold text-[#1a2a5e] mb-4 flex items-center gap-2">
                 📋 Quotes Received
