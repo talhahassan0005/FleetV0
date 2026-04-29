@@ -35,39 +35,6 @@ export default function ClientLoadDetailPage({ params }: { params: { id: string 
   const router = useRouter()
   const [load, setLoad] = useState<Load | null>(null)
   const [loading, setLoading] = useState(true)
-  const [updatingQuoteId, setUpdatingQuoteId] = useState<string | null>(null)
-
-  const handleQuoteAction = async (quoteId: string, status: 'ACCEPTED' | 'REJECTED') => {
-    try {
-      setUpdatingQuoteId(quoteId)
-      const res = await fetch(`/api/quotes/${quoteId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      })
-
-      if (!res.ok) {
-        const error = await res.json()
-        alert(`Failed to ${status.toLowerCase()} quote: ${error.error}`)
-        return
-      }
-
-      // Update the quote status in local state
-      if (load && load.quotes) {
-        const updatedQuotes = load.quotes.map(q => 
-          q._id === quoteId ? { ...q, status } : q
-        )
-        setLoad({ ...load, quotes: updatedQuotes })
-      }
-
-      alert(`Quote ${status === 'ACCEPTED' ? 'accepted' : 'rejected'} successfully!`)
-    } catch (err) {
-      console.error('Error updating quote:', err)
-      alert('Failed to update quote')
-    } finally {
-      setUpdatingQuoteId(null)
-    }
-  }
 
   useEffect(() => {
     const fetchLoad = async () => {
@@ -262,30 +229,15 @@ export default function ClientLoadDetailPage({ params }: { params: { id: string 
                       }`}>
                         {quote.status}
                       </span>
-                      
-                      {/* Action Buttons */}
-                      {quote.status === 'PENDING' && (
-                        <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={() => handleQuoteAction(quote._id, 'ACCEPTED')}
-                            disabled={updatingQuoteId === quote._id}
-                            className="flex-1 px-3 py-1.5 rounded text-xs font-semibold bg-green-500 text-white hover:bg-green-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            {updatingQuoteId === quote._id ? '⏳' : '✓'} Accept
-                          </button>
-                          <button
-                            onClick={() => handleQuoteAction(quote._id, 'REJECTED')}
-                            disabled={updatingQuoteId === quote._id}
-                            className="flex-1 px-3 py-1.5 rounded text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            {updatingQuoteId === quote._id ? '⏳' : '✗'} Reject
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+              <p className="text-sm text-blue-800">
+                ℹ️ Our admin team will review all quotes and assign the best transporter for your load. You'll receive an email notification once assigned.
+              </p>
             </div>
           </div>
         )}

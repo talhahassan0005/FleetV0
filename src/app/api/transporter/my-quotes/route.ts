@@ -70,6 +70,7 @@ export async function GET(req: NextRequest) {
           currency: quote.currency || 'ZAR',
           status: quote.status || 'PENDING',
           createdAt: quote.createdAt || quote.updatedAt || new Date(),
+          rejectionReason: quote.rejectionReason || undefined,
           load: load ? {
             _id: load._id.toString(),
             ref: load.ref,

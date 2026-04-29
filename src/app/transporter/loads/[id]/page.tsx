@@ -206,45 +206,12 @@ export default function TransporterLoadDetailPage({ params }: { params: { id: st
                     <p className="text-lg font-semibold text-[#1a2a5e]">{load.weight} tons</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-600 uppercase font-semibold mb-2">POSTED PRICE</p>
-                    <p className="text-lg font-semibold text-[#3ab54a]">
-                      {load.currency} {load.finalPrice?.toLocaleString('en-ZA', { minimumFractionDigits: 2 }) || 'N/A'}
-                    </p>
-                  </div>
-                  <div>
                     <p className="text-xs text-gray-600 uppercase font-semibold mb-2">POSTED DATE</p>
                     <p className="text-lg font-semibold text-[#1a2a5e]">
                       {new Date(load.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-
-                {/* Pricing Breakdown - Show if Commission exists */}
-                {load.commission !== undefined && load.commission > 0 && (
-                  <div className="p-6 bg-blue-50 border-b">
-                    <h3 className="text-sm font-semibold text-[#1a2a5e] mb-4">PRICING BREAKDOWN</h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Base Price</span>
-                        <span className="font-semibold text-[#1a2a5e]">
-                          {load.currency} {load.finalPrice?.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-[#3ab54a]">
-                        <span>+ Commission (added by Admin)</span>
-                        <span className="font-semibold">
-                          +{load.currency} {load.commission?.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="border-t pt-3 flex justify-between items-center">
-                        <span className="font-bold text-[#1a2a5e]">Total Load Value</span>
-                        <span className="font-bold text-lg text-[#3ab54a]">
-                          {load.currency} {((load.finalPrice || 0) + (load.commission || 0)).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Description */}
                 <div className="p-6">
@@ -308,10 +275,7 @@ export default function TransporterLoadDetailPage({ params }: { params: { id: st
                       />
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      {load.commission !== undefined && load.commission > 0
-                        ? `Total load value: ${load.currency} ${((load.finalPrice || 0) + (load.commission || 0)).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`
-                        : `Client posted: ${load.currency} ${load.finalPrice?.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`
-                      }
+                      Quote based on your costs and capabilities
                     </p>
                   </div>
 

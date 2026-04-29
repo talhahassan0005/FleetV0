@@ -21,9 +21,22 @@ interface Load {
   currency: string
   status: string
   clientId: string
+  assignedTransporterId?: string
   rejectionReason?: string
   createdAt: string
   updatedAt: string
+}
+
+interface Quote {
+  _id: string
+  transporterId: string
+  transporterName: string
+  price: number
+  currency: string
+  notes?: string
+  status: string
+  rejectionReason?: string
+  createdAt: string
 }
 
 export default function AdminLoadDetailPage() {
@@ -32,9 +45,13 @@ export default function AdminLoadDetailPage() {
   // Get loadId from params or extract from URL pathname as fallback
   const [loadId, setLoadId] = useState<string | null>(null)
   const [load, setLoad] = useState<Load | null>(null)
+  const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showManagement, setShowManagement] = useState(false)
+  const [assigningQuoteId, setAssigningQuoteId] = useState<string | null>(null)
+  const [rejectingQuoteId, setRejectingQuoteId] = useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = useState('')
 
   // First effect: Extract the loadId from params or URL
   useEffect(() => {
@@ -92,6 +109,13 @@ export default function AdminLoadDetailPage() {
         if (data.load) {
           setLoad(data.load)
           setError('')
+          
+          // Fetch quotes for this load
+          const quotesRes = await fetch(`/api/admin/loads/${loadId}/quotes`)
+          if (quotesRes.ok) {
+            const quotesData = await quotesRes.json()
+            setQuotes(quotesData.quotes || [])
+          }
         } else {
           setError('Invalid response format from server')
           setLoad(null)
@@ -295,6 +319,143 @@ export default function AdminLoadDetailPage() {
                   />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Quotes Section */}
+          {(load.status === 'APPROVED' || load.status === 'ASSIGNED') && quotes.length > 0 && (
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-[#1a2a5e] mb-4 flex items-center gap-2">
+                📋 Quotes Received
+                <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-bold">
+                  {quotes.length}
+                </span>
+              </h2>
+              
+              <div className="space-y-3">
+                {quotes.map((quote) => (
+                  <div key={quote._id} className="p-4 bg-gradient-to-r from-blue-50 to-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-bold text-gray-800">{quote.transporterName}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(quote.createdAt).toLocaleDateString()} at {new Date(quote.createdAt).toLocaleTimeString()}
+                        </p>
+                        {quote.notes && (
+                          <p className="text-sm text-gray-600 mt-2 italic">"{quote.notes}"</p>
+                        )}
+                        {quote.rejectionReason && (
+                          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                            <p className="text-xs text-red-600 font-semibold">Rejection Reason:</p>
+                            <p className="text-sm text-red-800">{quote.rejectionReason}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right ml-4">
+                        <p className="text-xs text-gray-500 uppercase font-bold">Quoted Price</p>
+                        <p className="text-2xl font-black text-blue-600">
+                          {quote.currency} {quote.price.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                        </p>
+                        <span className={`inline-block mt-2 px-2 py-1 rounded text-xs font-bold ${
+                          quote.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                          quote.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' :
+                          quote.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                          quote.status === 'AUTO_REJECTED' ? 'bg-gray-100 text-gray-600' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {quote.status === 'AUTO_REJECTED' ? 'REJECTED' : quote.status}
+                        </span>
+                        
+                        {/* Admin Assignment Actions */}
+                        {load.status === 'APPROVED' && quote.status === 'PENDING' && (
+                          <div className="mt-3">
+                            {rejectingQuoteId === quote._id ? (
+                              <div className="space-y-2">
+                                <textarea
+                                  value={rejectionReason}
+                                  onChange={(e) => setRejectionReason(e.target.value)}
+                                  placeholder="Reason for rejection (optional)"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm resize-none focus:outline-none focus:border-red-500"
+                                  rows={2}
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const res = await fetch(`/api/quotes/${quote._id}`, {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ status: 'REJECTED', rejectionReason })
+                                        })
+                                        if (res.ok) {
+                                          window.location.reload()
+                                        } else {
+                                          alert('Failed to reject quote')
+                                        }
+                                      } catch (err) {
+                                        alert('Error rejecting quote')
+                                      }
+                                    }}
+                                    className="flex-1 px-3 py-1.5 rounded text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                  >
+                                    ✓ Confirm Reject
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setRejectingQuoteId(null)
+                                      setRejectionReason('')
+                                    }}
+                                    className="px-3 py-1.5 rounded text-xs font-semibold bg-gray-300 text-gray-700 hover:bg-gray-400 transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={async () => {
+                                    if (!confirm(`Assign this load to ${quote.transporterName}?`)) return
+                                    setAssigningQuoteId(quote._id)
+                                    try {
+                                      const res = await fetch(`/api/admin/loads/${loadId}/assign`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ quoteId: quote._id, transporterId: quote.transporterId })
+                                      })
+                                      if (res.ok) {
+                                        alert('Load assigned successfully!')
+                                        window.location.reload()
+                                      } else {
+                                        const error = await res.json()
+                                        alert(`Failed to assign: ${error.error}`)
+                                      }
+                                    } catch (err) {
+                                      alert('Error assigning load')
+                                    } finally {
+                                      setAssigningQuoteId(null)
+                                    }
+                                  }}
+                                  disabled={assigningQuoteId === quote._id}
+                                  className="flex-1 px-3 py-1.5 rounded text-xs font-semibold bg-green-500 text-white hover:bg-green-600 transition-colors disabled:opacity-60"
+                                >
+                                  {assigningQuoteId === quote._id ? '⏳' : '✓'} Assign Load
+                                </button>
+                                <button
+                                  onClick={() => setRejectingQuoteId(quote._id)}
+                                  className="flex-1 px-3 py-1.5 rounded text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                >
+                                  ✗ Reject
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

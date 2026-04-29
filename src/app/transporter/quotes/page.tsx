@@ -13,6 +13,7 @@ interface Quote {
   currency: string
   status: string
   createdAt: string
+  rejectionReason?: string
   load?: {
     _id: string
     ref: string
@@ -28,6 +29,7 @@ const QUOTE_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
   ACCEPTED: { bg: 'bg-green-100', text: 'text-green-700' },
   REJECTED: { bg: 'bg-red-100', text: 'text-red-700' },
+  AUTO_REJECTED: { bg: 'bg-gray-100', text: 'text-gray-600' },
   EXPIRED: { bg: 'bg-gray-100', text: 'text-gray-700' },
 }
 
@@ -190,10 +192,23 @@ export default function MyQuotesPage() {
                           Quoted {createdAt}
                         </p>
                       </div>
-                      <span className={`px-3 py-1 rounded text-xs font-semibold ${statusColor.bg} ${statusColor.text}`}>
-                        {quote.status}
-                      </span>
+                      <div className="text-right">
+                        <span className={`px-3 py-1 rounded text-xs font-semibold ${statusColor.bg} ${statusColor.text}`}>
+                          {quote.status === 'AUTO_REJECTED' ? 'REJECTED' : quote.status}
+                        </span>
+                        {quote.status === 'AUTO_REJECTED' && (
+                          <p className="text-xs text-gray-500 mt-1">Another quote was accepted</p>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Rejection Reason */}
+                    {(quote.status === 'REJECTED' || quote.status === 'AUTO_REJECTED') && quote.rejectionReason && (
+                      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                        <p className="text-xs text-red-600 font-semibold uppercase mb-1">Rejection Reason</p>
+                        <p className="text-sm text-red-800">{quote.rejectionReason}</p>
+                      </div>
+                    )}
 
                     {quote.load && (
                       <>

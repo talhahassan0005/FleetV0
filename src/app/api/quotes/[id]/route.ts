@@ -59,7 +59,7 @@ export async function PATCH(
     }
 
     const body = await req.json()
-    const { status } = body
+    const { status, rejectionReason } = body
 
     if (!status || !['ACCEPTED', 'REJECTED'].includes(status)) {
       return NextResponse.json(
@@ -70,7 +70,6 @@ export async function PATCH(
 
     const db = await getDatabase()
     const quoteId = new ObjectId(params.id)
-    const userId = new ObjectId(session.user.id)
 
     // Get the quote
     const quote = await db.collection('quotes').findOne({ _id: quoteId })
@@ -84,23 +83,28 @@ export async function PATCH(
       return NextResponse.json({ error: 'Load not found' }, { status: 404 })
     }
 
-    // Only the load owner (client) can update quote status
-    if (load.clientId.toString() !== userId.toString()) {
+    // Only admins can update quote status
+    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session.user.role)) {
       return NextResponse.json(
-        { error: 'Only the load owner can update quote status' },
+        { error: 'Only admins can accept or reject quotes' },
         { status: 403 }
       )
     }
 
     // Update quote status
+    const updateData: any = {
+      status,
+      updatedAt: new Date()
+    }
+
+    // Add rejection reason if provided
+    if (status === 'REJECTED' && rejectionReason) {
+      updateData.rejectionReason = rejectionReason
+    }
+
     const result = await db.collection('quotes').updateOne(
       { _id: quoteId },
-      {
-        $set: {
-          status,
-          updatedAt: new Date()
-        }
-      }
+      { $set: updateData }
     )
 
     if (result.modifiedCount === 0) {
@@ -111,71 +115,8 @@ export async function PATCH(
     const transporter = await db.collection('users').findOne({ _id: quote.transporterId })
     const loadRef = load.ref
 
-    // If quote is accepted, reject all other quotes for this load
-    if (status === 'ACCEPTED') {
-      await db.collection('quotes').updateMany(
-        { loadId: quote.loadId, _id: { $ne: quoteId }, status: 'PENDING' },
-        { $set: { status: 'AUTO_REJECTED', updatedAt: new Date() } }
-      )
-
-      // Update load status to ASSIGNED
-      await db.collection('loads').updateOne(
-        { _id: quote.loadId },
-        {
-          $set: {
-            status: 'ASSIGNED',
-            assignedTransporterId: quote.transporterId,
-            updatedAt: new Date()
-          }
-        }
-      )
-
-      // Send approval email to accepted transporter
-      if (transporter && transporter.email) {
-        try {
-          const emailContent = quoteApprovedEmail(
-            transporter.companyName || 'Transporter',
-            loadRef
-          )
-          await sendEmail(
-            transporter.email,
-            `✅ Quote Approved: ${loadRef}`,
-            emailContent
-          )
-          console.log('[UpdateQuote] ✅ Quote approved email sent to transporter')
-        } catch (emailErr) {
-          console.error('[UpdateQuote] ⚠️  Error sending approval email:', emailErr)
-        }
-      }
-
-      // Send rejection emails to other transporters whose quotes were auto-rejected
-      try {
-        const rejectedQuotes = await db.collection('quotes').find({
-          loadId: quote.loadId,
-          _id: { $ne: quoteId },
-          status: 'AUTO_REJECTED'
-        }).toArray()
-
-        for (const rejQuote of rejectedQuotes) {
-          const rejectedTransporter = await db.collection('users').findOne({ _id: rejQuote.transporterId })
-          if (rejectedTransporter && rejectedTransporter.email) {
-            const emailContent = quoteRejectedEmail(
-              rejectedTransporter.companyName || 'Transporter',
-              loadRef
-            )
-            await sendEmail(
-              rejectedTransporter.email,
-              `❌ Quote Rejected: ${loadRef}`,
-              emailContent
-            )
-          }
-        }
-        console.log(`[UpdateQuote] ✅ Quote rejected emails sent to ${rejectedQuotes.length} transporters`)
-      } catch (emailErr) {
-        console.error('[UpdateQuote] ⚠️  Error sending rejection emails:', emailErr)
-      }
-    } else if (status === 'REJECTED') {
-      // Send rejection email to transporter
+    // If quote is rejected, send rejection email
+    if (status === 'REJECTED') {
       if (transporter && transporter.email) {
         try {
           const emailContent = quoteRejectedEmail(

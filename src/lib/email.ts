@@ -163,7 +163,8 @@ export const userVerifiedEmail = (userName: string, userRole: string) => `
 
 export async function sendLoadRequestEmail(data: any) {
   try {
-    const result = await getTransporter().sendMail({
+    const transporter = getTransporter()
+    const result = await transporter.sendMail({
       from: `"FleetXchange" <${effectiveFrom}>`,
       to: 'Mrtiger@fleetxchange.africa',
       subject: `New Load Request from ${data.companyName}`,
@@ -211,6 +212,7 @@ export async function sendLoadRequestEmail(data: any) {
 
 export async function sendTransporterApplicationEmail(data: any) {
   try {
+    const transporter = getTransporter()
     const result = await transporter.sendMail({
       from: `"FleetXchange" <${effectiveFrom}>`,
       to: 'Mrtiger@fleetxchange.africa',
