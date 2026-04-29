@@ -11,6 +11,8 @@ export function HeaderWrapper() {
   const isPortalPage =
     pathname?.startsWith("/client/") ||
     pathname?.startsWith("/admin/") ||
+    pathname?.startsWith("/transporter/") ||
+    pathname === "/transporter" ||
     pathname?.startsWith("/login") ||
     pathname?.startsWith("/register") ||
     pathname === "/landing" ||

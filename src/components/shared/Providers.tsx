@@ -7,7 +7,7 @@ import { FooterWrapper } from './FooterWrapper'
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider 
-      refetchInterval={5 * 60}
+      refetchInterval={0}
       refetchOnWindowFocus={false}
       refetchWhenOffline={false}
     >

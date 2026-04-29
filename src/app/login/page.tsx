@@ -35,20 +35,20 @@ function LoginContent() {
     }
   }, [searchParams, isMounted])
 
-  // Redirect after successful login
+  // Redirect after successful login - only runs once when session first appears
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user && !loading) {
       const role = session.user.role
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
       if (adminRoles.includes(role)) {
-        window.location.href = '/admin/dashboard'
+        router.replace('/admin/dashboard')
       } else if (role === 'TRANSPORTER') {
-        window.location.href = '/transporter/dashboard'
+        router.replace('/transporter/dashboard')
       } else {
-        window.location.href = '/client/dashboard'
+        router.replace('/client/dashboard')
       }
     }
-  }, [session])
+  }, [session, loading])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -60,8 +60,8 @@ function LoginContent() {
       return 
     }
     if (res?.ok) {
-      // Force page reload to ensure session is properly loaded
-      window.location.reload()
+      // session useEffect will handle redirect once session loads
+      // do NOT reload — it causes flicker
     }
   }
 

@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { signOut } from 'next-auth/react'
-import { getRoleFromPath, getCompanyInitials, getCompanyName, clearToken } from '@/lib/client-auth'
+import { signOut, useSession } from 'next-auth/react'
+import { getRoleFromPath, getCompanyInitials } from '@/lib/client-auth'
 
 const ADMIN_ALL_NAV = [
   { label: 'Dashboard',      href: '/admin/dashboard',              icon: <GridIcon /> },
@@ -62,8 +62,10 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const { data: session } = useSession()
   const role = getRoleFromPath(pathname)
-  const companyName = getCompanyName() || 'FleetXchange'
+  // Use session for stable company name — avoids cookie-decode mismatch that causes flicker
+  const companyName = session?.user?.companyName || 'FleetXchange'
 
   let nav
   if (role === 'ADMIN') {
@@ -112,7 +114,6 @@ export function Sidebar() {
       </div>
       <button
         onClick={async () => {
-          clearToken()
           await signOut({ callbackUrl: '/login', redirect: true })
         }}
         className="mx-4 mb-5 text-[11px] text-[#1a2a5e]/70 bg-white/60 hover:text-[#1a2a5e] font-semibold text-center py-2 border border-slate-300 rounded-xl transition-all hover:bg-[#3ab54a]/10 hover:border-[#3ab54a]/40 shadow-sm uppercase tracking-widest active:scale-95">
