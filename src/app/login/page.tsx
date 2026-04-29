@@ -41,14 +41,14 @@ function LoginContent() {
       const role = session.user.role
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
       if (adminRoles.includes(role)) {
-        router.replace('/admin/dashboard')
+        window.location.href = '/admin/dashboard'
       } else if (role === 'TRANSPORTER') {
-        router.replace('/transporter/dashboard')
+        window.location.href = '/transporter/dashboard'
       } else {
-        router.replace('/client/dashboard')
+        window.location.href = '/client/dashboard'
       }
     }
-  }, [session, router])
+  }, [session])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -59,7 +59,10 @@ function LoginContent() {
       setError('Invalid email or password.'); 
       return 
     }
-    // Keep loading state active - session hook will trigger redirect
+    if (res?.ok) {
+      // Force page reload to ensure session is properly loaded
+      window.location.reload()
+    }
   }
 
   return (
