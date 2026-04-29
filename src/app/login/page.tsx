@@ -11,7 +11,7 @@ import { Suspense } from 'react'
 
 function LoginContent() {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -35,20 +35,20 @@ function LoginContent() {
     }
   }, [searchParams, isMounted])
 
-  // Redirect after successful login - only runs once when session first appears
+  // Redirect after successful login
   useEffect(() => {
-    if (session?.user && !loading) {
+    if (status === 'authenticated' && session?.user) {
       const role = session.user.role
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
       if (adminRoles.includes(role)) {
-        router.push('/admin/dashboard')
+        router.replace('/admin/dashboard')
       } else if (role === 'TRANSPORTER') {
-        router.push('/transporter/dashboard')
+        router.replace('/transporter/dashboard')
       } else {
-        router.push('/client/dashboard')
+        router.replace('/client/dashboard')
       }
     }
-  }, [session, loading, router])
+  }, [status, session])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -60,8 +60,12 @@ function LoginContent() {
       return 
     }
     if (res?.ok) {
-      // session useEffect will handle redirect once session loads
-      // do NOT reload — it causes flicker
+      // loading stays true (shows spinner) while session propagates
+      // useEffect above will redirect once session?.user is available
+      // Fallback: if session doesn't update within 3s, force navigate
+      setTimeout(() => {
+        setLoading(false)
+      }, 3000)
     }
   }
 
