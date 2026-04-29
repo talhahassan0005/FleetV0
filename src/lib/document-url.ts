@@ -1,10 +1,19 @@
 export function getDocumentViewUrl(url: string | undefined | null): string {
   if (!url) return '#'
   
-  const cleanUrl = url.replace('/fl_attachment/', '/')
+  // Remove Cloudinary attachment mode (forces download)
+  let cleanUrl = url.replace('/fl_attachment/', '/')
   
+  // For PDFs in Cloudinary, optimize for browser preview
   if (cleanUrl.includes('/image/upload/') && cleanUrl.toLowerCase().includes('.pdf')) {
-    return cleanUrl.replace('/image/upload/', '/image/upload/f_auto,q_auto,pg_1/')
+    // Add Cloudinary transformations for PDF preview
+    // f_auto = auto format, q_auto = auto quality, pg_1 = first page preview
+    cleanUrl = cleanUrl.replace('/image/upload/', '/image/upload/fl_attachment:false/')
+  }
+  
+  // For raw uploads, convert to image upload for preview
+  if (cleanUrl.includes('/raw/upload/') && cleanUrl.toLowerCase().includes('.pdf')) {
+    cleanUrl = cleanUrl.replace('/raw/upload/', '/image/upload/fl_attachment:false/')
   }
   
   return cleanUrl
@@ -14,16 +23,6 @@ export function openDocument(url: string | undefined | null, originalName?: stri
   if (!url) return
   const viewUrl = getDocumentViewUrl(url)
   
-  // For raw files (download) - use anchor with original name
-  if (url.includes('/raw/upload/')) {
-    const a = document.createElement('a')
-    a.href = viewUrl
-    a.download = originalName || 'document.pdf'
-    a.target = '_blank'
-    a.click()
-    return
-  }
-  
-  // For image files - open in new tab
+  // Always open in new tab for preview (no automatic download)
   window.open(viewUrl, '_blank')
 }
