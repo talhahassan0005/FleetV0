@@ -631,3 +631,29 @@ export const documentUploadAcknowledgementEmail = (userName: string, docType: st
   </div>
 </div>
 `;
+
+export const quoteSubmittedConfirmationEmail = (transporterName: string, loadRef: string, quotedPrice: number, currency: string) => `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
+  <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h2 style="color: #3ab54a; margin-top: 0;">📤 Quote Submitted Successfully</h2>
+    <p>Hi ${transporterName},</p>
+    <p>Your quote for load <strong>${loadRef}</strong> has been submitted and is now under review.</p>
+    
+    <div style="background: #e8f5e9; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #3ab54a;">
+      <p style="margin: 0;"><strong>Load Reference:</strong> ${loadRef}</p>
+      <p style="margin: 8px 0 0 0;"><strong>Your Quote:</strong> <span style="font-size: 20px; font-weight: bold; color: #3ab54a;">${currency} ${quotedPrice.toLocaleString()}</span></p>
+    </div>
+    
+    <p style="color: #555; font-size: 14px;">The admin team will review all submitted quotes. You will be notified once a decision has been made.</p>
+    
+    <p style="margin: 30px 0;">
+      <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://fleetxchange.africa'}/transporter/quotes" 
+         style="background-color: #1a2a5e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">
+        View My Quotes
+      </a>
+    </p>
+    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+    <p style="color: #999; font-size: 12px;">Best regards,<br><strong>FleetXChange Team</strong></p>
+  </div>
+</div>
+`;

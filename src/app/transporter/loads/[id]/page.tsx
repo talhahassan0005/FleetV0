@@ -19,6 +19,8 @@ interface Load {
   currency: string
   status: string
   createdAt: string
+  collectionDate?: string
+  deliveryDate?: string
   clientId: string
   documents?: Array<{
     _id: string
@@ -209,6 +211,30 @@ export default function TransporterLoadDetailPage({ params }: { params: { id: st
                     <p className="text-xs text-gray-600 uppercase font-semibold mb-2">POSTED DATE</p>
                     <p className="text-lg font-semibold text-[#1a2a5e]">
                       {new Date(load.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 uppercase font-semibold mb-2">COLLECTION DATE</p>
+                    <p className="text-lg font-semibold text-[#1a2a5e]">
+                      {load.collectionDate
+                        ? new Date(load.collectionDate).toLocaleDateString()
+                        : <span className="text-gray-400 text-sm">Not specified</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 uppercase font-semibold mb-2">DELIVERY DATE</p>
+                    <p className="text-lg font-semibold text-[#1a2a5e]">
+                      {load.deliveryDate
+                        ? new Date(load.deliveryDate).toLocaleDateString()
+                        : <span className="text-gray-400 text-sm">Not specified</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 uppercase font-semibold mb-2">OFFERED PRICE</p>
+                    <p className="text-lg font-semibold text-[#3ab54a]">
+                      {load.finalPrice
+                        ? `${load.currency} ${load.finalPrice.toLocaleString()}`
+                        : <span className="text-gray-400 text-sm">Not specified</span>}
                     </p>
                   </div>
                 </div>

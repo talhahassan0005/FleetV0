@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { z } from 'zod'
-import { sendEmail, quoteReceivedEmail } from '@/lib/email'
+import { sendEmail, quoteReceivedEmail, quoteSubmittedConfirmationEmail } from '@/lib/email'
 
 const schema = z.object({
   loadId: z.string(),
@@ -110,6 +110,22 @@ export async function POST(req: NextRequest) {
           emailContent
         )
         console.log('[CreateQuote] ✅ Quote received email sent to client:', client.email)
+      }
+
+      // Send confirmation to transporter
+      if (user?.email) {
+        const confirmContent = quoteSubmittedConfirmationEmail(
+          user.companyName || 'Transporter',
+          load.ref,
+          body.price,
+          load.currency || 'ZAR'
+        )
+        await sendEmail(
+          user.email,
+          `📤 Quote Submitted: ${load.ref}`,
+          confirmContent
+        )
+        console.log('[CreateQuote] ✅ Quote confirmation email sent to transporter:', user.email)
       }
     } catch (emailErr) {
       console.error('[CreateQuote] ⚠️  Error sending quote email:', emailErr)
