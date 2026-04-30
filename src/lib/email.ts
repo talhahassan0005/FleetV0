@@ -553,7 +553,7 @@ export const invoiceGeneratedEmail = (
     </p>
     
     <div style="text-align: center; margin: 30px 0;">
-      <a href="http://localhost:3000/client/invoices" style="background-color: #3ab54a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+      <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://fleetxchange.africa'}/client/invoices" style="background-color: #3ab54a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
         View Invoice
       </a>
     </div>
@@ -598,6 +598,34 @@ export const podApprovedByAdminEmail = (
       Once the client approves, invoices will be generated and you can track payment status.
     </p>
     
+    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+    <p style="color: #999; font-size: 12px;">Best regards,<br><strong>FleetXChange Team</strong></p>
+  </div>
+</div>
+`;
+
+export const documentUploadAcknowledgementEmail = (userName: string, docType: string) => `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
+  <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h2 style="color: #1a2a5e; margin-top: 0;">📄 Document Received – Under Review</h2>
+    <p>Hi ${userName},</p>
+    <p>We have successfully received your <strong>${docType.replace(/_/g, ' ')}</strong> document.</p>
+    
+    <div style="background: #e3f2fd; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #1a2a5e;">
+      <p style="margin: 0; color: #1a2a5e; font-size: 14px;">
+        ⏳ <strong>Review Timeline:</strong> Our team will review your document within <strong>24 hours</strong>.
+        If the document meets all requirements, it will be approved and you will receive a confirmation email.
+      </p>
+    </div>
+    
+    <p style="color: #555; font-size: 14px;">If your document is found to be incomplete or incorrect, our team will notify you with the reason and you will be able to resubmit.</p>
+    
+    <p style="margin: 30px 0;">
+      <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://fleetxchange.africa'}/dashboard" 
+         style="background-color: #1a2a5e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">
+        View My Documents
+      </a>
+    </p>
     <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
     <p style="color: #999; font-size: 12px;">Best regards,<br><strong>FleetXChange Team</strong></p>
   </div>

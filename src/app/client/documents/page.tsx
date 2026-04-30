@@ -16,6 +16,8 @@ export default function ClientDocumentsPage() {
   const [reviewComment, setReviewComment] = useState('')
   const [reviewStatus, setReviewStatus] = useState('APPROVED')
   const [submittingReview, setSubmittingReview] = useState(false)
+  const [editingDoc, setEditingDoc] = useState<any>(null)
+  const [uploadError, setUploadError] = useState<string>('')
 
   const docTypes = [
     { value: 'COMPANY', label: 'Company Registration' },
@@ -76,6 +78,36 @@ export default function ClientDocumentsPage() {
     } catch (err) {
       console.error('Upload error:', err)
       alert('Failed to upload document')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleEditUpload = async (file: File, docId: string) => {
+    if (!file) return
+    setUploadError('')
+    const MAX_SIZE = 10 * 1024 * 1024
+    if (file.size > MAX_SIZE) {
+      setUploadError(`File too large: ${(file.size / (1024 * 1024)).toFixed(1)}MB. Maximum is 10MB.`)
+      return
+    }
+    try {
+      setUploading(true)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('docType', editingDoc?.docType || selectedType)
+      // Mark this as a replacement for the old document
+      formData.append('replacesDocId', docId)
+      const res = await fetch('/api/documents', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setUploadError(err.error || 'Upload failed')
+        return
+      }
+      setEditingDoc(null)
+      await fetchDocuments()
+    } catch {
+      setUploadError('Upload failed. Please try again.')
     } finally {
       setUploading(false)
     }
@@ -271,7 +303,7 @@ export default function ClientDocumentsPage() {
                           <p className="text-xs text-gray-600 mt-2 italic">Admin: {adminReview.comment}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
                         <a
                           href={`/api/documents/${doc._id}/view`}
                           target="_blank"
@@ -282,8 +314,17 @@ export default function ClientDocumentsPage() {
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
                           </svg>
-                          View Document
+                          View
                         </a>
+                        {/* Edit button only for Under Review (PENDING) documents */}
+                        {verificationStatus === 'PENDING' && (
+                          <button
+                            onClick={() => { setEditingDoc(doc); setUploadError('') }}
+                            className="flex items-center gap-1 px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-semibold"
+                          >
+                            ✏️ Edit
+                          </button>
+                        )}
                         <span className={`inline-block px-3 py-1.5 rounded text-xs font-semibold ${statusBadge.bg} ${statusBadge.text} border ${statusBadge.border}`}>
                           {statusBadge.icon} {statusBadge.label}
                         </span>
@@ -331,6 +372,42 @@ export default function ClientDocumentsPage() {
             </div>
           )}
         </div>
+
+        {/* Edit Document Modal */}
+        {editingDoc && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-condensed font-bold text-lg text-[#1a2a5e] uppercase">Replace Document</h3>
+                <button onClick={() => { setEditingDoc(null); setUploadError('') }} className="text-gray-500 hover:text-gray-700 text-xl">✕</button>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Replacing: <strong>{editingDoc.originalName}</strong><br/>
+                Type: <strong>{editingDoc.docType}</strong>
+              </p>
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 mb-4 text-xs text-amber-800">
+                ℹ️ This document is currently <strong>Under Review</strong>. Uploading a new file will replace it and resubmit for review.
+              </div>
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                disabled={uploading}
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm mb-3"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleEditUpload(file, editingDoc._id)
+                }}
+              />
+              {uploadError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded text-xs text-red-700 font-semibold mb-3">
+                  ❌ {uploadError}
+                </div>
+              )}
+              {uploading && <p className="text-xs text-[#3ab54a] mb-3">⏳ Uploading...</p>}
+              <p className="text-xs text-gray-500">Supported formats: PDF, JPG, PNG (Max 10MB)</p>
+            </div>
+          </div>
+        )}
 
         {/* Document Review Modal */}
         {selectedDoc && (

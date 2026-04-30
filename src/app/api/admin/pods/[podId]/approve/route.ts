@@ -4,8 +4,9 @@
  * 
  * Admin approves POD:
  * 1. Updates POD status to APPROVED
- * 2. Changes load status to DELIVERED
- * 3. Sends status notification to client (NO POD or invoice forwarded)
+ * 2. Auto-forwards POD to Client
+ * 3. Sends notifications to both parties
+ * 4. Enables invoice creation
  */
 
 export const dynamic = 'force-dynamic'
@@ -86,7 +87,7 @@ export async function PATCH(
       _id: load.clientId
     })
 
-    // Update POD: Admin approval only - DO NOT forward to client
+    // Update POD: Admin approval + auto-forward to client
     const updateResult = await db.collection('documents').updateOne(
       { _id: podId },
       {
@@ -95,6 +96,11 @@ export async function PATCH(
           adminApprovedAt: new Date(),
           adminApprovedBy: new ObjectId(session.user.id),
           adminComments: comments,
+          
+          // Auto-forward to client for review
+          clientApprovalStatus: 'PENDING_CLIENT',
+          visibleTo: 'ADMIN,CLIENT,TRANSPORTER',
+          
           updatedAt: new Date(),
         }
       }
@@ -107,20 +113,11 @@ export async function PATCH(
       )
     }
 
-    // Update load status to DELIVERED after admin approves POD
-    await db.collection('loads').updateOne(
-      { _id: load._id },
-      {
-        $set: {
-          status: 'DELIVERED',
-          updatedAt: new Date(),
-        }
-      }
-    )
-
     console.log('[PODApprove] ✅ Admin approved POD:', podId.toString())
-    console.log('[PODApprove] ✅ Load status changed to DELIVERED')
-    console.log('[PODApprove]  Client will only see status change, NOT POD document or invoice')
+    console.log('[PODApprove] � POD Status:')
+    console.log('[PODApprove]   - adminApprovalStatus: APPROVED')
+    console.log('[PODApprove]   - clientApprovalStatus: PENDING_CLIENT (waiting for client approval)')
+    console.log('[PODApprove] �📤 Auto-forwarding POD to client...')
 
     // Send email to transporter
     if (transporter?.email) {
@@ -142,33 +139,34 @@ export async function PATCH(
       }
     }
 
-    // Send email to client - Status update only, NO POD or invoice
+    // Send email to client - NEW POD REQUIREMENT
     if (client?.email) {
       try {
         const emailContent = `
-          <h2>✅ Load Delivered: ${load.ref}</h2>
-          <p>Your load <strong>${load.ref}</strong> has been marked as delivered.</p>
+          <h2>⚠️ Action Required: POD Approval</h2>
+          <p>A Proof of Delivery (POD) for your load <strong>${load.ref}</strong> requires your approval.</p>
           <div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin: 15px 0;">
             <p><strong>Load Details:</strong></p>
             <ul>
               <li>Reference: ${load.ref}</li>
               <li>Route: ${load.origin} → ${load.destination}</li>
               <li>Cargo Type: ${load.cargoType}</li>
-              <li>Status: DELIVERED</li>
+              <li>Amount: ${load.currency || 'ZAR'} ${load.finalPrice?.toLocaleString() || 'N/A'}</li>
             </ul>
           </div>
-          <p>You can track this load in your portal.</p>
-          <a href="${process.env.NEXTAUTH_URL}/client/dashboard" style="background-color: #3ab54a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px;">
-            View Dashboard
+          <p><strong>Admin Comments:</strong> "${comments || 'No comments'}"</p>
+          <p>Please review and approve the POD in your portal. Once approved, invoices will be available for payment.</p>
+          <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://fleetxchange.africa'}/client/invoices" style="background-color: #3ab54a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px;">
+            Review POD & Approve
           </a>
         `
         
         await sendEmail(
           client.email,
-          `✅ Load Delivered: ${load.ref}`,
+          `⚠️ POD Requires Approval: ${load.ref}`,
           emailContent
         )
-        console.log('[PODApprove] 📧 Client notification sent (status only)')
+        console.log('[PODApprove] 📧 Client notification sent')
       } catch (emailErr) {
         console.error('[PODApprove] ⚠️ Error sending client email:', emailErr)
       }
@@ -178,18 +176,17 @@ export async function PATCH(
     await db.collection('loadUpdates').insertOne({
       loadId: load._id,
       userId: new ObjectId(session.user.id),
-      message: `POD approved by admin - Load marked as DELIVERED`,
+      message: `POD approved by admin and forwarded to client for approval`,
       createdAt: new Date(),
     })
 
     return NextResponse.json({
       success: true,
-      message: 'POD approved and load marked as delivered',
+      message: 'POD approved and forwarded to client',
       data: {
         podId: podId.toString(),
-        status: 'APPROVED',
-        loadStatus: 'DELIVERED',
-        approvedAt: new Date().toISOString(),
+        status: 'PENDING_CLIENT',
+        forwardedAt: new Date().toISOString(),
       }
     })
 

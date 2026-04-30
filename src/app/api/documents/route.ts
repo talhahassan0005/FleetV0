@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { uploadFile } from '@/lib/cloudinary'
+import { sendEmail, documentUploadAcknowledgementEmail } from '@/lib/email'
 import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
@@ -138,6 +139,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
+    // Enforce 10MB max file size
+    const MAX_SIZE = 10 * 1024 * 1024 // 10MB
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json(
+        { error: `File size too large. Maximum allowed size is 10MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)}MB.` },
+        { status: 413 }
+      )
+    }
+
     console.log('[PostDocument] Processing upload:', {
       userId: session.user.id,
       userRole: session.user.role,
@@ -230,6 +240,21 @@ export async function POST(req: NextRequest) {
     })
 
     const docId = docResult.insertedId
+
+    // Send upload acknowledgement email to user
+    try {
+      const userRecord = await db.collection('users').findOne({ _id: new ObjectId(session.user.id) })
+      if (userRecord?.email && docType !== 'POD' && docType !== 'INVOICE') {
+        const userName = userRecord.companyName || userRecord.name || userRecord.email
+        await sendEmail(
+          userRecord.email,
+          'Document Received – Under Review | FleetXChange',
+          documentUploadAcknowledgementEmail(userName, docType)
+        )
+      }
+    } catch (emailErr) {
+      console.error('[PostDocument] Email send failed (non-critical):', emailErr)
+    }
 
     // If transporter uploads a POD, add update and mark delivered
     if (docType === 'POD' && loadId) {

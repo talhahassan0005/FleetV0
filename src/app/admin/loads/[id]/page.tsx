@@ -312,6 +312,7 @@ export default function AdminLoadDetailPage() {
                   <AdminLoadActions
                     loadId={loadId}
                     action="loadManagement"
+                    currency={load?.currency || 'ZAR'}
                     onSuccess={() => {
                       // Refresh the load data
                       window.location.reload()

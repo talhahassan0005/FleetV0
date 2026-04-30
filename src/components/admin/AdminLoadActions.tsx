@@ -250,7 +250,7 @@ export function AdminLoadActions({ loadId, invoiceId, action, label, className =
         </div>
         <div className="space-y-2">
           <div>
-            <label className="field-label">Commission Amount (ZAR)</label>
+            <label className="field-label">Commission Amount ({currency})</label>
             <input 
               type="number" 
               step="0.01" 
@@ -268,7 +268,7 @@ export function AdminLoadActions({ loadId, invoiceId, action, label, className =
                 alert('Enter a valid commission amount')
                 return
               }
-              if (confirm(`Add R${parseFloat(commission).toFixed(2)} commission?`)) {
+              if (confirm(`Add ${currency} ${parseFloat(commission).toFixed(2)} commission to this load?`)) {
                 setCommissionLoading(true)
                 try {
                   const res = await fetch(`/api/admin/loads/${loadId}`, {

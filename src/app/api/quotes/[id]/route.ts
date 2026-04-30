@@ -115,10 +115,21 @@ export async function PATCH(
     const transporter = await db.collection('users').findOne({ _id: quote.transporterId })
     const loadRef = load.ref
 
-    // If quote is rejected, send rejection email
-    if (status === 'REJECTED') {
-      if (transporter && transporter.email) {
-        try {
+    // Send email based on status
+    if (transporter?.email) {
+      try {
+        if (status === 'ACCEPTED') {
+          const emailContent = quoteApprovedEmail(
+            transporter.companyName || 'Transporter',
+            loadRef
+          )
+          await sendEmail(
+            transporter.email,
+            `✅ Quote Accepted: ${loadRef}`,
+            emailContent
+          )
+          console.log('[UpdateQuote] ✅ Quote accepted email sent to transporter')
+        } else if (status === 'REJECTED') {
           const emailContent = quoteRejectedEmail(
             transporter.companyName || 'Transporter',
             loadRef
@@ -129,9 +140,9 @@ export async function PATCH(
             emailContent
           )
           console.log('[UpdateQuote] ✅ Quote rejected email sent to transporter')
-        } catch (emailErr) {
-          console.error('[UpdateQuote] ⚠️  Error sending rejection email:', emailErr)
         }
+      } catch (emailErr) {
+        console.error('[UpdateQuote] ⚠️  Error sending quote status email:', emailErr)
       }
     }
 

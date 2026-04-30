@@ -12,6 +12,7 @@ export default function TransporterDocumentsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedType, setSelectedType] = useState('REGISTRATION')
   const [selectedDoc, setSelectedDoc] = useState<any>(null)
+  const [uploadError, setUploadError] = useState<string>('')
 
   const docTypes = [
     { value: 'COMPANY', label: 'Company Registration' },
@@ -59,6 +60,15 @@ export default function TransporterDocumentsPage() {
 
   const handleUpload = async (file: File) => {
     if (!file) return
+    setUploadError('')
+
+    // Client-side 10MB size validation
+    const MAX_SIZE = 10 * 1024 * 1024
+    if (file.size > MAX_SIZE) {
+      setUploadError(`File too large: ${(file.size / (1024 * 1024)).toFixed(1)}MB. Maximum allowed size is 10MB. Please compress your file and try again.`)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
 
     try {
       setUploading(true)
@@ -71,13 +81,40 @@ export default function TransporterDocumentsPage() {
         body: formData,
       })
 
-      if (!res.ok) throw new Error('Upload failed')
+      if (!res.ok) {
+        let errMsg = 'Upload failed'
+        try {
+          const errData = await res.json()
+          errMsg = errData.error || errMsg
+        } catch {}
+        if (res.status === 413) {
+          errMsg = 'File too large. Maximum allowed size is 10MB.'
+        }
+        setUploadError(errMsg)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
 
-      await fetchDocuments()
+      const newDoc = await res.json()
+      // Optimistic update: add doc to list immediately so UI doesn't lag
+      const optimisticDoc = {
+        _id: newDoc._id,
+        originalName: file.name,
+        docType: selectedType,
+        uploadedByRole: 'TRANSPORTER',
+        createdAt: new Date().toISOString(),
+        verificationStatus: 'PENDING',
+        reviews: [],
+        fileUrl: '',
+      }
+      setDocuments(prev => [optimisticDoc, ...prev])
       if (fileInputRef.current) fileInputRef.current.value = ''
+      // Refresh in background to get full doc data
+      fetchDocuments()
     } catch (err) {
       console.error('Upload error:', err)
-      alert('Failed to upload document')
+      setUploadError('Upload failed. Please try again.')
+      if (fileInputRef.current) fileInputRef.current.value = ''
     } finally {
       setUploading(false)
     }
@@ -124,7 +161,12 @@ export default function TransporterDocumentsPage() {
               </div>
             </div>
             <p className="text-xs text-gray-500">Supported formats: PDF, JPG, PNG (Max 10MB)</p>
-            {uploading && <p className="text-xs text-[#3ab54a] mt-2">Uploading...</p>}
+            {uploading && <p className="text-xs text-[#3ab54a] mt-2">⏳ Uploading...</p>}
+            {uploadError && (
+              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded text-xs text-red-700 font-semibold">
+                ❌ {uploadError}
+              </div>
+            )}
           </div>
         </div>
 

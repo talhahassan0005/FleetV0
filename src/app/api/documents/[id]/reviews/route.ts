@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
+import { sendEmail, documentUploadAcknowledgementEmail, userVerifiedEmail, documentApprovedEmail, documentRejectedEmail } from '@/lib/email'
 
 export async function POST(
   req: NextRequest,
@@ -15,7 +16,17 @@ export async function POST(
   }
 
   try {
-    const { comment, status } = await req.json()
+    let comment: string, status: string
+    try {
+      const body = await req.json()
+      comment = body.comment
+      status = body.status
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid request body. Expected JSON with comment and status.' },
+        { status: 400 }
+      )
+    }
 
     if (!comment || !status) {
       return NextResponse.json(
@@ -167,15 +178,38 @@ export async function POST(
             { _id: doc.userId },
             { 
               $set: { 
-                isVerified: true, 
+                isVerified: true,
+                verificationStatus: 'VERIFIED',
                 verifiedAt: new Date(),
                 updatedAt: new Date()
               } 
             }
           )
           console.log(`[Account Verification] ✅ ${user.role} account verified: ${user.email}`)
+          // Send account verified email
+          try {
+            const userName = user.companyName || user.name || user.email
+            await sendEmail(
+              user.email,
+              'Your FleetXChange Account is Verified! ✅',
+              userVerifiedEmail(userName, user.role)
+            )
+          } catch (emailErr) {
+            console.error('[Reviews] Verified email failed (non-critical):', emailErr)
+          }
         } else {
           console.log(`[Account Verification] ⚠️ Not enough documents to verify ${user.role}`)
+          // Send document status email (approved/rejected)
+          try {
+            const userName = user.companyName || user.name || user.email
+            if (status === 'APPROVED') {
+              await sendEmail(user.email, 'Document Approved | FleetXChange', documentApprovedEmail(userName, doc.docType))
+            } else if (status === 'REJECTED') {
+              await sendEmail(user.email, 'Document Requires Attention | FleetXChange', documentRejectedEmail(userName, doc.docType, comment))
+            }
+          } catch (emailErr) {
+            console.error('[Reviews] Status email failed (non-critical):', emailErr)
+          }
         }
       }
     }

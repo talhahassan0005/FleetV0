@@ -84,7 +84,8 @@ export async function POST(req: NextRequest) {
         { _id: new ObjectId(userId) },
         { 
           $set: { 
-            isVerified: true, 
+            isVerified: true,
+            verificationStatus: 'VERIFIED',
             verifiedAt: new Date(),
             updatedAt: new Date()
           } 
