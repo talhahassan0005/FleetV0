@@ -9,6 +9,13 @@ const nextConfig = {
   
   // Enable SWC minification (faster than Terser)
   swcMinify: true,
+
+  // Increase body size limit to 10MB for document uploads (fixes 413 error)
+experimental: {
+  serverActions: {
+    bodySizeLimit: '10mb',
+  },
+},
   
   // Optimize images
   images: {
@@ -57,6 +64,7 @@ const nextConfig = {
           }
         ],
       },
+      
     ];
   },
 };
