@@ -48,18 +48,28 @@ export async function GET(req: NextRequest) {
             _id: pod.userId
           })
 
-          // Check if there's an invoice linked to this POD
-          const invoice = await db.collection('transporter_invoices').findOne({
+          console.log('[AdminPODs] POD:', pod._id.toString(), 'userId:', pod.userId?.toString(), 'Transporter:', transporter?.companyName)
+
+          // Check if there's an invoice document linked to this POD (in documents collection)
+          const invoiceDoc = await db.collection('documents').findOne({
+            relatedPodId: pod._id,
+            docType: 'INVOICE'
+          })
+
+          // Also check transporter_invoices collection for backward compatibility
+          const transporterInvoice = await db.collection('transporter_invoices').findOne({
             podId: pod._id
           })
 
+          const invoice = invoiceDoc || transporterInvoice
+
           const enriched = {
             _id: pod._id.toString(),
-            loadRef: load?.ref,
-            origin: load?.origin,
-            destination: load?.destination,
-            transporterName: transporter?.companyName || transporter?.name,
-            transporterEmail: transporter?.email,
+            loadRef: load?.ref || 'Unknown',
+            origin: load?.origin || 'Unknown',
+            destination: load?.destination || 'Unknown',
+            transporterName: transporter?.companyName || transporter?.name || 'Unknown',
+            transporterEmail: transporter?.email || '',
             uploadedAt: pod.createdAt,
             podFileName: pod.originalName,
             podUrl: pod.fileUrl,
@@ -67,12 +77,17 @@ export async function GET(req: NextRequest) {
             loadId: pod.loadId?.toString(),
             amount: load?.finalPrice || 0,
             currency: load?.currency || 'ZAR',
+            tonnage: load?.totalTonnage || load?.weight || 0,
             invoiceId: invoice?._id?.toString(),
-            invoiceNumber: invoice?.invoiceNumber,
-            invoicePdfUrl: invoice?.invoicePdfUrl,
+            invoiceNumber: invoice?.invoiceNumber || (invoiceDoc ? invoiceDoc.originalName : null),
+            invoicePdfUrl: invoice?.invoicePdfUrl || invoice?.fileUrl,
           }
           
-          console.log('[AdminPODs] Enriched POD:', enriched)
+          console.log('[AdminPODs] Enriched POD:', {
+            id: enriched._id,
+            transporter: enriched.transporterName,
+            hasInvoice: !!enriched.invoiceId
+          })
           return enriched
         } catch (err: any) {
           console.error('[AdminPODs] Error enriching POD:', err, pod._id)

@@ -260,27 +260,22 @@ export async function POST(req: NextRequest) {
       console.log(`[Invoice] 🔍 Searching for QB credentials for currency ${currency || load.currency}...`);
       
       const { getQBCredentialsByCurrency } = await import('@/lib/quickbooks');
-      let qbCredentials;
-      try {
-        qbCredentials = await getQBCredentialsByCurrency(currency || load.currency);
-        console.log('[Invoice] QB credential lookup result:', qbCredentials ? '✅ FOUND' : '❌ NOT FOUND');
+      const qbCredentials = await getQBCredentialsByCurrency(currency || load.currency);
+      console.log('[Invoice] QB credential lookup result:', qbCredentials ? '✅ FOUND' : '❌ NOT FOUND');
+      
+      // VALIDATION: Ensure QB account currency matches selected currency
+      if (qbCredentials && qbCredentials.country) {
+        const qbCurrency = qbCredentials.country === 'ZA' ? 'ZAR' : 
+                          qbCredentials.country === 'BW' ? 'BWP' :
+                          qbCredentials.country === 'ZW' ? 'ZWL' :
+                          qbCredentials.country === 'US' ? 'USD' : 'ZAR';
         
-        // VALIDATION: Ensure QB account currency matches selected currency
-        if (qbCredentials && qbCredentials.country) {
-          const qbCurrency = qbCredentials.country === 'ZA' ? 'ZAR' : 
-                            qbCredentials.country === 'BW' ? 'BWP' :
-                            qbCredentials.country === 'US' ? 'USD' : 'ZAR';
-          
-          const selectedCurrency = currency || load.currency;
-          if (qbCurrency !== selectedCurrency) {
-            console.error(`[Invoice] ❌ CURRENCY MISMATCH: Selected currency (${selectedCurrency}) does not match QB account currency (${qbCurrency})`);
-            throw new Error(`Cannot create invoice: Selected currency (${selectedCurrency}) does not match QB account (${qbCurrency}). Please connect QB account for ${selectedCurrency}.`);
-          }
-          console.log(`[Invoice] ✅ Currency validation passed: ${selectedCurrency} matches QB account`);
+        const selectedCurrency = currency || load.currency;
+        if (qbCurrency !== selectedCurrency) {
+          console.error(`[Invoice] ❌ CURRENCY MISMATCH: Selected currency (${selectedCurrency}) does not match QB account currency (${qbCurrency})`);
+          throw new Error(`Cannot create invoice: Selected currency (${selectedCurrency}) does not match QB account (${qbCurrency}). Please connect QB account for ${selectedCurrency}.`);
         }
-      } catch (err: any) {
-        console.error('[Invoice] ⚠️ QB credential lookup error:', err.message);
-        qbCredentials = null;
+        console.log(`[Invoice] ✅ Currency validation passed: ${selectedCurrency} matches QB account`);
       }
 
       if (qbCredentials) {
@@ -490,7 +485,8 @@ export async function POST(req: NextRequest) {
           console.log('[Invoice] ✅ QB Invoice created with ID:', qbInvoice.invoiceId);
 
           // IMMEDIATELY save qbLink to database:
-          const qbLinkToSave = `https://app.qbo.intuit.com/app/invoice?txnId=${qbInvoice.invoiceId}`;
+          // Use generateQBInvoiceLink to respect SANDBOX vs PRODUCTION environment
+          const qbLinkToSave = generateQBInvoiceLink(qbInvoice.invoiceId);
           console.log('[Invoice] 💾 Saving QB Invoice link to DB:', qbLinkToSave);
           console.log('[Invoice] 💾 Saving to invoice ID:', clientInvoiceResult.insertedId.toString());
           
@@ -582,7 +578,8 @@ export async function POST(req: NextRequest) {
       }
     } catch (qbSetupError: any) {
       console.error('[Invoice] ❌ QB setup error:', qbSetupError.message);
-      console.error('[Invoice] Error details:', qbSetupError.stack);
+      console.error('[Invoice] ❌ QB setup error stack:', qbSetupError.stack);
+      console.error('[Invoice] ❌ This caused qbLink to be null. Invoice was still created in the system.');
       // Links remain null — QB not configured or failed
     }
 

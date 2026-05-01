@@ -199,12 +199,35 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
   };
 }
 
+// Map country code to currency (used as fallback when currency field is missing)
+const COUNTRY_TO_CURRENCY: Record<string, string> = {
+  ZA: 'ZAR',
+  BW: 'BWP',
+  ZW: 'ZWL',
+  US: 'USD',
+  GB: 'GBP',
+  EU: 'EUR',
+  NG: 'NGN',
+  KE: 'KES',
+  UG: 'UGX',
+  TZ: 'TZS',
+  ZM: 'ZMW',
+  MZ: 'MZN',
+  NA: 'NAD',
+  LS: 'LSL',
+  SZ: 'SZL',
+};
+
 export async function getQBCredentialsByCurrency(currency: string): Promise<{
   accessToken: string;
   refreshToken: string;
   realmId: string;
   country: string;
 }> {
+  const normalizedCurrency = currency.toUpperCase().trim();
+  
+  console.log(`[QB Router] 🔍 Looking up QB credentials for currency: ${normalizedCurrency}`);
+  
   const { getDatabase } = await import('@/lib/prisma');
   const db = await getDatabase();
   const { QBCountryConfig } = await import('@/lib/models');
@@ -214,24 +237,54 @@ export async function getQBCredentialsByCurrency(currency: string): Promise<{
 
   // Verify this currency is configured in active QB countries
   const countryConfig = await QBCountryConfig.findOne({ 
-    currency: currency.toUpperCase(), 
+    currency: normalizedCurrency, 
     isActive: true 
   });
   
   if (!countryConfig) {
-    console.log(`[QB Router] ⚠️ Currency ${currency} not in active QB countries, using default`);
+    console.log(`[QB Router] ⚠️ Currency ${normalizedCurrency} not in active QB countries list`);
   }
 
-  const admin = await db.collection('users').findOne({ role: 'ADMIN' });
-  if (!admin) throw new Error('No admin found');
+  // Find admin user - search by all known admin roles
+  const admin = await db.collection('users').findOne({ 
+    role: { $in: ['SUPER_ADMIN', 'ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN'] } 
+  });
+  
+  if (!admin) {
+    console.error('[QB Router] ❌ No admin user found in database! Roles searched: SUPER_ADMIN, ADMIN, FINANCE_ADMIN, OPERATIONS_ADMIN');
+    // Extra debug: count all users to confirm DB connection is working
+    const totalUsers = await db.collection('users').countDocuments();
+    console.error(`[QB Router] ❌ Total users in DB: ${totalUsers}`);
+    throw new Error('No admin found');
+  }
 
-  // Try to find matching QB account by currency
-  const qbAccount = admin.quickbooksAccounts?.find(
-    (acc: any) => acc.currency === currency.toUpperCase() && acc.isConnected
-  );
+  console.log(`[QB Router] ✅ Admin found: ${admin.email} (role: ${admin.role})`);
+  console.log(`[QB Router] QB accounts in DB: ${admin.quickbooksAccounts?.length || 0}`);
+  
+  // Log all stored accounts for debugging
+  if (admin.quickbooksAccounts?.length > 0) {
+    admin.quickbooksAccounts.forEach((acc: any, i: number) => {
+      console.log(`[QB Router]   Account[${i}]: country=${acc.country}, currency=${acc.currency}, isConnected=${acc.isConnected}, realmId=${acc.realmId}`);
+    });
+  }
+
+  // Try to find matching QB account by currency (case-insensitive)
+  // Also try matching by country→currency mapping as fallback
+  const qbAccount = admin.quickbooksAccounts?.find((acc: any) => {
+    if (!acc.isConnected) return false;
+    
+    // Match by stored currency field (primary)
+    if (acc.currency && acc.currency.toUpperCase() === normalizedCurrency) return true;
+    
+    // Match by country→currency mapping (fallback if currency field is missing)
+    const countryCurrency = acc.country ? COUNTRY_TO_CURRENCY[acc.country.toUpperCase()] : null;
+    if (countryCurrency === normalizedCurrency) return true;
+    
+    return false;
+  });
 
   if (qbAccount) {
-    console.log(`[QB Router] ✅ Found QB account for currency ${currency}: realmId ${qbAccount.realmId} (${countryConfig?.label || 'Unknown'})`);
+    console.log(`[QB Router] ✅ Found QB account for currency ${normalizedCurrency}: realmId ${qbAccount.realmId} country=${qbAccount.country}`);
     return {
       accessToken: qbAccount.accessToken,
       refreshToken: qbAccount.refreshToken,
@@ -241,8 +294,11 @@ export async function getQBCredentialsByCurrency(currency: string): Promise<{
   }
 
   // Fallback to legacy single QB account
-  console.log(`[QB Router] ⚠️ Fallback to default QB account for currency: ${currency}`);
+  console.log(`[QB Router] ⚠️ No multi-account match for ${normalizedCurrency}, checking legacy QB account...`);
   if (admin.quickbooks?.isConnected) {
+    // For legacy account, assume it's ZAR (South Africa) unless currency matches
+    const legacyCurrency = COUNTRY_TO_CURRENCY['ZA']; // ZAR
+    console.log(`[QB Router] ℹ️ Legacy QB account found (currency: ${legacyCurrency})`);
     return {
       accessToken: admin.quickbooks.accessToken,
       refreshToken: admin.quickbooks.refreshToken,
@@ -251,7 +307,9 @@ export async function getQBCredentialsByCurrency(currency: string): Promise<{
     };
   }
 
-  throw new Error(`No QB account connected for currency: ${currency}`);
+  console.error(`[QB Router] ❌ No QB account connected for currency: ${normalizedCurrency}`);
+  console.error(`[QB Router] ❌ Admin has ${admin.quickbooksAccounts?.length || 0} QB accounts, none match ${normalizedCurrency}`);
+  throw new Error(`No QB account connected for currency: ${normalizedCurrency}`);
 }
 
 /**
@@ -317,12 +375,18 @@ export async function makeQBAPICallWithRefresh(
     
     console.log(`[QB Refresh Wrapper] 🔍 Fetching QB admin credentials from DB for currency ${currency}...`);
     
-    const admin = await db.collection('users').findOne({ role: 'ADMIN' });
+    const admin = await db.collection('users').findOne({ 
+      role: { $in: ['SUPER_ADMIN', 'ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN'] } 
+    });
     if (!admin) throw new Error('No admin found');
 
+    const normalizedCurrency = currency.toUpperCase().trim();
     let isLegacy = false;
     let qbAccount = admin.quickbooksAccounts?.find(
-      (acc: any) => acc.currency === currency && acc.isConnected
+      (acc: any) => acc.isConnected && (
+        (acc.currency && acc.currency.toUpperCase() === normalizedCurrency) ||
+        (acc.country && COUNTRY_TO_CURRENCY[acc.country.toUpperCase()] === normalizedCurrency)
+      )
     );
 
     if (!qbAccount) {

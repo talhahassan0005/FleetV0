@@ -205,15 +205,11 @@ export default function CreateInvoicePage() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <h2 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
               <Plus className="w-5 h-5" />
-              Create Invoice from Approved POD
+              Create Client Invoice from Approved POD
             </h2>
             <p className="text-sm text-blue-800">
-              Select an approved POD and enter invoice details. Two invoices will be generated:
+              Select an approved POD and enter invoice details. Client invoice will be generated with markup and sent to client.
             </p>
-            <ul className="text-sm text-blue-800 list-disc list-inside mt-2 space-y-1">
-              <li><strong>Transporter Invoice:</strong> Amount you pay the transporter</li>
-              <li><strong>Client Invoice:</strong> Amount with markup for the client</li>
-            </ul>
           </div>
 
           <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
@@ -385,7 +381,7 @@ export default function CreateInvoicePage() {
                 disabled={submitting || !selectedPodId}
                 className="flex-1 px-6 py-3 bg-[#3ab54a] text-white rounded-lg font-bold hover:bg-[#2d9e3c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {submitting ? 'Creating Invoices...' : 'Create Both Invoices'}
+                {submitting ? 'Creating Invoice...' : 'Create Client Invoice'}
               </button>
               <button
                 type="button"
