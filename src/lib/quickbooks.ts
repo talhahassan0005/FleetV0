@@ -727,7 +727,7 @@ export async function createQBInvoice(
   const lines = invoiceData.lineItems.map((item: any, index: number) => {
     const amount = Number(item.amount) || 0;
     const qty = Number(item.quantity) || 1;
-    const rate = amount / qty;
+    const rate = qty > 0 ? amount / qty : amount;
     
     return {
       DetailType: 'SalesItemLineDetail',
