@@ -16,14 +16,15 @@ export async function GET() {
 
   console.log('[ClientInvoices] Fetching invoices for client:', session.user.id)
 
-  // Get invoices from new client_invoices collection
-  const invoices = await db.collection('client_invoices').find({
-    clientId
+  // Get invoices from invoices collection where invoiceType is CLIENT_INVOICE
+  const invoices = await db.collection('invoices').find({
+    clientId,
+    invoiceType: 'CLIENT_INVOICE'
   })
   .sort({ createdAt: -1 })
   .toArray()
 
-  console.log('[ClientInvoices] Found', invoices.length, 'invoices')
+  console.log('[ClientInvoices] Found', invoices.length, 'client invoices')
 
   // Get load details for each invoice
   const invoicesWithDetails = await Promise.all(
@@ -32,20 +33,17 @@ export async function GET() {
       
       return {
         _id: invoice._id.toString(),
-        quickbooksInvoiceNumber: invoice.quickbooksInvoiceNumber,
-        quickbooksInvoicePdfUrl: invoice.quickbooksInvoicePdfUrl,
-        quickbooksInvoicePdfName: invoice.quickbooksInvoicePdfName,
+        invoiceNumber: invoice.invoiceNumber,
+        invoiceType: invoice.invoiceType,
         amount: invoice.amount,
         currency: invoice.currency,
-        tonnage: invoice.tonnage,
-        status: invoice.status,
         paymentStatus: invoice.paymentStatus,
-        paymentDate: invoice.paymentDate,
+        clientApprovalStatus: invoice.clientApprovalStatus,
+        status: invoice.status,
+        qbLink: invoice.qbLink || null,
         createdAt: invoice.createdAt,
-        sentAt: invoice.sentAt,
-        notes: invoice.notes,
+        dueDate: invoice.dueDate,
         loadRef: load?.ref || 'Unknown',
-        loadRoute: load ? `${load.origin} → ${load.destination}` : 'Unknown'
       }
     })
   )

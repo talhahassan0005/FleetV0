@@ -726,6 +726,9 @@ export async function createQBInvoice(
   // Use dynamically fetched service item from QB account
   const lines = invoiceData.lineItems.map((item: any, index: number) => {
     const amount = Number(item.amount) || 0;
+    const qty = Number(item.quantity) || 1;
+    const rate = amount / qty;
+    
     return {
       DetailType: 'SalesItemLineDetail',
       Amount: amount,
@@ -733,7 +736,9 @@ export async function createQBInvoice(
         ItemRef: {
           name: serviceItemName,
           value: serviceItemId
-        }
+        },
+        Qty: qty,
+        UnitPrice: rate
       },
       Description: item.description || 'Freight Service',
       LineNum: index + 1,
