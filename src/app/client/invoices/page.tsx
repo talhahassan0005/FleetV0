@@ -512,7 +512,6 @@ export default function ClientInvoicesPage() {
               </div>
             )}
           </div>
-        )}
 
         {/* Invoice Details Modal */}
         {viewingInvoice && (
