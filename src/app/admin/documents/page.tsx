@@ -166,8 +166,21 @@ export default function AdminDocumentsPage() {
       })
 
       if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || error.details || 'Failed to submit review')
+        let errorMsg = 'Failed to submit review'
+        try {
+          const error = await res.json()
+          errorMsg = error.error || error.details || errorMsg
+        } catch (parseErr) {
+          // If JSON parsing fails, try to get text
+          try {
+            const textError = await res.text()
+            console.error('[AdminDocuments] Non-JSON error response:', textError)
+            errorMsg = `Server error (${res.status}): ${textError.substring(0, 100)}`
+          } catch {
+            errorMsg = `Server error (${res.status})`
+          }
+        }
+        throw new Error(errorMsg)
       }
 
       const result = await res.json()
