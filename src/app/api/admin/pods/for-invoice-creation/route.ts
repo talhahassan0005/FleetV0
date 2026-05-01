@@ -52,11 +52,10 @@ export async function GET(req: NextRequest) {
       console.log('[ForInvoiceCreation] Sample POD from pods collection:', podCollection[0])
     }
 
-    // Get PODs approved by BOTH admin and client, ready for invoicing
+    // Get PODs approved by admin — admin approval is sufficient for invoice creation
     const readyPODs = await db.collection('documents').find({
       docType: 'POD',
       adminApprovalStatus: 'APPROVED',
-      clientApprovalStatus: 'APPROVED', // Must be approved by client too
       // Only exclude if explicitly marked as invoiced
       invoiceStatus: { $ne: 'INVOICED' }
     })
@@ -67,7 +66,6 @@ export async function GET(req: NextRequest) {
     console.log('[ForInvoiceCreation] Ready PODs:', readyPODs.map(p => ({
       id: p._id.toString(),
       adminStatus: p.adminApprovalStatus,
-      clientStatus: p.clientApprovalStatus,
       loadId: p.loadId?.toString()
     })))
 

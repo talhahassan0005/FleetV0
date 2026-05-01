@@ -87,7 +87,8 @@ export async function PATCH(
       _id: load.clientId
     })
 
-    // Update POD: Admin approval + auto-forward to client
+    // Update POD: Admin approval is final - no client approval needed
+    // Client only gets tracking updates, not POD approval workflow
     const updateResult = await db.collection('documents').updateOne(
       { _id: podId },
       {
@@ -97,9 +98,11 @@ export async function PATCH(
           adminApprovedBy: new ObjectId(session.user.id),
           adminComments: comments,
           
-          // Auto-forward to client for review
-          clientApprovalStatus: 'PENDING_CLIENT',
-          visibleTo: 'ADMIN,CLIENT,TRANSPORTER',
+          // Admin approval is sufficient - auto-mark client side as approved too
+          // This enables invoice creation without requiring client action
+          clientApprovalStatus: 'APPROVED',
+          clientApprovedAt: new Date(),
+          visibleTo: 'ADMIN,TRANSPORTER',
           
           updatedAt: new Date(),
         }
@@ -114,12 +117,12 @@ export async function PATCH(
     }
 
     console.log('[PODApprove] ✅ Admin approved POD:', podId.toString())
-    console.log('[PODApprove] � POD Status:')
+    console.log('[PODApprove] POD Status:')
     console.log('[PODApprove]   - adminApprovalStatus: APPROVED')
-    console.log('[PODApprove]   - clientApprovalStatus: PENDING_CLIENT (waiting for client approval)')
-    console.log('[PODApprove] �📤 Auto-forwarding POD to client...')
+    console.log('[PODApprove]   - clientApprovalStatus: APPROVED (auto-approved, no client action needed)')
+    console.log('[PODApprove] POD fully approved - ready for invoice creation')
 
-    // Send email to transporter
+    // Send email to transporter - POD fully approved
     if (transporter?.email) {
       try {
         const emailContent = podApprovedByAdminEmail(
@@ -139,54 +142,23 @@ export async function PATCH(
       }
     }
 
-    // Send email to client - NEW POD REQUIREMENT
-    if (client?.email) {
-      try {
-        const emailContent = `
-          <h2>⚠️ Action Required: POD Approval</h2>
-          <p>A Proof of Delivery (POD) for your load <strong>${load.ref}</strong> requires your approval.</p>
-          <div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin: 15px 0;">
-            <p><strong>Load Details:</strong></p>
-            <ul>
-              <li>Reference: ${load.ref}</li>
-              <li>Route: ${load.origin} → ${load.destination}</li>
-              <li>Cargo Type: ${load.cargoType}</li>
-              <li>Amount: ${load.currency || 'ZAR'} ${load.finalPrice?.toLocaleString() || 'N/A'}</li>
-            </ul>
-          </div>
-          <p><strong>Admin Comments:</strong> "${comments || 'No comments'}"</p>
-          <p>Please review and approve the POD in your portal. Once approved, invoices will be available for payment.</p>
-          <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://fleetxchange.africa'}/client/invoices" style="background-color: #3ab54a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px;">
-            Review POD & Approve
-          </a>
-        `
-        
-        await sendEmail(
-          client.email,
-          `⚠️ POD Requires Approval: ${load.ref}`,
-          emailContent
-        )
-        console.log('[PODApprove] 📧 Client notification sent')
-      } catch (emailErr) {
-        console.error('[PODApprove] ⚠️ Error sending client email:', emailErr)
-      }
-    }
+    // No client email needed - client is not part of POD approval workflow
 
     // Create load update
     await db.collection('loadUpdates').insertOne({
       loadId: load._id,
       userId: new ObjectId(session.user.id),
-      message: `POD approved by admin and forwarded to client for approval`,
+      message: `POD approved by admin - ready for invoice creation`,
       createdAt: new Date(),
     })
 
     return NextResponse.json({
       success: true,
-      message: 'POD approved and forwarded to client',
+      message: 'POD approved by admin',
       data: {
         podId: podId.toString(),
-        status: 'PENDING_CLIENT',
-        forwardedAt: new Date().toISOString(),
+        status: 'APPROVED',
+        approvedAt: new Date().toISOString(),
       }
     })
 

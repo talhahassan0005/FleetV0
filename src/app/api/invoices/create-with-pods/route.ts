@@ -586,36 +586,7 @@ export async function POST(req: NextRequest) {
       // Links remain null — QB not configured or failed
     }
 
-    // Send email to transporter
-    if (transporter.email) {
-      try {
-        let emailContent = invoiceGeneratedEmail(
-          transporter.companyName || 'Transporter',
-          load.ref,
-          transporterInvNum,
-          transporterAmount,
-          currency || load.currency || 'ZAR',
-          tonnageForThisInvoice,
-          progressPercentage
-        );
-
-        // Add QB link to email if available
-        if (qbBillLink) {
-          emailContent += `\n\n📊 View Bill in QuickBooks: <a href="${qbBillLink}">${qbBillLink}</a>`;
-        }
-
-        await sendEmail(
-          transporter.email,
-          `✅ Invoice Generated: ${load.ref}`,
-          emailContent
-        );
-        console.log('[Invoice] 📧 Transporter notification sent');
-      } catch (emailErr) {
-        console.error('[Invoice] ⚠️ Error sending transporter email:', emailErr);
-      }
-    }
-
-    // Send email to client
+    // Send email to client ONLY - Transporter already submitted their invoice, no need to notify them
     if (client.email) {
       try {
         let emailContent = invoiceGeneratedEmail(
@@ -681,9 +652,11 @@ export async function POST(req: NextRequest) {
     console.log('[Invoice] 🔄 Client invoice qbLink after re-fetch:', updatedClientInvoice?.qbLink || 'NULL');
     console.log('[Invoice] 🔄 Transporter invoice qbLink after re-fetch:', updatedTransporterInvoice?.qbLink || 'NULL');
 
-    // Use qbInvoiceLink from QB creation if available, otherwise use from DB
-    const finalClientQbLink = qbInvoiceLink || updatedClientInvoice?.qbLink || null;
+    // Use qbLink from database (already saved during QB invoice creation)
+    const finalClientQbLink = updatedClientInvoice?.qbLink || null;
+    const finalTransporterQbLink = updatedTransporterInvoice?.qbLink || null;
     console.log('[Invoice] 🔗 Final client QB link for response:', finalClientQbLink);
+    console.log('[Invoice] 🔗 Final transporter QB link for response:', finalTransporterQbLink);
 
     return NextResponse.json({
       success: true,
@@ -694,7 +667,7 @@ export async function POST(req: NextRequest) {
           invoiceNumber: updatedTransporterInvoice?.invoiceNumber,
           amount: updatedTransporterInvoice?.amount,
           status: updatedTransporterInvoice?.status,
-          qbLink: null, // Transporter invoice doesn't need QB link
+          qbLink: finalTransporterQbLink,
         },
         clientInvoice: {
           _id: updatedClientInvoice?._id.toString(),

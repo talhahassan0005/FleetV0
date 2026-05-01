@@ -36,6 +36,9 @@ interface POD {
   transporterPhone?: string
   clientName?: string
   clientEmail?: string
+  // Invoice document linked to this POD
+  invoiceFileUrl?: string
+  invoiceFileName?: string
 }
 
 interface ApprovalState {
@@ -119,22 +122,59 @@ export default function PODManagementPage() {
         
         console.log('[AdminPODs] Got PODs:', data.data?.length || 0)
         
-        // For now, just set PODs without enrichment to debug
-        const podsWithDefaults = (data.data || []).map((pod: any) => ({
-          ...pod,
-          loadRef: 'Load',
-          origin: 'Origin',
-          destination: 'Destination',
-          route: 'Route',
-          loadStatus: 'Status',
-          finalPrice: 0,
-          currency: 'ZAR',
-          tonnes: 0,
-          clientName: 'Client',
-        }))
+        // Enrich with real load details for correct currency and route info
+        const enrichedPods = await Promise.all(
+          (data.data || []).map(async (pod: any) => {
+            try {
+              const loadRes = await fetch(`/api/loads/${pod.loadId}`)
+              let loadData: any = null
+              if (loadRes.ok) {
+                const loadJson = await loadRes.json()
+                loadData = loadJson.data || loadJson
+              }
+
+              // Fetch linked invoice document for this POD
+              let invoiceFileUrl: string | undefined
+              let invoiceFileName: string | undefined
+              try {
+                const invRes = await fetch(`/api/admin/pods/${pod._id}/invoice`)
+                if (invRes.ok) {
+                  const invData = await invRes.json()
+                  invoiceFileUrl = invData.data?.fileUrl
+                  invoiceFileName = invData.data?.originalName
+                }
+              } catch { /* invoice fetch optional */ }
+
+              return {
+                ...pod,
+                loadRef: loadData?.ref || 'Unknown',
+                origin: loadData?.origin || 'Unknown',
+                destination: loadData?.destination || 'Unknown',
+                route: loadData ? `${loadData.origin} → ${loadData.destination}` : 'Unknown Route',
+                loadStatus: loadData?.status || 'Unknown',
+                finalPrice: loadData?.finalPrice || 0,
+                currency: loadData?.currency || pod.currency || 'ZAR',
+                tonnes: loadData?.weightInTons || loadData?.tonnes || 0,
+                clientName: loadData?.clientName || 'Unknown',
+                invoiceFileUrl,
+                invoiceFileName,
+              }
+            } catch (err) {
+              return {
+                ...pod,
+                loadRef: 'Unknown',
+                route: 'Unknown Route',
+                finalPrice: 0,
+                currency: pod.currency || 'ZAR',
+                tonnes: 0,
+                clientName: 'Unknown',
+              }
+            }
+          })
+        )
         
         if (isMounted) {
-          setPods(podsWithDefaults)
+          setPods(enrichedPods)
           setError('')
         }
       } catch (err: any) {
@@ -204,7 +244,7 @@ export default function PODManagementPage() {
           return true
         })
         
-        // Re-enrich with load details
+        // Enrich with load details for correct currency and load info
         const enrichedPods = await Promise.all(
           validPods.map(async (pod: any) => {
             try {
@@ -214,6 +254,19 @@ export default function PODManagementPage() {
                 const loadJson = await loadRes.json()
                 loadData = loadJson.data || loadJson
               }
+
+              // Fetch linked invoice document
+              let invoiceFileUrl: string | undefined
+              let invoiceFileName: string | undefined
+              try {
+                const invRes = await fetch(`/api/admin/pods/${pod._id}/invoice`)
+                if (invRes.ok) {
+                  const invData = await invRes.json()
+                  invoiceFileUrl = invData.data?.fileUrl
+                  invoiceFileName = invData.data?.originalName
+                }
+              } catch { /* invoice fetch optional */ }
+
               return {
                 ...pod,
                 loadRef: loadData?.ref || 'Unknown',
@@ -222,9 +275,11 @@ export default function PODManagementPage() {
                 route: loadData ? `${loadData.origin} → ${loadData.destination}` : 'Unknown Route',
                 loadStatus: loadData?.status || 'Unknown',
                 finalPrice: loadData?.finalPrice || 0,
-                currency: loadData?.currency || 'ZAR',
-                tonnes: loadData?.tonnes || 0,
+                currency: loadData?.currency || pod.currency || 'ZAR',
+                tonnes: loadData?.weightInTons || loadData?.tonnes || 0,
                 clientName: loadData?.clientName || 'Unknown',
+                invoiceFileUrl,
+                invoiceFileName,
               }
             } catch (err) {
               return {
@@ -232,7 +287,7 @@ export default function PODManagementPage() {
                 loadRef: 'Error',
                 route: 'Unable to load details',
                 finalPrice: 0,
-                currency: 'ZAR',
+                currency: pod.currency || 'ZAR',
               }
             }
           })
@@ -243,7 +298,7 @@ export default function PODManagementPage() {
       
       setComments('')
       setSelectedPodId(null)
-      alert('✅ POD approved and forwarded to client!')
+      alert('✅ POD approved! Ready for invoice creation.')
     } catch (err: any) {
       alert(`Failed to approve POD: ${err.message}`)
       console.error(err)
@@ -347,7 +402,7 @@ export default function PODManagementPage() {
 
                   {/* Document Section */}
                   <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <FileText className="w-5 h-5 text-blue-500" />
                         <div>
@@ -374,9 +429,31 @@ export default function PODManagementPage() {
                         className="flex items-center gap-2 px-4 py-2 bg-[#1a2a5e] text-white rounded-lg hover:bg-[#152247] transition-colors text-sm font-semibold"
                       >
                         <FileText className="w-4 h-4" />
-                        View Document
+                        View POD
                       </button>
                     </div>
+
+                    {/* Transporter Invoice Document */}
+                    {pod.invoiceFileUrl && (
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-5 h-5 text-orange-500" />
+                          <div>
+                            <p className="text-sm text-gray-600">Transporter Invoice</p>
+                            <p className="font-semibold text-gray-900">{pod.invoiceFileName || 'Invoice Document'}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (pod.invoiceFileUrl) openDocument(pod.invoiceFileUrl, pod.invoiceFileName || 'invoice')
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold"
+                        >
+                          <FileText className="w-4 h-4" />
+                          View Invoice
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Client Info */}
@@ -422,12 +499,12 @@ export default function PODManagementPage() {
                         {approvingId?.submitting ? (
                           <>
                             <Clock className="w-4 h-4 animate-spin" />
-                            Approving & Forwarding...
+                            Approving...
                           </>
                         ) : (
                           <>
                             <CheckCircle className="w-4 h-4" />
-                            Approve & Forward to Client
+                            Approve POD
                           </>
                         )}
                       </button>
@@ -438,20 +515,12 @@ export default function PODManagementPage() {
                     <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
                       <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-1" />
                       <div>
-                        <p className="font-semibold text-green-900">✓ Admin Approved & Forwarded</p>
-                        <p className="text-sm text-green-800 mt-1">
-                          Client Approval Status: <span className={`font-semibold ${
-                            pod.clientApprovalStatus === 'APPROVED' ? 'text-green-600' :
-                            pod.clientApprovalStatus === 'REJECTED' ? 'text-red-600' :
-                            'text-yellow-600'
-                          }`}>
-                            {pod.clientApprovalStatus === 'APPROVED' ? '✓ Client Approved' :
-                             pod.clientApprovalStatus === 'REJECTED' ? '✕ Client Rejected' :
-                             '⏳ Awaiting Client'}
-                          </span>
-                        </p>
-                        {pod.clientApprovedAt && (
-                          <p className="text-xs text-green-700 mt-1">Client approved on {new Date(pod.clientApprovedAt).toLocaleDateString()}</p>
+                        <p className="font-semibold text-green-900">✓ POD Approved — Ready for Invoice Creation</p>
+                        {pod.adminApprovedAt && (
+                          <p className="text-xs text-green-700 mt-1">Approved on {new Date(pod.adminApprovedAt).toLocaleDateString()}</p>
+                        )}
+                        {pod.adminComments && (
+                          <p className="text-sm text-green-800 mt-1">Comments: {pod.adminComments}</p>
                         )}
                       </div>
                     </div>

@@ -29,6 +29,9 @@ interface SubmittedPOD {
   clientApprovalStatus: 'PENDING_CLIENT' | 'APPROVED'
   adminApprovedAt?: string | null
   clientApprovedAt?: string | null
+  // Linked invoice document
+  invoiceFileUrl?: string
+  invoiceFileName?: string
 }
 
 export default function UploadPODPage() {
@@ -132,6 +135,18 @@ export default function UploadPODPage() {
                 const loadJson = await loadRes.json()
                 loadData = loadJson.data || loadJson
               }
+
+              // Fetch linked invoice document for this POD
+              let invoiceFileUrl: string | undefined
+              let invoiceFileName: string | undefined
+              try {
+                const invRes = await fetch(`/api/transporter/pods/${pod._id}/invoice`)
+                if (invRes.ok) {
+                  const invData = await invRes.json()
+                  invoiceFileUrl = invData.data?.fileUrl
+                  invoiceFileName = invData.data?.originalName
+                }
+              } catch { /* invoice fetch optional */ }
               
               return {
                 _id: pod._id,
@@ -145,6 +160,8 @@ export default function UploadPODPage() {
                 clientApprovalStatus: pod.clientApprovalStatus || 'PENDING_CLIENT',
                 adminApprovedAt: pod.adminApprovedAt,
                 clientApprovedAt: pod.clientApprovedAt,
+                invoiceFileUrl,
+                invoiceFileName,
               }
             } catch (err) {
               console.error('[TransporterPODs] Error enriching POD:', err)
@@ -287,20 +304,12 @@ export default function UploadPODPage() {
 
   function getStatusBadge(pod: SubmittedPOD) {
     const adminApproved = pod.adminApprovalStatus === 'APPROVED'
-    const clientApproved = pod.clientApprovalStatus === 'APPROVED'
     
-    if (adminApproved && clientApproved) {
+    if (adminApproved) {
       return (
         <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
           <CheckCircle2 className="w-4 h-4" />
-          Approved
-        </div>
-      )
-    } else if (adminApproved) {
-      return (
-        <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-          <Clock className="w-4 h-4" />
-          Awaiting Client
+          Admin Approved
         </div>
       )
     } else {
@@ -699,55 +708,61 @@ export default function UploadPODPage() {
                           Approved on {new Date(selectedPOD.adminApprovedAt).toLocaleDateString()}
                         </p>
                       )}
-                    </div>
-
-                    {/* Client Status */}
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="font-semibold text-gray-900">Client Approval</p>
-                        {selectedPOD.clientApprovalStatus === 'APPROVED' ? (
-                          <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                            <CheckCircle2 className="w-4 h-4" />
-                            Approved
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                            <Clock className="w-4 h-4" />
-                            Awaiting
-                          </div>
-                        )}
-                      </div>
-                      {selectedPOD.clientApprovedAt && (
-                        <p className="text-xs text-gray-600">
-                          Approved on {new Date(selectedPOD.clientApprovedAt).toLocaleDateString()}
+                      {selectedPOD.adminApprovalStatus === 'APPROVED' && (
+                        <p className="text-xs text-green-700 mt-1">
+                          ✓ POD approved — admin will process your invoice
                         </p>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Document Link */}
+                {/* Documents */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Document</h3>
-                  {selectedPOD.fileUrl && typeof selectedPOD.fileUrl === 'string' && selectedPOD.fileUrl.startsWith('http') ? (
-                    <a
-                      href={getDocumentViewUrl(selectedPOD.fileUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                    >
-                      <FileText className="w-5 h-5 text-blue-600" />
-                      <div className="flex-1">
-                        <p className="font-semibold text-blue-900">{selectedPOD.originalName}</p>
-                        <p className="text-xs text-blue-700 mt-1">Click to view document</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Documents</h3>
+                  <div className="space-y-3">
+                    {/* POD Document */}
+                    {selectedPOD.fileUrl && typeof selectedPOD.fileUrl === 'string' && selectedPOD.fileUrl.startsWith('http') ? (
+                      <a
+                        href={getDocumentViewUrl(selectedPOD.fileUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        <FileText className="w-5 h-5 text-blue-600" />
+                        <div className="flex-1">
+                          <p className="font-semibold text-blue-900">{selectedPOD.originalName}</p>
+                          <p className="text-xs text-blue-700 mt-1">POD Document — Click to view</p>
+                        </div>
+                        <CheckCircle className="w-5 h-5 text-blue-600" />
+                      </a>
+                    ) : (
+                      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <p className="text-gray-600 text-sm">POD document not available</p>
                       </div>
-                      <CheckCircle className="w-5 h-5 text-blue-600" />
-                    </a>
-                  ) : (
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                      <p className="text-gray-600 text-sm">Document file is not available</p>
-                    </div>
-                  )}
+                    )}
+
+                    {/* Invoice Document */}
+                    {selectedPOD.invoiceFileUrl ? (
+                      <a
+                        href={getDocumentViewUrl(selectedPOD.invoiceFileUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
+                      >
+                        <FileText className="w-5 h-5 text-orange-600" />
+                        <div className="flex-1">
+                          <p className="font-semibold text-orange-900">{selectedPOD.invoiceFileName || 'Invoice Document'}</p>
+                          <p className="text-xs text-orange-700 mt-1">Transporter Invoice — Click to view</p>
+                        </div>
+                        <CheckCircle className="w-5 h-5 text-orange-600" />
+                      </a>
+                    ) : (
+                      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <p className="text-gray-600 text-sm">Invoice document not yet available</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
