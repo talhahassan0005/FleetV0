@@ -650,7 +650,8 @@ export async function POST(req: NextRequest) {
     console.log('[Invoice] 🔄 Transporter invoice qbLink after re-fetch:', updatedTransporterInvoice?.qbLink || 'NULL');
 
     // Use qbLink from database (already saved during QB invoice creation)
-    const finalClientQbLink = updatedClientInvoice?.qbLink || null;
+    // If not in DB, use the qbInvoiceLink variable from QB creation
+    const finalClientQbLink = updatedClientInvoice?.qbLink || qbInvoiceLink || null;
     const finalTransporterQbLink = updatedTransporterInvoice?.qbLink || null;
     console.log('[Invoice] 🔗 Final client QB link for response:', finalClientQbLink);
     console.log('[Invoice] 🔗 Final transporter QB link for response:', finalTransporterQbLink);
