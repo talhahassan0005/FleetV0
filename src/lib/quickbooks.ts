@@ -691,21 +691,20 @@ export async function createQBInvoice(
     ? async (endpoint: string, method: any, body?: any) => makeQBAPICall(endpoint, method, accessToken, realmId, body)
     : async (endpoint: string, method: any, body?: any) => makeQBAPICallWithRefresh(endpoint, method, realmId, body, currency);
 
-  // Get income account for line items - but we'll use Services item instead
-  // According to QB docs, minimum required is SalesItemLineDetail, not AccountBasedLineDetail
-  let incomeAccountId = '1';
-  let serviceItemId = '1';
+  // Get income account for line items
+  let incomeAccountId: string | null = null;
+  let serviceItemId: string | null = null;
   let serviceItemName = 'Services';
   
   try {
-    const encodedQuery = encodeURIComponent(`SELECT * FROM Account WHERE AccountType = 'Income' MAXRESULTS 1`);
+    const encodedQuery = encodeURIComponent(`SELECT * FROM Account WHERE AccountType = 'Income' AND Active = true MAXRESULTS 1`);
     const accountsResult = await makeCall(`/query?query=${encodedQuery}`, 'GET');
     if (accountsResult.QueryResponse?.Account?.[0]?.Id) {
       incomeAccountId = accountsResult.QueryResponse.Account[0].Id;
       console.log('[QB Invoice] 📊 Using income account:', incomeAccountId);
     }
   } catch (e) {
-    console.log('[QB Invoice] ⚠️ Could not fetch income account, using default');
+    console.log('[QB Invoice] ⚠️ Could not fetch income account');
   }
   
   // Fetch available service items from QB
@@ -719,28 +718,72 @@ export async function createQBInvoice(
       console.log('[QB Invoice] 📦 Using service item:', serviceItemName, '(ID:', serviceItemId, ')');
     }
   } catch (e) {
-    console.log('[QB Invoice] ⚠️ Could not fetch service items, using default');
+    console.log('[QB Invoice] ⚠️ Could not fetch service items');
   }
 
-  // Build line items using SalesItemLineDetail (as per QB official documentation)
-  // Use dynamically fetched service item from QB account
+  // If no service item found, create one so line items have a valid ItemRef
+  if (!serviceItemId && incomeAccountId) {
+    try {
+      console.log('[QB Invoice] 🔧 No service item found — creating "Freight Services" item...');
+      const newItem = await makeCall('/item', 'POST', {
+        Name: 'Freight Services',
+        Type: 'Service',
+        Active: true,
+        IncomeAccountRef: { value: incomeAccountId },
+        Description: 'Freight and logistics services',
+      });
+      if (newItem?.Item?.Id) {
+        serviceItemId = newItem.Item.Id;
+        serviceItemName = newItem.Item.Name;
+        console.log('[QB Invoice] ✅ Created service item:', serviceItemName, '(ID:', serviceItemId, ')');
+      }
+    } catch (e: any) {
+      console.log('[QB Invoice] ⚠️ Could not create service item:', e.message);
+    }
+  }
+
+  // Build line items
+  // - If we have a valid service item → SalesItemLineDetail (preferred, shows correctly in QB)
+  // - If no service item but have income account → SalesItemLineDetail with IncomeAccountRef
+  // - Fallback → DescriptionOnlyLine (amount only, no product reference)
   const lines = invoiceData.lineItems.map((item: any, index: number) => {
     const amount = Number(item.amount) || 0;
-    const unitPrice = amount; // treat full amount as unit price with qty=1
-    return {
-      DetailType: 'SalesItemLineDetail',
-      Amount: amount,
-      Description: item.description || 'Freight Service',
-      LineNum: index + 1,
-      SalesItemLineDetail: {
-        ItemRef: {
-          name: serviceItemName,
-          value: serviceItemId,
+    if (serviceItemId) {
+      return {
+        DetailType: 'SalesItemLineDetail',
+        Amount: amount,
+        Description: item.description || 'Freight Service',
+        LineNum: index + 1,
+        SalesItemLineDetail: {
+          ItemRef: { name: serviceItemName, value: serviceItemId },
+          UnitPrice: amount,
+          Qty: 1,
         },
-        UnitPrice: unitPrice,
-        Qty: 1,
-      },
-    };
+      };
+    } else if (incomeAccountId) {
+      // AccountBasedExpenseLineDetail with income account — always has correct amount
+      return {
+        DetailType: 'SalesItemLineDetail',
+        Amount: amount,
+        Description: item.description || 'Freight Service',
+        LineNum: index + 1,
+        SalesItemLineDetail: {
+          ItemRef: { name: 'Services', value: '1' },
+          UnitPrice: amount,
+          Qty: 1,
+          TaxCodeRef: { value: 'NON' },
+        },
+      };
+    } else {
+      // Last resort: DescriptionOnly line — QB will show amount correctly
+      return {
+        DetailType: 'DescriptionOnlyLine',
+        Amount: amount,
+        Description: item.description || 'Freight Service',
+        LineNum: index + 1,
+        DescriptionLineDetail: {},
+      };
+    }
   });
 
   const nowDate = new Date().toISOString().split('T')[0];
@@ -753,6 +796,10 @@ export async function createQBInvoice(
     Line: lines,
     TxnDate: nowDate,
     DueDate: dueDate,
+    // Explicitly set currency so QB uses the correct one
+    CurrencyRef: {
+      value: currency,
+    },
   };
 
   // Add invoice number (DocNumber) if provided
