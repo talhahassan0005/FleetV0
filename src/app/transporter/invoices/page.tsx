@@ -12,6 +12,9 @@ interface Invoice {
   currency: string
   tonnage: number
   status: 'PENDING_ADMIN_REVIEW' | 'APPROVED' | 'REJECTED'
+  adminApprovalStatus?: 'APPROVED' | 'PENDING' | 'REJECTED' | null
+  adminApprovedAt?: string | null
+  paymentStatus?: 'UNPAID' | 'PARTIAL_PAID' | 'PAID' | null
   rejectionReason?: string
   submittedAt: string
   reviewedAt?: string
@@ -131,12 +134,48 @@ export default function TransporterInvoicesPage() {
                     <p className="text-lg font-semibold text-gray-700">{invoice.tonnage} tons</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase font-semibold">Status</p>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">Review Status</p>
                     <p className="text-sm font-semibold text-gray-700">
-                      {invoice.status === 'APPROVED' ? '✅ Approved' :
+                      {invoice.status === 'APPROVED' || invoice.adminApprovalStatus === 'APPROVED' ? '✅ Approved' :
                        invoice.status === 'REJECTED' ? '❌ Rejected' :
                        '⏳ Pending Review'}
                     </p>
+                  </div>
+                </div>
+
+                {/* Admin Approval & Payment Status Row */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded">
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Admin Approval</p>
+                    {invoice.adminApprovalStatus === 'APPROVED' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                        ✅ Approved by Admin
+                      </span>
+                    ) : invoice.status === 'REJECTED' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">
+                        ❌ Rejected
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">
+                        ⏳ Pending Admin Review
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded">
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Payment Status</p>
+                    {invoice.paymentStatus === 'PAID' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                        💰 Paid
+                      </span>
+                    ) : invoice.paymentStatus === 'PARTIAL_PAID' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
+                        🔄 Partially Paid
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-semibold">
+                        ⏳ Unpaid
+                      </span>
+                    )}
                   </div>
                 </div>
 
