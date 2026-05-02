@@ -189,10 +189,13 @@ export async function POST(req: NextRequest) {
 
       // VALIDATION: Ensure QB account currency matches selected currency
       if (qbCredentials.country) {
-        const qbCurrency = qbCredentials.country === 'ZA' ? 'ZAR' : 
-                          qbCredentials.country === 'BW' ? 'BWP' :
-                          qbCredentials.country === 'ZW' ? 'ZWL' :
-                          qbCredentials.country === 'US' ? 'USD' : 'ZAR';
+        // Use complete country→currency map (same as quickbooks.ts COUNTRY_TO_CURRENCY)
+        const COUNTRY_CURRENCY_MAP: Record<string, string> = {
+          ZA: 'ZAR', BW: 'BWP', ZW: 'ZWL', US: 'USD', GB: 'GBP',
+          EU: 'EUR', NG: 'NGN', KE: 'KES', UG: 'UGX', TZ: 'TZS',
+          ZM: 'ZMW', MZ: 'MZN', NA: 'NAD', LS: 'LSL', SZ: 'SZL',
+        };
+        const qbCurrency = COUNTRY_CURRENCY_MAP[qbCredentials.country.toUpperCase()] || 'ZAR';
         
         const selectedCurrency = currency || load.currency;
         if (qbCurrency !== selectedCurrency) {
