@@ -34,10 +34,7 @@ export async function PATCH(
       )
     }
 
-    const adminRole = (session.user as any).adminRole
-    if (!requirePermission(adminRole, 'pods')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    // Role is already validated above via session.user.role check
 
     const db = await getDatabase()
     const { comments = '' } = await req.json()

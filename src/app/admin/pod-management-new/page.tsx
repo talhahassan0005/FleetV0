@@ -225,7 +225,10 @@ export default function PODManagementPage() {
         })
       })
 
-      if (!res.ok) throw new Error('Failed to approve POD')
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || errData.details || `Failed to approve POD (${res.status})`)
+      }
 
       // Refresh PODs - use same fetch logic as initial load
       const refreshRes = await fetch('/api/admin/pods/pending')

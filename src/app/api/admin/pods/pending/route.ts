@@ -25,20 +25,18 @@ export async function GET(req: NextRequest) {
 
     const db = await getDatabase()
 
-    // Get all PODs pending admin approval
-    const pendingPODs = await db.collection('documents').find({
+    // Fetch ALL PODs (pending + approved) so frontend filters work correctly
+    const allPODs = await db.collection('documents').find({
       docType: 'POD',
-      adminApprovalStatus: 'PENDING_ADMIN'
     })
     .sort({ createdAt: -1 })
     .toArray()
 
-    console.log('[AdminPODs] Found', pendingPODs.length, 'pending PODs')
-    console.log('[AdminPODs] Sample POD:', pendingPODs[0])
+    console.log('[AdminPODs] Found', allPODs.length, 'total PODs')
 
     // Enrich with load and transporter details
     const enrichedPODs = await Promise.all(
-      pendingPODs.map(async (pod: any) => {
+      allPODs.map(async (pod: any) => {
         try {
           const load = await db.collection('loads').findOne({
             _id: pod.loadId

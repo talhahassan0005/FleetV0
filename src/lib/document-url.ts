@@ -1,19 +1,19 @@
 export function getDocumentViewUrl(url: string | undefined | null): string {
   if (!url) return '#'
   
-  // Remove Cloudinary attachment mode (forces download)
-  let cleanUrl = url.replace('/fl_attachment/', '/')
-  
-  // For PDFs in Cloudinary, optimize for browser preview
-  if (cleanUrl.includes('/image/upload/') && cleanUrl.toLowerCase().includes('.pdf')) {
-    // Add Cloudinary transformations for PDF preview
-    // f_auto = auto format, q_auto = auto quality, pg_1 = first page preview
-    cleanUrl = cleanUrl.replace('/image/upload/', '/image/upload/fl_attachment:false/')
-  }
-  
-  // For raw uploads, convert to image upload for preview
-  if (cleanUrl.includes('/raw/upload/') && cleanUrl.toLowerCase().includes('.pdf')) {
-    cleanUrl = cleanUrl.replace('/raw/upload/', '/image/upload/fl_attachment:false/')
+  // Remove any existing attachment/inline flags first
+  let cleanUrl = url
+    .replace('/fl_attachment/', '/')
+    .replace('/fl_attachment:false/', '/')
+    .replace('/fl_inline/', '/')
+
+  // For Cloudinary PDFs — force inline (browser preview, no download)
+  if (cleanUrl.includes('cloudinary') && cleanUrl.toLowerCase().includes('.pdf')) {
+    if (cleanUrl.includes('/image/upload/')) {
+      cleanUrl = cleanUrl.replace('/image/upload/', '/image/upload/fl_inline/')
+    } else if (cleanUrl.includes('/raw/upload/')) {
+      cleanUrl = cleanUrl.replace('/raw/upload/', '/raw/upload/fl_inline/')
+    }
   }
   
   return cleanUrl
@@ -22,7 +22,5 @@ export function getDocumentViewUrl(url: string | undefined | null): string {
 export function openDocument(url: string | undefined | null, originalName?: string): void {
   if (!url) return
   const viewUrl = getDocumentViewUrl(url)
-  
-  // Always open in new tab for preview (no automatic download)
   window.open(viewUrl, '_blank')
 }
