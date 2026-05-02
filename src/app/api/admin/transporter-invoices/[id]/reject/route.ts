@@ -30,19 +30,46 @@ export async function POST(
     }
 
     const db = await getDatabase()
-    const invoiceId = new ObjectId(params.id)
+    const podOrInvoiceId = new ObjectId(params.id)
 
-    // Get invoice from documents collection
-    const invoice = await db.collection('documents').findOne({ 
-      _id: invoiceId,
+    // The ID passed is the POD's _id. Find the linked invoice.
+    let invoice = await db.collection('documents').findOne({ 
+      relatedPodId: podOrInvoiceId,
       docType: 'INVOICE'
     })
+    let invoiceCollection = 'documents'
+
+    if (!invoice) {
+      invoice = await db.collection('transporter_invoices').findOne({ 
+        podId: podOrInvoiceId
+      })
+      invoiceCollection = 'transporter_invoices'
+    }
+
+    // Fallback: treat ID as invoice's own _id
+    if (!invoice) {
+      invoice = await db.collection('documents').findOne({ 
+        _id: podOrInvoiceId,
+        docType: 'INVOICE'
+      })
+      invoiceCollection = 'documents'
+    }
+
+    if (!invoice) {
+      invoice = await db.collection('transporter_invoices').findOne({ 
+        _id: podOrInvoiceId
+      })
+      invoiceCollection = 'transporter_invoices'
+    }
+
     if (!invoice) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
+    const invoiceId = invoice._id
+
     // Update invoice status
-    await db.collection('documents').updateOne(
+    await db.collection(invoiceCollection).updateOne(
       { _id: invoiceId },
       {
         $set: {
