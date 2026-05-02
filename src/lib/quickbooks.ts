@@ -726,38 +726,47 @@ export async function createQBInvoice(
   // Use dynamically fetched service item from QB account
   const lines = invoiceData.lineItems.map((item: any, index: number) => {
     const amount = Number(item.amount) || 0;
-    const qty = Number(item.quantity) || 1;
-    const rate = qty > 0 ? amount / qty : amount;
-    
+    const unitPrice = amount; // treat full amount as unit price with qty=1
     return {
       DetailType: 'SalesItemLineDetail',
       Amount: amount,
+      Description: item.description || 'Freight Service',
+      LineNum: index + 1,
       SalesItemLineDetail: {
         ItemRef: {
           name: serviceItemName,
-          value: serviceItemId
+          value: serviceItemId,
         },
-        Qty: qty,
-        UnitPrice: rate
+        UnitPrice: unitPrice,
+        Qty: 1,
       },
-      Description: item.description || 'Freight Service',
-      LineNum: index + 1,
     };
   });
 
-  // **PER QB OFFICIAL DOCUMENTATION**: Minimum required fields are ONLY:
-  // 1. CustomerRef (with value)
-  // 2. Line (with SalesItemLineDetail)
-  // NO TxnDate, NO DocNumber, NO Memo, NO DueDate
-  
+  const nowDate = new Date().toISOString().split('T')[0];
+  const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
   const payload: any = {
     CustomerRef: {
-      value: String(invoiceData.customerId)
+      value: String(invoiceData.customerId),
     },
     Line: lines,
+    TxnDate: nowDate,
+    DueDate: dueDate,
   };
-  
-  console.log('[Invoice] 📦 QB Invoice Payload (OFFICIAL MINIMUM):', JSON.stringify(payload, null, 2));
+
+  // Add invoice number (DocNumber) if provided
+  if (invoiceData.invoiceNumber) {
+    payload.DocNumber = invoiceData.invoiceNumber;
+  }
+
+  // Add memo/private note if provided
+  if (invoiceData.memo) {
+    payload.CustomerMemo = { value: invoiceData.memo };
+    payload.PrivateNote = invoiceData.memo;
+  }
+
+  console.log('[Invoice] 📦 QB Invoice Payload:', JSON.stringify(payload, null, 2));
 
   const result = await makeCall('/invoice', 'POST', payload);
 
