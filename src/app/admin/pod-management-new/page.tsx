@@ -58,6 +58,7 @@ export default function PODManagementPage() {
   const [approvingId, setApprovingId] = useState<ApprovalState | null>(null)
   const [selectedPodId, setSelectedPodId] = useState<string | null>(null)
   const [comments, setComments] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
 
   // Auth check
   useEffect(() => {
@@ -104,9 +105,9 @@ export default function PODManagementPage() {
           return
         }
 
-        console.log('[AdminPODs] Fetching PODs from /api/pod/upload')
+        console.log('[AdminPODs] Fetching PODs from /api/admin/pods/pending')
         
-        const res = await fetch('/api/pod/upload')
+        const res = await fetch('/api/admin/pods/pending')
         
         if (!isMounted) return
         
@@ -123,55 +124,32 @@ export default function PODManagementPage() {
         console.log('[AdminPODs] Got PODs:', data.data?.length || 0)
         
         // Enrich with real load details for correct currency and route info
-        const enrichedPods = await Promise.all(
-          (data.data || []).map(async (pod: any) => {
-            try {
-              const loadRes = await fetch(`/api/loads/${pod.loadId}`)
-              let loadData: any = null
-              if (loadRes.ok) {
-                const loadJson = await loadRes.json()
-                loadData = loadJson.data || loadJson
-              }
-
-              // Fetch linked invoice document for this POD
-              let invoiceFileUrl: string | undefined
-              let invoiceFileName: string | undefined
-              try {
-                const invRes = await fetch(`/api/admin/pods/${pod._id}/invoice`)
-                if (invRes.ok) {
-                  const invData = await invRes.json()
-                  invoiceFileUrl = invData.data?.fileUrl
-                  invoiceFileName = invData.data?.originalName
-                }
-              } catch { /* invoice fetch optional */ }
-
-              return {
-                ...pod,
-                loadRef: loadData?.ref || 'Unknown',
-                origin: loadData?.origin || 'Unknown',
-                destination: loadData?.destination || 'Unknown',
-                route: loadData ? `${loadData.origin} → ${loadData.destination}` : 'Unknown Route',
-                loadStatus: loadData?.status || 'Unknown',
-                finalPrice: loadData?.finalPrice || 0,
-                currency: loadData?.currency || pod.currency || 'ZAR',
-                tonnes: loadData?.weightInTons || loadData?.tonnes || 0,
-                clientName: loadData?.clientName || 'Unknown',
-                invoiceFileUrl,
-                invoiceFileName,
-              }
-            } catch (err) {
-              return {
-                ...pod,
-                loadRef: 'Unknown',
-                route: 'Unknown Route',
-                finalPrice: 0,
-                currency: pod.currency || 'ZAR',
-                tonnes: 0,
-                clientName: 'Unknown',
-              }
-            }
-          })
-        )
+        const enrichedPods = (data.data || []).map((pod: any) => {
+          return {
+            ...pod,
+            loadRef: pod.loadRef || 'Unknown',
+            origin: pod.origin || 'Unknown',
+            destination: pod.destination || 'Unknown',
+            route: pod.origin && pod.destination ? `${pod.origin} → ${pod.destination}` : 'Unknown Route',
+            loadStatus: 'DELIVERED',
+            finalPrice: pod.amount || 0,
+            currency: pod.currency || 'ZAR',
+            tonnes: pod.tonnage || 0,
+            transporterName: pod.transporterName || 'Unknown',
+            transporterEmail: pod.transporterEmail || '',
+            clientName: 'Unknown',
+            invoiceFileUrl: pod.invoicePdfUrl,
+            invoiceFileName: pod.invoiceNumber,
+            _id: pod._id,
+            loadId: pod.loadId,
+            userId: pod.userId,
+            originalName: pod.podFileName,
+            fileUrl: pod.podUrl,
+            docType: 'POD',
+            createdAt: pod.uploadedAt,
+            adminApprovalStatus: pod.status,
+          }
+        })
         
         if (isMounted) {
           setPods(enrichedPods)
@@ -206,8 +184,25 @@ export default function PODManagementPage() {
   // Filter PODs - fixed to use correct field names
   const filteredPods = pods.filter(pod => {
     const status = pod.adminApprovalStatus || 'PENDING_ADMIN'
-    if (filter === 'pending') return status === 'PENDING_ADMIN'
-    if (filter === 'approved') return status === 'APPROVED'
+    
+    // Status filter
+    if (filter === 'pending' && status !== 'PENDING_ADMIN') return false
+    if (filter === 'approved' && status !== 'APPROVED') return false
+    
+    // Search filter
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase()
+      const matchesSearch = 
+        pod.loadRef?.toLowerCase().includes(search) ||
+        pod.transporterName?.toLowerCase().includes(search) ||
+        pod.transporterEmail?.toLowerCase().includes(search) ||
+        pod.invoiceFileName?.toLowerCase().includes(search) ||
+        pod.originalName?.toLowerCase().includes(search) ||
+        pod.route?.toLowerCase().includes(search)
+      
+      if (!matchesSearch) return false
+    }
+    
     return true
   })
 
@@ -230,68 +225,36 @@ export default function PODManagementPage() {
       if (!res.ok) throw new Error('Failed to approve POD')
 
       // Refresh PODs - use same fetch logic as initial load
-      const refreshRes = await fetch('/api/pod/upload')
+      const refreshRes = await fetch('/api/admin/pods/pending')
       if (refreshRes.ok) {
         const data = await refreshRes.json()
         
-        // Filter out invalid fileUrls
-        const validPods = (data.data || []).filter((pod: any) => {
-          if (!pod.fileUrl) return true
-          if (typeof pod.fileUrl !== 'string') return false
-          if (pod.fileUrl.includes('LOCAL:pods/') || pod.fileUrl.includes('/documents/LOCAL')) {
-            return false
+        const enrichedPods = (data.data || []).map((pod: any) => {
+          return {
+            ...pod,
+            loadRef: pod.loadRef || 'Unknown',
+            origin: pod.origin || 'Unknown',
+            destination: pod.destination || 'Unknown',
+            route: pod.origin && pod.destination ? `${pod.origin} → ${pod.destination}` : 'Unknown Route',
+            loadStatus: 'DELIVERED',
+            finalPrice: pod.amount || 0,
+            currency: pod.currency || 'ZAR',
+            tonnes: pod.tonnage || 0,
+            transporterName: pod.transporterName || 'Unknown',
+            transporterEmail: pod.transporterEmail || '',
+            clientName: 'Unknown',
+            invoiceFileUrl: pod.invoicePdfUrl,
+            invoiceFileName: pod.invoiceNumber,
+            _id: pod._id,
+            loadId: pod.loadId,
+            userId: pod.userId,
+            originalName: pod.podFileName,
+            fileUrl: pod.podUrl,
+            docType: 'POD',
+            createdAt: pod.uploadedAt,
+            adminApprovalStatus: pod.status,
           }
-          return true
         })
-        
-        // Enrich with load details for correct currency and load info
-        const enrichedPods = await Promise.all(
-          validPods.map(async (pod: any) => {
-            try {
-              const loadRes = await fetch(`/api/loads/${pod.loadId}`)
-              let loadData: any = null
-              if (loadRes.ok) {
-                const loadJson = await loadRes.json()
-                loadData = loadJson.data || loadJson
-              }
-
-              // Fetch linked invoice document
-              let invoiceFileUrl: string | undefined
-              let invoiceFileName: string | undefined
-              try {
-                const invRes = await fetch(`/api/admin/pods/${pod._id}/invoice`)
-                if (invRes.ok) {
-                  const invData = await invRes.json()
-                  invoiceFileUrl = invData.data?.fileUrl
-                  invoiceFileName = invData.data?.originalName
-                }
-              } catch { /* invoice fetch optional */ }
-
-              return {
-                ...pod,
-                loadRef: loadData?.ref || 'Unknown',
-                origin: loadData?.origin || 'Unknown',
-                destination: loadData?.destination || 'Unknown',
-                route: loadData ? `${loadData.origin} → ${loadData.destination}` : 'Unknown Route',
-                loadStatus: loadData?.status || 'Unknown',
-                finalPrice: loadData?.finalPrice || 0,
-                currency: loadData?.currency || pod.currency || 'ZAR',
-                tonnes: loadData?.weightInTons || loadData?.tonnes || 0,
-                clientName: loadData?.clientName || 'Unknown',
-                invoiceFileUrl,
-                invoiceFileName,
-              }
-            } catch (err) {
-              return {
-                ...pod,
-                loadRef: 'Error',
-                route: 'Unable to load details',
-                finalPrice: 0,
-                currency: pod.currency || 'ZAR',
-              }
-            }
-          })
-        )
         
         setPods(enrichedPods)
       }
@@ -340,21 +303,35 @@ export default function PODManagementPage() {
       <Topbar title="POD Management" />
       <PageLayout>
         <div className="space-y-6">
-          {/* Filters */}
-          <div className="flex gap-2">
-            {(['all', 'pending', 'approved'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                  filter === f
-                    ? 'bg-[#3ab54a] text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
+          {/* Search and Filters */}
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search Bar */}
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Search by load ref, transporter, invoice..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20"
+              />
+            </div>
+            
+            {/* Status Filters */}
+            <div className="flex gap-2">
+              {(['all', 'pending', 'approved'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                    filter === f
+                      ? 'bg-[#3ab54a] text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
 
           {error && (

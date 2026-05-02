@@ -51,17 +51,21 @@ export async function GET(req: NextRequest) {
           console.log('[AdminPODs] POD:', pod._id.toString(), 'userId:', pod.userId?.toString(), 'Transporter:', transporter?.companyName)
 
           // Check if there's an invoice document linked to this POD (in documents collection)
+          console.log('[AdminPODs] Searching for invoice with relatedPodId:', pod._id.toString())
           const invoiceDoc = await db.collection('documents').findOne({
             relatedPodId: pod._id,
             docType: 'INVOICE'
           })
+          console.log('[AdminPODs] Invoice found in documents:', invoiceDoc ? invoiceDoc._id.toString() : 'NULL')
 
           // Also check transporter_invoices collection for backward compatibility
           const transporterInvoice = await db.collection('transporter_invoices').findOne({
             podId: pod._id
           })
+          console.log('[AdminPODs] Invoice found in transporter_invoices:', transporterInvoice ? transporterInvoice._id.toString() : 'NULL')
 
           const invoice = invoiceDoc || transporterInvoice
+          console.log('[AdminPODs] Final invoice selected:', invoice ? invoice._id.toString() : 'NULL')
 
           const enriched = {
             _id: pod._id.toString(),
