@@ -83,6 +83,7 @@ export async function GET(req: NextRequest) {
             invoiceId: invoice?._id?.toString(),
             invoiceNumber: invoice?.invoiceNumber || (invoiceDoc ? invoiceDoc.originalName : null),
             invoicePdfUrl: invoice?.invoicePdfUrl || invoice?.fileUrl,
+            invoiceApprovalStatus: invoice?.adminApprovalStatus || null,
           }
           
           console.log('[AdminPODs] Enriched POD:', {

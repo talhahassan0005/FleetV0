@@ -21,7 +21,6 @@ interface POD {
   adminComments?: string
   clientApprovalStatus?: 'PENDING_CLIENT' | 'APPROVED' | 'REJECTED'
   clientApprovedAt?: string | null
-  // Enriched fields (optional)
   loadRef?: string
   origin?: string
   destination?: string
@@ -36,15 +35,50 @@ interface POD {
   transporterPhone?: string
   clientName?: string
   clientEmail?: string
-  // Invoice document linked to this POD
   invoiceFileUrl?: string
   invoiceFileName?: string
+  invoiceApprovalStatus?: string | null
 }
 
 interface ApprovalState {
   podId: string
   comments: string
   submitting: boolean
+}
+
+function enrichPod(pod: any): POD {
+  return {
+    ...pod,
+    loadRef: pod.loadRef || 'Unknown',
+    origin: pod.origin || 'Unknown',
+    destination: pod.destination || 'Unknown',
+    route: pod.origin && pod.destination ? `${pod.origin} → ${pod.destination}` : 'Unknown Route',
+    loadStatus: 'DELIVERED',
+    finalPrice: pod.amount || 0,
+    currency: pod.currency || 'ZAR',
+    tonnes: pod.tonnage || 0,
+    transporterName: pod.transporterName || 'Unknown',
+    transporterEmail: pod.transporterEmail || '',
+    clientName: 'Unknown',
+    invoiceFileUrl: pod.invoicePdfUrl,
+    invoiceFileName: pod.invoiceNumber,
+    invoiceApprovalStatus: pod.invoiceApprovalStatus || null,
+    _id: pod._id,
+    loadId: pod.loadId,
+    userId: pod.userId,
+    originalName: pod.podFileName,
+    fileUrl: pod.podUrl,
+    docType: 'POD',
+    createdAt: pod.uploadedAt,
+    adminApprovalStatus: pod.status,
+  }
+}
+
+async function fetchAndEnrichPods(): Promise<POD[]> {
+  const res = await fetch('/api/admin/pods/pending')
+  if (!res.ok) throw new Error(`API returned ${res.status}`)
+  const data = await res.json()
+  return (data.data || []).map(enrichPod)
 }
 
 export default function PODManagementPage() {
@@ -63,214 +97,84 @@ export default function PODManagementPage() {
   const [rejectingInvoiceId, setRejectingInvoiceId] = useState<string | null>(null)
   const [invoiceRejectionReason, setInvoiceRejectionReason] = useState('')
 
-  // Auth check
   useEffect(() => {
-    if (session === null) {
-      router.push('/login')
-      return
-    }
-    
-    if (session && !isAdmin(session.user.role)) {
-      router.push('/login')
-      return
-    }
-
-    // Check RBAC permissions
-    if (session && !hasPermission(session.user.role, 'pods')) {
-      router.push('/admin/unauthorized')
-      return
-    }
+    if (session === null) { router.push('/login'); return }
+    if (session && !isAdmin(session.user.role)) { router.push('/login'); return }
+    if (session && !hasPermission(session.user.role, 'pods')) { router.push('/admin/unauthorized'); return }
   }, [session, router])
 
-  // Fetch PODs
   useEffect(() => {
     let isMounted = true
-    
     const fetchPODs = async () => {
       try {
         setLoading(true)
         setError('')
-        console.log('[AdminPODs] Starting fetch with session:', session?.user?.role)
-        
-        // Wait for session to be loaded
-        if (session === undefined) {
-          console.log('[AdminPODs] Session still loading...')
-          return
-        }
-        
-        // Quick auth check
+        if (session === undefined) return
         if (!session?.user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
-          console.log('[AdminPODs] Not admin, redirecting...')
-          if (isMounted) {
-            setError('Admin access required')
-            setLoading(false)
-          }
+          if (isMounted) { setError('Admin access required'); setLoading(false) }
           return
         }
-
-        console.log('[AdminPODs] Fetching PODs from /api/admin/pods/pending')
-        
-        const res = await fetch('/api/admin/pods/pending')
-        
-        if (!isMounted) return
-        
-        console.log('[AdminPODs] Response status:', res.status)
-        
-        if (!res.ok) {
-          throw new Error(`API returned ${res.status}`)
-        }
-
-        const data = await res.json()
-        
-        if (!isMounted) return
-        
-        console.log('[AdminPODs] Got PODs:', data.data?.length || 0)
-        
-        // Enrich with real load details for correct currency and route info
-        const enrichedPods = (data.data || []).map((pod: any) => {
-          return {
-            ...pod,
-            loadRef: pod.loadRef || 'Unknown',
-            origin: pod.origin || 'Unknown',
-            destination: pod.destination || 'Unknown',
-            route: pod.origin && pod.destination ? `${pod.origin} → ${pod.destination}` : 'Unknown Route',
-            loadStatus: 'DELIVERED',
-            finalPrice: pod.amount || 0,
-            currency: pod.currency || 'ZAR',
-            tonnes: pod.tonnage || 0,
-            transporterName: pod.transporterName || 'Unknown',
-            transporterEmail: pod.transporterEmail || '',
-            clientName: 'Unknown',
-            invoiceFileUrl: pod.invoicePdfUrl,
-            invoiceFileName: pod.invoiceNumber,
-            _id: pod._id,
-            loadId: pod.loadId,
-            userId: pod.userId,
-            originalName: pod.podFileName,
-            fileUrl: pod.podUrl,
-            docType: 'POD',
-            createdAt: pod.uploadedAt,
-            adminApprovalStatus: pod.status,
-          }
-        })
-        
-        if (isMounted) {
-          setPods(enrichedPods)
-          setError('')
-        }
+        const enrichedPods = await fetchAndEnrichPods()
+        if (isMounted) { setPods(enrichedPods); setError('') }
       } catch (err: any) {
-        console.error('[AdminPODs] Error:', err)
         if (isMounted) {
-          if (err.name === 'AbortError') {
-            setError('Request cancelled')
-          } else {
-            setError(`Failed: ${err.message}`)
-          }
+          setError(err.name === 'AbortError' ? 'Request cancelled' : `Failed: ${err.message}`)
           setPods([])
         }
       } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
+        if (isMounted) setLoading(false)
       }
     }
-
-    if (session?.user?.id) {
-      fetchPODs()
-    }
-    
-    return () => {
-      isMounted = false
-    }
+    if (session?.user?.id) fetchPODs()
+    return () => { isMounted = false }
   }, [session])
 
-  // Filter PODs - fixed to use correct field names
   const filteredPods = pods.filter(pod => {
     const status = pod.adminApprovalStatus || 'PENDING_ADMIN'
-    
-    // Status filter
     if (filter === 'pending' && status !== 'PENDING_ADMIN') return false
     if (filter === 'approved' && status !== 'APPROVED') return false
-    
-    // Search filter
     if (searchTerm.trim()) {
       const search = searchTerm.toLowerCase()
-      const matchesSearch = 
+      const match =
         pod.loadRef?.toLowerCase().includes(search) ||
         pod.transporterName?.toLowerCase().includes(search) ||
         pod.transporterEmail?.toLowerCase().includes(search) ||
         pod.invoiceFileName?.toLowerCase().includes(search) ||
         pod.originalName?.toLowerCase().includes(search) ||
         pod.route?.toLowerCase().includes(search)
-      
-      if (!matchesSearch) return false
+      if (!match) return false
     }
-    
     return true
   })
 
-  async function approvePOD(podId: string) {
-    if (!comments.trim()) {
-      alert('Please add comments before approving')
-      return
+  async function refreshPods() {
+    try {
+      const enrichedPods = await fetchAndEnrichPods()
+      setPods(enrichedPods)
+    } catch (err) {
+      console.error('Refresh failed:', err)
     }
+  }
 
+  async function approvePOD(podId: string) {
+    if (!comments.trim()) { alert('Please add comments before approving'); return }
     try {
       setApprovingId({ podId, comments, submitting: true })
       const res = await fetch(`/api/admin/pods/${podId}/approve`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          comments: comments
-        })
+        body: JSON.stringify({ comments }),
       })
-
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}))
         throw new Error(errData.error || errData.details || `Failed to approve POD (${res.status})`)
       }
-
-      // Refresh PODs - use same fetch logic as initial load
-      const refreshRes = await fetch('/api/admin/pods/pending')
-      if (refreshRes.ok) {
-        const data = await refreshRes.json()
-        
-        const enrichedPods = (data.data || []).map((pod: any) => {
-          return {
-            ...pod,
-            loadRef: pod.loadRef || 'Unknown',
-            origin: pod.origin || 'Unknown',
-            destination: pod.destination || 'Unknown',
-            route: pod.origin && pod.destination ? `${pod.origin} → ${pod.destination}` : 'Unknown Route',
-            loadStatus: 'DELIVERED',
-            finalPrice: pod.amount || 0,
-            currency: pod.currency || 'ZAR',
-            tonnes: pod.tonnage || 0,
-            transporterName: pod.transporterName || 'Unknown',
-            transporterEmail: pod.transporterEmail || '',
-            clientName: 'Unknown',
-            invoiceFileUrl: pod.invoicePdfUrl,
-            invoiceFileName: pod.invoiceNumber,
-            _id: pod._id,
-            loadId: pod.loadId,
-            userId: pod.userId,
-            originalName: pod.podFileName,
-            fileUrl: pod.podUrl,
-            docType: 'POD',
-            createdAt: pod.uploadedAt,
-            adminApprovalStatus: pod.status,
-          }
-        })
-        
-        setPods(enrichedPods)
-      }
-      
+      await refreshPods()
       setComments('')
       setSelectedPodId(null)
       alert('✅ POD approved! Ready for invoice creation.')
     } catch (err: any) {
       alert(`Failed to approve POD: ${err.message}`)
-      console.error(err)
     } finally {
       setApprovingId(null)
     }
@@ -278,7 +182,6 @@ export default function PODManagementPage() {
 
   function getStatusBadge(pod: POD) {
     const status = pod.adminApprovalStatus || 'PENDING_ADMIN'
-    
     if (status === 'APPROVED') {
       return <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Admin Approved</span>
     }
@@ -309,9 +212,9 @@ export default function PODManagementPage() {
       <Topbar title="POD Management" />
       <PageLayout>
         <div className="space-y-6">
+
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Search Bar */}
             <div className="flex-1">
               <input
                 type="text"
@@ -321,17 +224,13 @@ export default function PODManagementPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20"
               />
             </div>
-            
-            {/* Status Filters */}
             <div className="flex gap-2">
               {(['all', 'pending', 'approved'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
                   className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                    filter === f
-                      ? 'bg-[#3ab54a] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    filter === f ? 'bg-[#3ab54a] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -352,7 +251,8 @@ export default function PODManagementPage() {
             <div className="space-y-4">
               {filteredPods.map(pod => (
                 <div key={pod._id} className="bg-white rounded-lg border border-gray-200 p-6 shadow hover:shadow-lg transition-shadow">
-                  {/* Header with Load Ref and Status */}
+
+                  {/* Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Load Reference</p>
@@ -362,7 +262,7 @@ export default function PODManagementPage() {
                     {getStatusBadge(pod)}
                   </div>
 
-                  {/* Load and Transporter Details */}
+                  {/* Details Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 py-4 mb-4 border-y border-gray-200">
                     <div>
                       <p className="text-xs text-gray-500 uppercase tracking-wide">Transporter</p>
@@ -385,6 +285,8 @@ export default function PODManagementPage() {
 
                   {/* Document Section */}
                   <div className="bg-gray-50 p-4 rounded-lg mb-4">
+
+                    {/* POD Document */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <FileText className="w-5 h-5 text-blue-500" />
@@ -395,15 +297,9 @@ export default function PODManagementPage() {
                       </div>
                       <button
                         onClick={() => {
-                          // Handle both string URL and JSON object
                           let url: string | any = pod.fileUrl
                           if (typeof url === 'string') {
-                            try {
-                              const parsed = JSON.parse(url)
-                              url = parsed.url || url
-                            } catch {
-                              // Already a string URL, use as is
-                            }
+                            try { const parsed = JSON.parse(url); url = parsed.url || url } catch {}
                           } else if (url && typeof url === 'object' && 'url' in url) {
                             url = url.url
                           }
@@ -416,7 +312,7 @@ export default function PODManagementPage() {
                       </button>
                     </div>
 
-                    {/* Transporter Invoice Document */}
+                    {/* Transporter Invoice */}
                     {pod.invoiceFileUrl && (
                       <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                         <div className="flex items-center gap-3">
@@ -426,7 +322,8 @@ export default function PODManagementPage() {
                             <p className="font-semibold text-gray-900">{pod.invoiceFileName || 'Invoice Document'}</p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center">
+                          {/* View always visible */}
                           <button
                             onClick={() => {
                               if (pod.invoiceFileUrl) openDocument(pod.invoiceFileUrl, pod.invoiceFileName || 'invoice')
@@ -436,66 +333,47 @@ export default function PODManagementPage() {
                             <FileText className="w-4 h-4" />
                             View
                           </button>
-                          <button
-                            onClick={async () => {
-                              if (!confirm('Approve this invoice?')) return
-                              try {
-                                setApprovingInvoiceId(pod._id)
-                                const res = await fetch(`/api/admin/transporter-invoices/${pod._id}/approve`, {
-                                  method: 'POST'
-                                })
-                                if (!res.ok) throw new Error('Failed to approve')
-                                alert('✅ Invoice approved!')
-                                // Refresh
-                                const refreshRes = await fetch('/api/admin/pods/pending')
-                                if (refreshRes.ok) {
-                                  const data = await refreshRes.json()
-                                  const enrichedPods = (data.data || []).map((p: any) => ({
-                                    ...p,
-                                    loadRef: p.loadRef || 'Unknown',
-                                    origin: p.origin || 'Unknown',
-                                    destination: p.destination || 'Unknown',
-                                    route: p.origin && p.destination ? `${p.origin} → ${p.destination}` : 'Unknown Route',
-                                    loadStatus: 'DELIVERED',
-                                    finalPrice: p.amount || 0,
-                                    currency: p.currency || 'ZAR',
-                                    tonnes: p.tonnage || 0,
-                                    transporterName: p.transporterName || 'Unknown',
-                                    transporterEmail: p.transporterEmail || '',
-                                    clientName: 'Unknown',
-                                    invoiceFileUrl: p.invoicePdfUrl,
-                                    invoiceFileName: p.invoiceNumber,
-                                    _id: p._id,
-                                    loadId: p.loadId,
-                                    userId: p.userId,
-                                    originalName: p.podFileName,
-                                    fileUrl: p.podUrl,
-                                    docType: 'POD',
-                                    createdAt: p.uploadedAt,
-                                    adminApprovalStatus: p.status,
-                                  }))
-                                  setPods(enrichedPods)
-                                }
-                              } catch (err: any) {
-                                alert(`Error: ${err.message}`)
-                              } finally {
-                                setApprovingInvoiceId(null)
-                              }
-                            }}
-                            disabled={approvingInvoiceId === pod._id}
-                            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold disabled:opacity-50"
-                          >
-                            {approvingInvoiceId === pod._id ? '...' : '✓'}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setRejectingInvoiceId(pod._id)
-                            }}
-                            disabled={rejectingInvoiceId === pod._id}
-                            className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold disabled:opacity-50"
-                          >
-                            ✗
-                          </button>
+
+                          {/* Status badge OR action buttons */}
+                          {pod.invoiceApprovalStatus === 'APPROVED' ? (
+                            <span className="px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-semibold flex items-center gap-1">
+                              <CheckCircle className="w-4 h-4" /> Approved
+                            </span>
+                          ) : pod.invoiceApprovalStatus === 'REJECTED' ? (
+                            <span className="px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-semibold">
+                              ✗ Rejected
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('Approve this invoice?')) return
+                                  try {
+                                    setApprovingInvoiceId(pod._id)
+                                    const res = await fetch(`/api/admin/transporter-invoices/${pod._id}/approve`, { method: 'POST' })
+                                    if (!res.ok) throw new Error('Failed to approve')
+                                    alert('✅ Invoice approved!')
+                                    await refreshPods()
+                                  } catch (err: any) {
+                                    alert(`Error: ${err.message}`)
+                                  } finally {
+                                    setApprovingInvoiceId(null)
+                                  }
+                                }}
+                                disabled={approvingInvoiceId === pod._id}
+                                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold disabled:opacity-50"
+                              >
+                                {approvingInvoiceId === pod._id ? '...' : '✓'}
+                              </button>
+                              <button
+                                onClick={() => setRejectingInvoiceId(pod._id)}
+                                disabled={rejectingInvoiceId === pod._id}
+                                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold disabled:opacity-50"
+                              >
+                                ✗
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
@@ -507,7 +385,7 @@ export default function PODManagementPage() {
                     <p className="text-sm text-blue-900">{pod.clientName || 'Unknown Client'}</p>
                   </div>
 
-                  {/* Admin Comments (if already approved) */}
+                  {/* Admin Comments */}
                   {pod.adminApprovedAt && (
                     <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
                       <p className="text-xs text-green-700 font-semibold mb-1">Admin Approval:</p>
@@ -517,7 +395,7 @@ export default function PODManagementPage() {
                   )}
 
                   {/* Approval Section */}
-                  {(pod.adminApprovalStatus !== 'APPROVED') && (
+                  {pod.adminApprovalStatus !== 'APPROVED' && (
                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <label className="block text-sm font-semibold text-gray-900 mb-2">
                         Admin Verification Comments
@@ -525,32 +403,20 @@ export default function PODManagementPage() {
                       <p className="text-xs text-gray-600 mb-2">Review POD details and add verification notes before forwarding to client</p>
                       <textarea
                         value={selectedPodId === pod._id ? comments : ''}
-                        onChange={(e) => {
-                          setSelectedPodId(pod._id)
-                          setComments(e.target.value)
-                        }}
+                        onChange={(e) => { setSelectedPodId(pod._id); setComments(e.target.value) }}
                         placeholder="e.g., Verified load details, documents in order, ready for client review..."
                         rows={3}
                         className="w-full px-3 py-2 border border-gray-300 text-gray-600 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 text-sm mb-3 resize-none"
                       />
                       <button
-                        onClick={() => {
-                          setSelectedPodId(pod._id)
-                          approvePOD(pod._id)
-                        }}
+                        onClick={() => { setSelectedPodId(pod._id); approvePOD(pod._id) }}
                         disabled={approvingId?.submitting || !comments.trim()}
                         className="w-full px-4 py-3 bg-[#3ab54a] text-white font-semibold rounded-lg hover:bg-[#2d9e3c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                       >
                         {approvingId?.submitting ? (
-                          <>
-                            <Clock className="w-4 h-4 animate-spin" />
-                            Approving...
-                          </>
+                          <><Clock className="w-4 h-4 animate-spin" /> Approving...</>
                         ) : (
-                          <>
-                            <CheckCircle className="w-4 h-4" />
-                            Approve POD
-                          </>
+                          <><CheckCircle className="w-4 h-4" /> Approve POD</>
                         )}
                       </button>
                     </div>
@@ -570,6 +436,7 @@ export default function PODManagementPage() {
                       </div>
                     </div>
                   )}
+
                 </div>
               ))}
             </div>
@@ -594,7 +461,6 @@ export default function PODManagementPage() {
                 <h3 className="font-bold text-lg text-gray-900">Reject Invoice</h3>
                 <p className="text-sm text-gray-500 mt-1">Please provide a reason for rejection</p>
               </div>
-              
               <div className="p-5">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Rejection Reason <span className="text-red-500">*</span>
@@ -607,63 +473,27 @@ export default function PODManagementPage() {
                   required
                 />
               </div>
-              
               <div className="p-5 border-t flex gap-3 justify-end">
                 <button
-                  onClick={() => {
-                    setRejectingInvoiceId(null)
-                    setInvoiceRejectionReason('')
-                  }}
+                  onClick={() => { setRejectingInvoiceId(null); setInvoiceRejectionReason('') }}
                   className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={async () => {
-                    if (!invoiceRejectionReason.trim()) {
-                      alert('Please provide a rejection reason')
-                      return
-                    }
+                    if (!invoiceRejectionReason.trim()) { alert('Please provide a rejection reason'); return }
                     try {
                       const res = await fetch(`/api/admin/transporter-invoices/${rejectingInvoiceId}/reject`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ rejectionReason: invoiceRejectionReason })
+                        body: JSON.stringify({ rejectionReason: invoiceRejectionReason }),
                       })
                       if (!res.ok) throw new Error('Failed to reject')
                       alert('❌ Invoice rejected!')
                       setRejectingInvoiceId(null)
                       setInvoiceRejectionReason('')
-                      // Refresh
-                      const refreshRes = await fetch('/api/admin/pods/pending')
-                      if (refreshRes.ok) {
-                        const data = await refreshRes.json()
-                        const enrichedPods = (data.data || []).map((p: any) => ({
-                          ...p,
-                          loadRef: p.loadRef || 'Unknown',
-                          origin: p.origin || 'Unknown',
-                          destination: p.destination || 'Unknown',
-                          route: p.origin && p.destination ? `${p.origin} → ${p.destination}` : 'Unknown Route',
-                          loadStatus: 'DELIVERED',
-                          finalPrice: p.amount || 0,
-                          currency: p.currency || 'ZAR',
-                          tonnes: p.tonnage || 0,
-                          transporterName: p.transporterName || 'Unknown',
-                          transporterEmail: p.transporterEmail || '',
-                          clientName: 'Unknown',
-                          invoiceFileUrl: p.invoicePdfUrl,
-                          invoiceFileName: p.invoiceNumber,
-                          _id: p._id,
-                          loadId: p.loadId,
-                          userId: p.userId,
-                          originalName: p.podFileName,
-                          fileUrl: p.podUrl,
-                          docType: 'POD',
-                          createdAt: p.uploadedAt,
-                          adminApprovalStatus: p.status,
-                        }))
-                        setPods(enrichedPods)
-                      }
+                      await refreshPods()
                     } catch (err: any) {
                       alert(`Error: ${err.message}`)
                     }

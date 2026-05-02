@@ -573,10 +573,27 @@ export default function UploadPODPage() {
                         <td className="px-4 py-3 text-sm">
                           {(() => {
                             const inv = getInvoiceForLoad(pod.loadId)
-                            return inv ? (
-                              <span className="text-blue-600 font-medium text-xs">{inv.invoiceNumber}</span>
-                            ) : (
-                              <span className="text-gray-400 text-xs">Pending</span>
+                            if (!inv) return <span className="text-gray-400 text-xs">Pending</span>
+                            const statusColors: Record<string, string> = {
+                              'APPROVED': 'bg-green-100 text-green-700',
+                              'REJECTED': 'bg-red-100 text-red-700',
+                              'PENDING': 'bg-yellow-100 text-yellow-700',
+                              'PENDING_CLIENT_APPROVAL': 'bg-yellow-100 text-yellow-700',
+                            }
+                            const statusLabel: Record<string, string> = {
+                              'APPROVED': '✓ Approved',
+                              'REJECTED': '✗ Rejected',
+                              'PENDING': 'Under Review',
+                              'PENDING_CLIENT_APPROVAL': 'Under Review',
+                            }
+                            const approvalStatus = inv.adminApprovalStatus || inv.status || 'PENDING'
+                            return (
+                              <div>
+                                <span className="text-blue-600 font-medium text-xs block">{inv.invoiceNumber}</span>
+                                <span className={`px-1.5 py-0.5 rounded text-xs font-medium mt-0.5 inline-block ${statusColors[approvalStatus] || 'bg-gray-100 text-gray-600'}`}>
+                                  {statusLabel[approvalStatus] || approvalStatus}
+                                </span>
+                              </div>
                             )
                           })()}
                         </td>
