@@ -59,6 +59,9 @@ export default function PODManagementPage() {
   const [selectedPodId, setSelectedPodId] = useState<string | null>(null)
   const [comments, setComments] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [approvingInvoiceId, setApprovingInvoiceId] = useState<string | null>(null)
+  const [rejectingInvoiceId, setRejectingInvoiceId] = useState<string | null>(null)
+  const [invoiceRejectionReason, setInvoiceRejectionReason] = useState('')
 
   // Auth check
   useEffect(() => {
@@ -420,15 +423,77 @@ export default function PODManagementPage() {
                             <p className="font-semibold text-gray-900">{pod.invoiceFileName || 'Invoice Document'}</p>
                           </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            if (pod.invoiceFileUrl) openDocument(pod.invoiceFileUrl, pod.invoiceFileName || 'invoice')
-                          }}
-                          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold"
-                        >
-                          <FileText className="w-4 h-4" />
-                          View Invoice
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              if (pod.invoiceFileUrl) openDocument(pod.invoiceFileUrl, pod.invoiceFileName || 'invoice')
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+                          >
+                            <FileText className="w-4 h-4" />
+                            View
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (!confirm('Approve this invoice?')) return
+                              try {
+                                setApprovingInvoiceId(pod._id)
+                                const res = await fetch(`/api/admin/transporter-invoices/${pod._id}/approve`, {
+                                  method: 'POST'
+                                })
+                                if (!res.ok) throw new Error('Failed to approve')
+                                alert('✅ Invoice approved!')
+                                // Refresh
+                                const refreshRes = await fetch('/api/admin/pods/pending')
+                                if (refreshRes.ok) {
+                                  const data = await refreshRes.json()
+                                  const enrichedPods = (data.data || []).map((p: any) => ({
+                                    ...p,
+                                    loadRef: p.loadRef || 'Unknown',
+                                    origin: p.origin || 'Unknown',
+                                    destination: p.destination || 'Unknown',
+                                    route: p.origin && p.destination ? `${p.origin} → ${p.destination}` : 'Unknown Route',
+                                    loadStatus: 'DELIVERED',
+                                    finalPrice: p.amount || 0,
+                                    currency: p.currency || 'ZAR',
+                                    tonnes: p.tonnage || 0,
+                                    transporterName: p.transporterName || 'Unknown',
+                                    transporterEmail: p.transporterEmail || '',
+                                    clientName: 'Unknown',
+                                    invoiceFileUrl: p.invoicePdfUrl,
+                                    invoiceFileName: p.invoiceNumber,
+                                    _id: p._id,
+                                    loadId: p.loadId,
+                                    userId: p.userId,
+                                    originalName: p.podFileName,
+                                    fileUrl: p.podUrl,
+                                    docType: 'POD',
+                                    createdAt: p.uploadedAt,
+                                    adminApprovalStatus: p.status,
+                                  }))
+                                  setPods(enrichedPods)
+                                }
+                              } catch (err: any) {
+                                alert(`Error: ${err.message}`)
+                              } finally {
+                                setApprovingInvoiceId(null)
+                              }
+                            }}
+                            disabled={approvingInvoiceId === pod._id}
+                            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold disabled:opacity-50"
+                          >
+                            {approvingInvoiceId === pod._id ? '...' : '✓'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setRejectingInvoiceId(pod._id)
+                            }}
+                            disabled={rejectingInvoiceId === pod._id}
+                            className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold disabled:opacity-50"
+                          >
+                            ✗
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -517,6 +582,98 @@ export default function PODManagementPage() {
             </div>
           )}
         </div>
+
+        {/* Invoice Rejection Modal */}
+        {rejectingInvoiceId && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+              <div className="p-5 border-b">
+                <h3 className="font-bold text-lg text-gray-900">Reject Invoice</h3>
+                <p className="text-sm text-gray-500 mt-1">Please provide a reason for rejection</p>
+              </div>
+              
+              <div className="p-5">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Rejection Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={invoiceRejectionReason}
+                  onChange={(e) => setInvoiceRejectionReason(e.target.value)}
+                  placeholder="Enter reason for rejection..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#3ab54a] focus:ring-2 focus:ring-[#3ab54a]/20 min-h-[100px]"
+                  required
+                />
+              </div>
+              
+              <div className="p-5 border-t flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setRejectingInvoiceId(null)
+                    setInvoiceRejectionReason('')
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!invoiceRejectionReason.trim()) {
+                      alert('Please provide a rejection reason')
+                      return
+                    }
+                    try {
+                      const res = await fetch(`/api/admin/transporter-invoices/${rejectingInvoiceId}/reject`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ rejectionReason: invoiceRejectionReason })
+                      })
+                      if (!res.ok) throw new Error('Failed to reject')
+                      alert('❌ Invoice rejected!')
+                      setRejectingInvoiceId(null)
+                      setInvoiceRejectionReason('')
+                      // Refresh
+                      const refreshRes = await fetch('/api/admin/pods/pending')
+                      if (refreshRes.ok) {
+                        const data = await refreshRes.json()
+                        const enrichedPods = (data.data || []).map((p: any) => ({
+                          ...p,
+                          loadRef: p.loadRef || 'Unknown',
+                          origin: p.origin || 'Unknown',
+                          destination: p.destination || 'Unknown',
+                          route: p.origin && p.destination ? `${p.origin} → ${p.destination}` : 'Unknown Route',
+                          loadStatus: 'DELIVERED',
+                          finalPrice: p.amount || 0,
+                          currency: p.currency || 'ZAR',
+                          tonnes: p.tonnage || 0,
+                          transporterName: p.transporterName || 'Unknown',
+                          transporterEmail: p.transporterEmail || '',
+                          clientName: 'Unknown',
+                          invoiceFileUrl: p.invoicePdfUrl,
+                          invoiceFileName: p.invoiceNumber,
+                          _id: p._id,
+                          loadId: p.loadId,
+                          userId: p.userId,
+                          originalName: p.podFileName,
+                          fileUrl: p.podUrl,
+                          docType: 'POD',
+                          createdAt: p.uploadedAt,
+                          adminApprovalStatus: p.status,
+                        }))
+                        setPods(enrichedPods)
+                      }
+                    } catch (err: any) {
+                      alert(`Error: ${err.message}`)
+                    }
+                  }}
+                  disabled={!invoiceRejectionReason.trim()}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Reject Invoice
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </PageLayout>
     </>
   )
