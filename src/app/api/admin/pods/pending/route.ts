@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 
           // Check if there's an invoice document linked to this POD (in documents collection)
           const invoiceDoc = await db.collection('documents').findOne({
-            relatedPodId: new ObjectId(pod._id),
+            relatedPodId: pod._id,
             docType: 'INVOICE'
           })
 
