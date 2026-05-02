@@ -32,28 +32,31 @@ export async function POST(
     const db = await getDatabase()
     const invoiceId = new ObjectId(params.id)
 
-    // Get invoice
-    const invoice = await db.collection('transporter_invoices').findOne({ _id: invoiceId })
+    // Get invoice from documents collection
+    const invoice = await db.collection('documents').findOne({ 
+      _id: invoiceId,
+      docType: 'INVOICE'
+    })
     if (!invoice) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
     // Update invoice status
-    await db.collection('transporter_invoices').updateOne(
+    await db.collection('documents').updateOne(
       { _id: invoiceId },
       {
         $set: {
-          status: 'REJECTED',
+          adminApprovalStatus: 'REJECTED',
           rejectionReason: rejectionReason.trim(),
-          reviewedAt: new Date(),
-          reviewedBy: new ObjectId(session.user.id),
+          adminApprovedAt: new Date(),
+          adminApprovedBy: new ObjectId(session.user.id),
           updatedAt: new Date()
         }
       }
     )
 
     // Send email to transporter
-    const transporter = await db.collection('users').findOne({ _id: invoice.transporterId })
+    const transporter = await db.collection('users').findOne({ _id: invoice.userId })
     const load = await db.collection('loads').findOne({ _id: invoice.loadId })
     
     if (transporter && transporter.email) {
@@ -62,23 +65,23 @@ export async function POST(
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #dc2626;">❌ Invoice Rejected</h2>
             <p>Dear ${transporter.companyName || 'Transporter'},</p>
-            <p>Your invoice <strong>${invoice.invoiceNumber}</strong> has been rejected by our admin team.</p>
+            <p>Your invoice <strong>${invoice.originalName}</strong> has been rejected by our admin team.</p>
             <div style="background: #fee; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc2626;">
               <p><strong>Load Reference:</strong> ${load?.ref || 'Unknown'}</p>
-              <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
-              <p><strong>Amount:</strong> ${invoice.currency} ${invoice.amount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</p>
+              <p><strong>Invoice:</strong> ${invoice.originalName}</p>
+              <p><strong>Amount:</strong> ${load?.currency || 'ZAR'} ${(load?.finalPrice || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</p>
               <p style="margin-top: 15px;"><strong>Rejection Reason:</strong></p>
               <p style="color: #dc2626;">${rejectionReason}</p>
             </div>
-            <p>Please review the rejection reason and resubmit your invoice with the necessary corrections.</p>
+            <p>Please review the rejection reason and contact admin for further details.</p>
             <p style="margin: 30px 0;">
-              <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/transporter/invoices" style="background-color: #1a2a5e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">View Invoices</a>
+              <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/transporter/loads" style="background-color: #1a2a5e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">View Loads</a>
             </p>
           </div>
         `
         await sendEmail(
           transporter.email,
-          `Invoice Rejected: ${invoice.invoiceNumber}`,
+          `Invoice Rejected: ${invoice.originalName}`,
           emailContent
         )
       } catch (emailErr) {

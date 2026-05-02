@@ -17,36 +17,43 @@ export async function GET(req: NextRequest) {
 
     const db = await getDatabase()
     
-    // Get all transporter invoices
-    const invoices = await db.collection('transporter_invoices')
-      .find({})
-      .sort({ submittedAt: -1 })
+    // Get all transporter invoices from documents collection
+    const invoices = await db.collection('documents')
+      .find({ docType: 'INVOICE', uploadedByRole: 'TRANSPORTER' })
+      .sort({ createdAt: -1 })
       .toArray()
 
     // Get details for each invoice
     const invoicesWithDetails = await Promise.all(
       invoices.map(async (invoice) => {
         const load = await db.collection('loads').findOne({ _id: invoice.loadId })
-        const transporter = await db.collection('users').findOne({ _id: invoice.transporterId })
-        const client = await db.collection('users').findOne({ _id: invoice.clientId })
+        const transporter = await db.collection('users').findOne({ _id: invoice.userId })
+        const client = await db.collection('users').findOne({ _id: load?.clientId })
+        
+        // Get linked POD to check admin approval status
+        const pod = await db.collection('documents').findOne({
+          _id: invoice.relatedPodId,
+          docType: 'POD'
+        })
         
         return {
           _id: invoice._id.toString(),
-          invoiceNumber: invoice.invoiceNumber,
-          amount: invoice.amount,
-          currency: invoice.currency,
-          tonnage: invoice.tonnage,
-          status: invoice.status,
+          invoiceNumber: invoice.originalName || 'Invoice',
+          amount: load?.finalPrice || 0,
+          currency: load?.currency || 'ZAR',
+          tonnage: load?.totalTonnage || load?.weight || 0,
+          status: invoice.adminApprovalStatus || 'PENDING_ADMIN',
           rejectionReason: invoice.rejectionReason,
-          submittedAt: invoice.submittedAt,
-          reviewedAt: invoice.reviewedAt,
-          invoicePdfUrl: invoice.invoicePdfUrl,
-          invoicePdfName: invoice.invoicePdfName,
+          submittedAt: invoice.createdAt,
+          reviewedAt: invoice.adminApprovedAt,
+          invoicePdfUrl: invoice.fileUrl,
+          invoicePdfName: invoice.originalName,
           notes: invoice.notes,
           loadRef: load?.ref || 'Unknown',
           loadRoute: load ? `${load.origin} → ${load.destination}` : 'Unknown',
           transporterName: transporter?.companyName || 'Unknown',
-          clientName: client?.companyName || 'Unknown'
+          clientName: client?.companyName || 'Unknown',
+          podStatus: pod?.adminApprovalStatus || 'PENDING_ADMIN'
         }
       })
     )
