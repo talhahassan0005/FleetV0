@@ -756,8 +756,9 @@ export async function createQBInvoice(
   };
 
   // Add invoice number (DocNumber) if provided
+  // QB enforces max 21 characters for DocNumber
   if (invoiceData.invoiceNumber) {
-    payload.DocNumber = invoiceData.invoiceNumber;
+    payload.DocNumber = invoiceData.invoiceNumber.slice(0, 21);
   }
 
   // Add memo/private note if provided
@@ -894,7 +895,7 @@ export async function createQBBill(
   }
   
   if (billData.billNumber) {
-    (payload as any).DocNumber = billData.billNumber;
+    (payload as any).DocNumber = billData.billNumber.slice(0, 21);
   }
   if (billData.memo) {
     (payload as any).Memo = billData.memo;
