@@ -3,7 +3,7 @@ import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { sendEmail, loadPostedEmail } from '@/lib/email'
+import { sendEmail } from '@/lib/email'
 
 /**
  * GET /api/loads - Get all loads with optional filtering
@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
     const filter: any = {}
     if (status) filter.status = status
     if (clientId) {
-      // Try to convert to ObjectId, if it fails, use as string
       try {
         filter.clientId = new ObjectId(clientId)
       } catch (err) {
@@ -28,7 +27,6 @@ export async function GET(req: NextRequest) {
     
     const loads = await db.collection('loads').find(filter).sort({ createdAt: -1 }).limit(50).toArray()
     
-    // Add quotes count for each load
     const loadsWithQuotes = await Promise.all(
       loads.map(async (load) => {
         const quotesCount = await db.collection('quotes').countDocuments({ loadId: load._id })
@@ -63,7 +61,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 2. Check user is verified (either CLIENT or TRANSPORTER)
+    // 2. Check user is verified
     if (!session.user.isVerified) {
       return NextResponse.json(
         { 
@@ -79,7 +77,6 @@ export async function POST(req: NextRequest) {
     
     const { origin, destination, weight, itemType, description, postedPrice, clientId, collectionDate, deliveryDate, currency, country } = body
 
-    // Check which fields are missing
     const missing: string[] = []
     if (!origin) missing.push('origin')
     if (!destination) missing.push('destination')
@@ -91,11 +88,6 @@ export async function POST(req: NextRequest) {
     if (!currency) missing.push('currency')
     if (!country) missing.push('country')
 
-    console.log('[CreateLoad] Validation result:', {
-      allPresent: missing.length === 0,
-      missingFields: missing,
-    })
-
     if (missing.length > 0) {
       console.log('[CreateLoad] Validation failed, missing:', missing.join(', '))
       return NextResponse.json(
@@ -106,10 +98,8 @@ export async function POST(req: NextRequest) {
 
     const db = await getDatabase()
     
-    // Generate reference number
     const ref = `LOAD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
     
-    // Convert clientId from string to ObjectId
     let clientObjectId: any
     try {
       clientObjectId = new ObjectId(clientId)
@@ -124,12 +114,12 @@ export async function POST(req: NextRequest) {
       ref,
       origin,
       destination,
-      cargoType: itemType,  // Map itemType to cargoType
+      cargoType: itemType,
       weight,
       description,
-      finalPrice: postedPrice,  // Map postedPrice to finalPrice
-      currency: currency || 'ZAR',  // Use client-selected currency
-      country: country || 'ZA',     // Use client-selected country
+      finalPrice: postedPrice,
+      currency: currency || 'ZAR',
+      country: country || 'ZA',
       clientId: clientObjectId,
       status: 'PENDING',
       collectionDate,
@@ -142,14 +132,15 @@ export async function POST(req: NextRequest) {
       loadId: result.insertedId.toString(),
       ref,
       clientId: clientId,
-      clientObjectId: clientObjectId.toString(),
     })
 
-    // Send email notification to all ADMINS so they can react quickly
+    // ── Send email to ALL ADMINS so they can review and react quickly ──
     try {
       const admins = await db.collection('users').find({
         role: { $in: ['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'FINANCE_ADMIN'] }
       }).toArray()
+
+      console.log(`[CreateLoad] Found ${admins.length} admin(s) to notify`)
 
       for (const admin of admins) {
         if (!admin.email) continue
@@ -177,94 +168,16 @@ export async function POST(req: NextRequest) {
           </div>
           `
         )
+        console.log(`[CreateLoad] ✅ Admin notification sent to ${admin.email}`)
       }
-      console.log(`[CreateLoad] ✅ Admin notification emails sent to ${admins.length} admin(s)`)
     } catch (adminEmailErr) {
-      console.error('[CreateLoad] ⚠️ Failed to send admin notification email:', adminEmailErr)
+      console.error('[CreateLoad] ⚠️ Failed to send admin notification:', adminEmailErr)
       // Don't fail load creation if admin email fails
     }
 
-    // Send email notification to all verified transporters
-    try {
-      console.log('[CreateLoad] 🔍 Starting transporter email send...')
-      const transporters = await db.collection('users').find({ role: 'TRANSPORTER', isVerified: true }).toArray()
-      console.log(`[CreateLoad] 📊 Found ${transporters.length} verified transporters in database`)
-      
-      if (transporters.length === 0) {
-        console.warn('[CreateLoad] ⚠️  NO VERIFIED TRANSPORTERS FOUND IN DATABASE!')
-      }
-      
-      let emailsSent = 0
-      let emailsFailed = 0
-      
-      for (const transporter of transporters) {
-        try {
-          console.log(`[CreateLoad] 👤 Processing transporter: ${transporter.companyName} (ID: ${transporter._id})`)
-          
-          if (!transporter.email) {
-            console.warn(`[CreateLoad] ❌ Transporter has NO EMAIL: ${transporter.companyName}`)
-            emailsFailed++
-            continue
-          }
-          
-          console.log(`[CreateLoad] 📧 Preparing email for: ${transporter.email}`)
-          const emailContent = loadPostedEmail(
-            transporter.companyName || 'Transporter',
-            ref,
-            origin,
-            destination,
-            postedPrice,
-            currency || 'ZAR'
-          )
-          
-          console.log(`[CreateLoad] 🚀 Sending email to ${transporter.email}...`)
-          const result = await sendEmail(
-            transporter.email,
-            `📬 New Load Available: ${ref}`,
-            emailContent
-          )
-          
-          if (result) {
-            console.log(`[CreateLoad] ✅ Email SENT to ${transporter.email}`)
-            emailsSent++
-          } else {
-            console.error(`[CreateLoad] ❌ Email FAILED for ${transporter.email}`)
-            emailsFailed++
-          }
-        } catch (emailErr) {
-          console.error(`[CreateLoad] 💥 Exception sending email to ${transporter.email}:`, emailErr)
-          emailsFailed++
-        }
-      }
-      
-      console.log(`[CreateLoad] 📈 FINAL RESULT: ${emailsSent} emails sent, ${emailsFailed} failed`)
-      
-      // Also send email to the client who posted the load
-      try {
-        if (session.user?.email) {
-          console.log(`[CreateLoad] 📧 Sending confirmation email to client: ${session.user.email}`)
-          const clientEmailContent = loadPostedEmail(
-            session.user.companyName || 'Client',
-            ref,
-            origin,
-            destination,
-            postedPrice,
-            currency || 'ZAR'
-          )
-          const result = await sendEmail(
-            session.user.email,
-            `✅ Your Load Posted: ${ref}`,
-            clientEmailContent
-          )
-          console.log(`[CreateLoad] ✅ Client confirmation email sent:`, result)
-        }
-      } catch (clientEmailErr) {
-        console.error('[CreateLoad] ⚠️  Failed to send confirmation email to client:', clientEmailErr)
-      }
-    } catch (emailErr) {
-      console.error('[CreateLoad] 💥 CRITICAL ERROR in email sending block:', emailErr)
-      // Don't fail the load creation if emails fail
-    }
+    // ── NOTE: Transporter emails are sent when admin APPROVES the load ──
+    // See: src/app/api/admin/loads/[id]/route.ts → action === 'approve'
+    // Transporters only see APPROVED loads, so email them only on approval
 
     return NextResponse.json(
       {
