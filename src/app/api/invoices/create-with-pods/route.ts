@@ -320,7 +320,9 @@ export async function POST(req: NextRequest) {
       qbTransporterVendorId = transporter.quickbooks.vendorId;
 
       // Create QB Invoice (before DB insert)
-      console.log('[Invoice] 📝 Creating QB Invoice for client...');
+      // Don't send DocNumber to QB - let QB auto-generate unique invoice number
+      console.log('[Invoice] 📝 Creating QB Invoice for client (QB will auto-generate invoice number)...');
+      
       const qbInvoice = await createQBInvoice(realmId, {
         customerId: qbClientCustomerId,
         customerDisplayName: client.companyName || client.email,
@@ -330,8 +332,8 @@ export async function POST(req: NextRequest) {
             amount: clientAmount,
           },
         ],
-        invoiceNumber: clientInvNum,
-        memo: `Load Ref: ${load.ref}, Transporter: ${transporter.companyName}`,
+        // invoiceNumber: clientInvNum, // REMOVED - Let QB auto-generate to avoid duplicates
+        memo: `Load Ref: ${load.ref}, Transporter: ${transporter.companyName}, Internal Ref: ${clientInvNum}`,
       }, load.currency);
 
       if (!qbInvoice?.invoiceId) {
