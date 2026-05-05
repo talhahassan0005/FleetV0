@@ -125,6 +125,8 @@ export default function CreateInvoicePage() {
     if (pod) {
       setTransporterAmount(pod.transporterAmount.toString())
       setSelectedCurrency(pod.currency || 'ZAR')
+      // Auto-fill transporter invoice number from POD filename
+      setTransporterInvoiceNumber(pod.filename || `INV-${pod.loadRef}`)
     }
   }
 
@@ -256,20 +258,19 @@ export default function CreateInvoicePage() {
               <p className="text-xs text-gray-500 mt-1">Enter the tonnage delivered in this invoice</p>
             </div>
 
-            {/* Transporter Invoice Number */}
+            {/* Transporter Invoice Number - Auto-filled, read-only */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Transporter Invoice Number *
+                Transporter Invoice Number
               </label>
               <input
                 type="text"
                 value={transporterInvoiceNumber}
-                onChange={(e) => setTransporterInvoiceNumber(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab54a]/50 text-black"
-                placeholder="e.g., INV-2026-0001"
-                required
+                readOnly
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+                placeholder="Auto-filled from transporter's uploaded invoice"
               />
-              <p className="text-xs text-gray-500 mt-1">From transporter's QuickBooks</p>
+              <p className="text-xs text-gray-500 mt-1">📄 Auto-filled from transporter's uploaded invoice document</p>
             </div>
 
             {/* Currency */}
