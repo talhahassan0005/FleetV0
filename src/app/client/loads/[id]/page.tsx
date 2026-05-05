@@ -3,16 +3,6 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-interface Quote {
-  _id: string
-  transporterName: string
-  price: number
-  currency: string
-  notes?: string
-  status: string
-  createdAt: string
-}
-
 interface Load {
   _id: string
   ref: string
@@ -28,7 +18,6 @@ interface Load {
   status: string
   createdAt?: string
   quotesCount?: number
-  quotes?: Quote[]
 }
 
 export default function ClientLoadDetailPage({ params }: { params: { id: string } }) {
@@ -269,61 +258,14 @@ export default function ClientLoadDetailPage({ params }: { params: { id: string 
           </div>
         </div>
 
-        {/* Quotes Section */}
-        {load.quotesCount !== undefined && load.quotesCount > 0 && (
+        {/* Quote status info — transporter prices are hidden from client */}
+        {load.status === 'QUOTED' && (
           <div className="p-6 border-t border-gray-100">
-            <h3 className="text-2xl font-bold text-[#1a2a5e] mb-4 flex items-center gap-2">
-              📋 Quotes Received
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-bold">
-                {load.quotesCount}
-              </span>
-            </h3>
-            
-            <div className="space-y-3">
-              {load.quotes?.map((quote) => (
-                <div key={quote._id} className="p-4 bg-gradient-to-r from-blue-50 to-blue-50 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-bold text-gray-800">{quote.transporterName}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(quote.createdAt).toLocaleDateString()} at {new Date(quote.createdAt).toLocaleTimeString()}
-                      </p>
-                      {quote.notes && (
-                        <p className="text-sm text-gray-600 mt-2 italic">"{quote.notes}"</p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500 uppercase font-bold">Quoted Price</p>
-                      <p className="text-2xl font-black text-blue-600">
-                        {quote.currency} {quote.price.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
-                      </p>
-                      <span className={`inline-block mt-2 px-2 py-1 rounded text-xs font-bold ${
-                        quote.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-                        quote.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' :
-                        quote.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {quote.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
-              <p className="text-sm text-blue-800">
-                ℹ️ Our admin team will review all quotes and assign the best transporter for your load. You'll receive an email notification once assigned.
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm font-semibold text-green-800">
+                💰 We have received your quote. Our team will be in touch with you shortly.
               </p>
             </div>
-          </div>
-        )}
-
-        {/* No Quotes Yet */}
-        {load.quotesCount === 0 && load.status === 'POSTED' && (
-          <div className="p-6 border-t border-gray-100 bg-yellow-50">
-            <p className="text-sm text-yellow-800">
-              ⏳ No quotes received yet. Transporters will start bidding on your load soon.
-            </p>
           </div>
         )}
 

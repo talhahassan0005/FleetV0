@@ -45,7 +45,6 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
     { label: 'Post Load',  href: '/client/post-load',      icon: <PlusCircleIcon /> },
     { label: 'Invoices',   href: '/client/invoices',       icon: <ReceiptIcon /> },
     { label: 'Documents',  href: '/client/documents',      icon: <DocumentIcon /> },
-    { label: 'Chat',       href: '/client/chat',           icon: <ChatIcon /> },
     { label: 'My Profile', href: '/client/profile',        icon: <UserIcon /> },
   ],
   TRANSPORTER: [
@@ -54,7 +53,6 @@ const navMap: Record<string, { label: string; href: string; icon: React.ReactNod
     { label: 'My Quotes',       href: '/transporter/quotes',     icon: <QuoteIcon /> },
     { label: 'Upload POD',      href: '/transporter/upload-pod', icon: <ReceiptIcon /> },
     { label: 'Documents',       href: '/transporter/documents',  icon: <DocumentIcon /> },
-    { label: 'Chat',            href: '/transporter/chat',       icon: <ChatIcon /> },
     { label: 'My Profile',      href: '/transporter/profile',    icon: <UserIcon /> },
   ],
 }

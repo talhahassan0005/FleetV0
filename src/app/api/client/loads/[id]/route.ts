@@ -24,23 +24,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Load not found' }, { status: 404 })
     }
 
-    // Fetch quotes for this load
-    const quotes = await db.collection('quotes').find({ loadId: load._id }).toArray()
-    const quotesWithTransporterInfo = await Promise.all(
-      quotes.map(async (quote) => {
-        const transporter = await db.collection('users').findOne({ _id: quote.transporterId })
-        return {
-          _id: quote._id.toString(),
-          transporterId: quote.transporterId.toString(),
-          transporterName: transporter?.companyName || 'Unknown',
-          price: quote.price,
-          currency: quote.currency || 'ZAR',
-          notes: quote.notes,
-          status: quote.status,
-          createdAt: quote.createdAt,
-        }
-      })
-    )
+    // Count quotes only — transporter prices are NOT exposed to client
+    // Client only sees the final price set by admin (which includes commission)
+    const quotesCount = await db.collection('quotes').countDocuments({ loadId: load._id })
 
     return NextResponse.json({
       success: true,
@@ -59,8 +45,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         currency: load.currency || 'ZAR',
         clientId: load.clientId.toString(),
         createdAt: load.createdAt,
-        quotesCount: quotes.length,
-        quotes: quotesWithTransporterInfo,
+        quotesCount: quotesCount,
+        quotes: [], // Hidden from client — admin reviews quotes internally
       },
     })
   } catch (err: any) {

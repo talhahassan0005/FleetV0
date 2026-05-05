@@ -145,6 +145,45 @@ export async function POST(req: NextRequest) {
       clientObjectId: clientObjectId.toString(),
     })
 
+    // Send email notification to all ADMINS so they can react quickly
+    try {
+      const admins = await db.collection('users').find({
+        role: { $in: ['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'FINANCE_ADMIN'] }
+      }).toArray()
+
+      for (const admin of admins) {
+        if (!admin.email) continue
+        await sendEmail(
+          admin.email,
+          `🚨 New Load Posted: ${ref}`,
+          `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
+            <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <h2 style="color: #1a2a5e; margin-top: 0;">🚨 New Load Needs Your Review</h2>
+              <p>Hi ${admin.companyName || 'Admin'},</p>
+              <p>A client has just posted a new load. Please review and approve or reject it.</p>
+              <div style="background: #f0f0f0; padding: 20px; border-radius: 6px; margin: 20px 0;">
+                <p><strong>Load Reference:</strong> ${ref}</p>
+                <p><strong>Route:</strong> ${origin} → ${destination}</p>
+                <p><strong>Posted By:</strong> ${session.user.companyName || session.user.email}</p>
+                <p><strong>Posted At:</strong> ${new Date().toLocaleString()}</p>
+              </div>
+              <p style="margin: 30px 0;">
+                <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://fleetxchange.africa'}/admin/loads" style="background-color: #1a2a5e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Review Load Now</a>
+              </p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+              <p style="color: #999; font-size: 12px;">Best regards,<br><strong>FleetXChange System</strong></p>
+            </div>
+          </div>
+          `
+        )
+      }
+      console.log(`[CreateLoad] ✅ Admin notification emails sent to ${admins.length} admin(s)`)
+    } catch (adminEmailErr) {
+      console.error('[CreateLoad] ⚠️ Failed to send admin notification email:', adminEmailErr)
+      // Don't fail load creation if admin email fails
+    }
+
     // Send email notification to all verified transporters
     try {
       console.log('[CreateLoad] 🔍 Starting transporter email send...')
