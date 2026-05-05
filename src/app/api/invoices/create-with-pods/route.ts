@@ -155,7 +155,9 @@ export async function POST(req: NextRequest) {
     // Generate invoice numbers
     const invoiceCount = existingInvoices.length + 1
     const transporterInvNum = `${transporterInvoiceNumber}` // From transporter's QBs
-    const clientInvNum = `${load.ref}-INV-${invoiceCount}` // FleetXchange's number
+    // Add timestamp to QB invoice number to ensure uniqueness
+    const timestamp = Date.now().toString().slice(-6) // Last 6 digits of timestamp
+    const clientInvNum = `${load.ref}-INV-${invoiceCount}-${timestamp}` // FleetXchange's number with timestamp
 
     // ============================================
     // QuickBooks Pre-Validation (BEFORE DB inserts)
