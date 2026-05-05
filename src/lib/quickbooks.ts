@@ -742,45 +742,39 @@ export async function createQBInvoice(
     }
   }
 
-  // Build line items
-  // - If we have a valid service item → SalesItemLineDetail (preferred, shows correctly in QB)
-  // - If no service item but have income account → SalesItemLineDetail with IncomeAccountRef
-  // - Fallback → DescriptionOnlyLine (amount only, no product reference)
+  // Build line items with proper QB structure
   const lines = invoiceData.lineItems.map((item: any, index: number) => {
     const amount = Number(item.amount) || 0;
+    const qty = Number(item.quantity) || 1;
+    const unitPrice = amount / qty;
+
     if (serviceItemId) {
       return {
         DetailType: 'SalesItemLineDetail',
         Amount: amount,
         Description: item.description || 'Freight Service',
-        LineNum: index + 1,
         SalesItemLineDetail: {
-          ItemRef: { name: serviceItemName, value: serviceItemId },
-          UnitPrice: amount,
-          Qty: 1,
+          ItemRef: { value: serviceItemId },
+          Qty: qty,
+          UnitPrice: unitPrice,
         },
       };
     } else if (incomeAccountId) {
-      // AccountBasedExpenseLineDetail with income account — always has correct amount
       return {
         DetailType: 'SalesItemLineDetail',
         Amount: amount,
         Description: item.description || 'Freight Service',
-        LineNum: index + 1,
         SalesItemLineDetail: {
-          ItemRef: { name: 'Services', value: '1' },
-          UnitPrice: amount,
-          Qty: 1,
-          TaxCodeRef: { value: 'NON' },
+          ItemRef: { value: '1' },
+          Qty: qty,
+          UnitPrice: unitPrice,
         },
       };
     } else {
-      // Last resort: DescriptionOnly line — QB will show amount correctly
       return {
         DetailType: 'DescriptionOnlyLine',
         Amount: amount,
         Description: item.description || 'Freight Service',
-        LineNum: index + 1,
         DescriptionLineDetail: {},
       };
     }
