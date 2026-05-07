@@ -35,21 +35,20 @@ function LoginContent() {
     }
   }, [searchParams, isMounted])
 
-  // Redirect after successful login - DISABLED to prevent conflicts
-  // Redirect is now handled only in handleSubmit after successful login
-  // useEffect(() => {
-  //   if (status === 'authenticated' && session?.user) {
-  //     const role = session.user.role
-  //     const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
-  //     if (adminRoles.includes(role)) {
-  //       window.location.href = '/admin/dashboard'
-  //     } else if (role === 'TRANSPORTER') {
-  //       window.location.href = '/transporter/dashboard'
-  //     } else {
-  //       window.location.href = '/client/dashboard'
-  //     }
-  //   }
-  // }, [status, session, router])
+  // Redirect after successful login
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      const role = session.user.role
+      const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
+      if (adminRoles.includes(role)) {
+        router.replace('/admin/dashboard')
+      } else if (role === 'TRANSPORTER') {
+        router.replace('/transporter/dashboard')
+      } else {
+        router.replace('/client/dashboard')
+      }
+    }
+  }, [status, session])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -61,10 +60,7 @@ function LoginContent() {
       return 
     }
     if (res?.ok) {
-      // Force session refresh
-      const updatedSession = await getSession()
-      if (updatedSession?.user) {
-        const role = (updatedSession.user as any).role
+      const redirectByRole = (role: string) => {
         const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
         if (adminRoles.includes(role)) {
           window.location.href = '/admin/dashboard'
@@ -73,9 +69,28 @@ function LoginContent() {
         } else {
           window.location.href = '/client/dashboard'
         }
+      }
+
+      // Retry getSession up to 3 times with delay to allow cookie to be set
+      let sessionRole: string | null = null
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 500))
+        const s = await getSession()
+        const role = (s?.user as any)?.role
+        if (role) { sessionRole = role; break }
+      }
+
+      if (sessionRole) {
+        redirectByRole(sessionRole)
       } else {
-        setLoading(false)
-        setError('Session error. Please try again.')
+        // Fallback: fetch session directly from API
+        const fallbackSession = await fetch('/api/auth/session').then(r => r.json())
+        if (fallbackSession?.user?.role) {
+          redirectByRole(fallbackSession.user.role)
+        } else {
+          setLoading(false)
+          setError('Session could not be established. Please try again.')
+        }
       }
     }
   }

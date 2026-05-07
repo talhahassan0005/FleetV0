@@ -76,6 +76,9 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: false,
+  // trustHost is required when running behind a reverse proxy (e.g. Nginx) in production
+  // Without this, NextAuth rejects requests from the proxy and session cookies fail
+  ...(process.env.NODE_ENV === 'production' && { trustHost: true }),
   // Cookie name MUST include __Secure- prefix in production (matches what NextAuth sets with secure:true)
   cookies: {
     sessionToken: {
