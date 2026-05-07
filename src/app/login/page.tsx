@@ -35,20 +35,21 @@ function LoginContent() {
     }
   }, [searchParams, isMounted])
 
-  // Redirect after successful login
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      const role = session.user.role
-      const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
-      if (adminRoles.includes(role)) {
-        router.replace('/admin/dashboard')
-      } else if (role === 'TRANSPORTER') {
-        router.replace('/transporter/dashboard')
-      } else {
-        router.replace('/client/dashboard')
-      }
-    }
-  }, [status, session])
+  // Redirect after successful login - DISABLED to prevent conflicts
+  // Redirect is now handled only in handleSubmit after successful login
+  // useEffect(() => {
+  //   if (status === 'authenticated' && session?.user) {
+  //     const role = session.user.role
+  //     const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
+  //     if (adminRoles.includes(role)) {
+  //       window.location.href = '/admin/dashboard'
+  //     } else if (role === 'TRANSPORTER') {
+  //       window.location.href = '/transporter/dashboard'
+  //     } else {
+  //       window.location.href = '/client/dashboard'
+  //     }
+  //   }
+  // }, [status, session, router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -60,23 +61,21 @@ function LoginContent() {
       return 
     }
     if (res?.ok) {
-      // Force session refresh — needed in production where cookie name changes
-      // useSession sometimes doesn't auto-update after signIn with redirect:false
+      // Force session refresh
       const updatedSession = await getSession()
       if (updatedSession?.user) {
         const role = (updatedSession.user as any).role
         const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
         if (adminRoles.includes(role)) {
-          router.replace('/admin/dashboard')
+          window.location.href = '/admin/dashboard'
         } else if (role === 'TRANSPORTER') {
-          router.replace('/transporter/dashboard')
+          window.location.href = '/transporter/dashboard'
         } else {
-          router.replace('/client/dashboard')
+          window.location.href = '/client/dashboard'
         }
       } else {
-        // getSession failed — cookie mismatch or slow propagation
-        // Last resort: reload the page, middleware will redirect based on cookie
-        window.location.reload()
+        setLoading(false)
+        setError('Session error. Please try again.')
       }
     }
   }
