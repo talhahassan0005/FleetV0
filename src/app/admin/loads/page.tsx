@@ -32,6 +32,7 @@ export default function AdminLoadsPage() {
   const [loads, setLoads] = useState<Load[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedLoadId, setSelectedLoadId] = useState<string | null>(null)
+  const [tabLoading, setTabLoading] = useState(false)
 
   useEffect(() => {
     const fetchLoads = async () => {
@@ -49,6 +50,7 @@ export default function AdminLoadsPage() {
         console.error('Error fetching loads:', err)
       } finally {
         setLoading(false)
+        setTabLoading(false)
       }
     }
 
@@ -89,17 +91,24 @@ export default function AdminLoadsPage() {
 
       <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
         {STATUSES.map(s => (
-          <Link
+          <button
             key={s}
-            href={`/admin/loads${s ? `?status=${s}` : ''}`}
-            className={`whitespace-nowrap px-4 py-2 rounded text-sm font-semibold transition-colors ${
+            onClick={() => {
+              setTabLoading(true)
+              router.push(`/admin/loads${s ? `?status=${s}` : ''}`)
+            }}
+            disabled={tabLoading}
+            className={`whitespace-nowrap px-4 py-2 rounded text-sm font-semibold transition-colors flex items-center gap-2 ${
               status === s
                 ? 'bg-[#3ab54a] text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+            } ${tabLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
+            {tabLoading && status === s && (
+              <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            )}
             {STATUS_LABELS[s]}
-          </Link>
+          </button>
         ))}
       </div>
 
