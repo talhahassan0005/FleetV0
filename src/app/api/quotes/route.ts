@@ -13,18 +13,18 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const user = await getAuthUser(req)
-if (!user || user.role !== 'TRANSPORTER')
+  const authUser = await getAuthUser(req)
+if (!authUser || authUser.role !== 'TRANSPORTER')
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   try {
     const db = await getDatabase()
     const body = schema.parse(await req.json())
     const loadId = new ObjectId(body.loadId)
-    const userId = new ObjectId(user.id)
+    const userId = new ObjectId(authUser.id)
 
     console.log('[CreateQuote] 📝 Quote submission:', {
-      transporter: user.email,
+      transporter: authUser.email,
       loadId: body.loadId,
       price: body.price
     })
@@ -84,11 +84,11 @@ if (!user || user.role !== 'TRANSPORTER')
       console.log('[CreateQuote] ✅ Load status updated to QUOTED')
     }
 
-    const user = await db.collection('users').findOne({ _id: userId })
+    const dbUser = await db.collection('users').findOne({ _id: userId })
     await db.collection('loadUpdates').insertOne({
       loadId,
       userId,
-      message: `Quote submitted by ${user?.companyName}: ${load.currency} ${body.price.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`,
+      message: `Quote submitted by ${dbUser?.companyName}: ${load.currency} ${body.price.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`,
       createdAt: new Date(),
     })
 
@@ -98,7 +98,7 @@ if (!user || user.role !== 'TRANSPORTER')
       if (client && client.email) {
         const emailContent = quoteReceivedEmail(
           client.companyName || 'Client',
-          user?.companyName || 'Transporter',
+          dbUser?.companyName || 'Transporter',
           load.ref,
           body.price,
           load.currency || 'ZAR'
@@ -112,19 +112,19 @@ if (!user || user.role !== 'TRANSPORTER')
       }
 
       // Send confirmation to transporter
-      if (user?.email) {
+      if (dbUser?.email) {
         const confirmContent = quoteSubmittedConfirmationEmail(
-          user.companyName || 'Transporter',
+          dbUser.companyName || 'Transporter',
           load.ref,
           body.price,
           load.currency || 'ZAR'
         )
         await sendEmail(
-          user.email,
+          dbUser.email,
           `📤 Quote Submitted: ${load.ref}`,
           confirmContent
         )
-        console.log('[CreateQuote] ✅ Quote confirmation email sent to transporter:', user.email)
+        console.log('[CreateQuote] ✅ Quote confirmation email sent to transporter:', dbUser.email)
       }
     } catch (emailErr) {
       console.error('[CreateQuote] ⚠️  Error sending quote email:', emailErr)
@@ -134,7 +134,7 @@ if (!user || user.role !== 'TRANSPORTER')
     return NextResponse.json({ 
       _id: result.insertedId, 
       loadId: body.loadId, 
-      transporterId: user.id, 
+      transporterId: authUser.id, 
       price: body.price, 
       notes: body.notes,
       message: 'Quote submitted successfully! Client will review and contact you.'
@@ -147,8 +147,8 @@ if (!user || user.role !== 'TRANSPORTER')
 }
 
 export async function GET(req: NextRequest) {
-  const user = await getAuthUser(req)
-if (!user || user.role !== 'TRANSPORTER') {
+  const authUser = await getAuthUser(req)
+if (!authUser || authUser.role !== 'TRANSPORTER') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -161,7 +161,7 @@ if (!user || user.role !== 'TRANSPORTER') {
     }
 
     console.log('[CheckQuote] 🔍 Checking if transporter has already quoted:', {
-      transporter: user.email,
+      transporter: authUser.email,
       loadId
     })
 
@@ -174,7 +174,7 @@ if (!user || user.role !== 'TRANSPORTER') {
 
     const existingQuote = await db.collection('quotes').findOne({
       loadId: loadObjectId,
-      transporterId: new ObjectId(user.id),
+      transporterId: new ObjectId(authUser.id),
     })
 
     if (existingQuote) {
