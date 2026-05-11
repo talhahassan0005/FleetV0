@@ -1,7 +1,6 @@
 // src/app/api/quotes/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { sendEmail, quoteApprovedEmail, quoteRejectedEmail } from '@/lib/email'
@@ -11,8 +10,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -30,7 +29,7 @@ export async function PUT(
     const load = await db.collection('loads').findOne({ _id: quote.loadId })
     
     // Verify authorization
-    if (session.user.role === 'CLIENT' && load?.clientId?.toString() !== session.user.id) {
+    if (user.role === 'CLIENT' && load?.clientId?.toString() !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -53,8 +52,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -84,7 +83,7 @@ export async function PATCH(
     }
 
     // Only admins can update quote status
-    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session.user.role)) {
+    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user.role)) {
       return NextResponse.json(
         { error: 'Only admins can accept or reject quotes' },
         { status: 403 }

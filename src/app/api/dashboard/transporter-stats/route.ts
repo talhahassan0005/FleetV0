@@ -2,20 +2,19 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== 'TRANSPORTER') {
+    const user = await getAuthUser(req)
+if (!user || user.role !== 'TRANSPORTER') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const db = await getDatabase()
-    const transporterId = new ObjectId(session.user.id)
+    const transporterId = new ObjectId(user.id)
 
     // Get assigned loads
     const assignedLoads = await db.collection('loads').find({ assignedTransporterId: transporterId }).toArray()

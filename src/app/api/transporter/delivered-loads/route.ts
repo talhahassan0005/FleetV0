@@ -1,13 +1,10 @@
 // src/app/api/transporter/delivered-loads/route.ts
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import connectToDatabase from '@/lib/db'
 import { Load, POD } from '@/lib/models'
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.id || session.user.role !== 'TRANSPORTER') {
+  const user = await getAuthUser(req)
+if (!user?.id || user.role !== 'TRANSPORTER') {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -16,7 +13,7 @@ export async function GET(req: Request) {
 
     // Get loads assigned to transporter with DELIVERED status (without POD yet)
     const loads = await Load.find({
-      assignedTransporterId: session.user.id,
+      assignedTransporterId: user.id,
       status: 'DELIVERED',
     }).sort({ createdAt: -1 })
 

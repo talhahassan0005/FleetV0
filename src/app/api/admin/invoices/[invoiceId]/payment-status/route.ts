@@ -7,8 +7,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { sendEmail } from '@/lib/email'
@@ -18,9 +17,8 @@ export async function PATCH(
   { params }: { params: { invoiceId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    const user = await getAuthUser(req)
+if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       return NextResponse.json(
         { error: 'Only admins can update payment status' },
         { status: 403 }
@@ -76,7 +74,7 @@ export async function PATCH(
       {
         $set: {
           paymentStatus: paymentStatus,
-          paymentTrackedBy: new ObjectId(session.user.id),
+          paymentTrackedBy: new ObjectId(user.id),
           paymentTrackedAt: new Date(),
           paymentAmount: paymentAmount || invoice.amount,
           paymentNotes: paymentNotes || '',
@@ -163,7 +161,7 @@ export async function PATCH(
 
     await db.collection('loadUpdates').insertOne({
       loadId: invoice.loadId,
-      userId: new ObjectId(session.user.id),
+      userId: new ObjectId(user.id),
       message: `Invoice ${invoice.invoiceNumber}: ${statusMessages[paymentStatus]}`,
       createdAt: new Date(),
     })
@@ -194,9 +192,8 @@ export async function GET(
   { params }: { params: { invoiceId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    const user = await getAuthUser(req)
+if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       return NextResponse.json(
         { error: 'Only admins can view payment status' },
         { status: 403 }

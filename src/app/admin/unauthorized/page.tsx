@@ -1,10 +1,10 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 
 export default function UnauthorizedPage() {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { user } = useAuth()
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -22,9 +22,9 @@ export default function UnauthorizedPage() {
           You don't have permission to access this page.
         </p>
         
-        {session?.user && (
+        {user && (
           <p className="text-sm text-gray-500 mb-6">
-            Your role: <span className="font-semibold">{(session.user as any).adminRole || session.user.role}</span>
+            Your role: <span className="font-semibold">{(user as any).adminRole || user.role}</span>
           </p>
         )}
         

@@ -1,6 +1,6 @@
 // src/app/client/page.tsx
 'use client'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -22,20 +22,20 @@ interface Load {
 }
 
 export default function ClientDashboard() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [loads, setLoads] = useState<Load[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!session?.user?.id) {
+    if (!user?.id) {
       router.push('/login')
       return
     }
 
     const fetchLoads = async () => {
       try {
-        const res = await fetch('/api/loads?clientId=' + session.user.id)
+        const res = await fetch('/api/loads?clientId=' + user.id)
         if (res.ok) {
           const data = await res.json()
           console.log('Fetched loads data:', data)
@@ -70,7 +70,7 @@ export default function ClientDashboard() {
         </Link>
       </div>
 
-      {!session?.user?.isVerified && (
+      {!user?.isVerified && (
         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 border-l-4 border-l-yellow-500 rounded text-yellow-800 text-sm">
           ⏳ Your account is pending verification. You'll be able to post loads once verified.
         </div>

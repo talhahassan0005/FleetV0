@@ -1,9 +1,9 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 // src/app/admin/pod-management-new/page.tsx
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
 import { isAdmin, hasPermission } from '@/lib/rbac'
 import { CheckCircle, AlertCircle, Clock, FileText, MessageSquare } from 'lucide-react'
@@ -82,7 +82,7 @@ async function fetchAndEnrichPods(): Promise<POD[]> {
 }
 
 export default function PODManagementPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
 
   const [pods, setPods] = useState<POD[]>([])
@@ -99,8 +99,8 @@ export default function PODManagementPage() {
 
   useEffect(() => {
     if (session === null) { router.push('/login'); return }
-    if (session && !isAdmin(session.user.role)) { router.push('/login'); return }
-    if (session && !hasPermission(session.user.role, 'pods')) { router.push('/admin/unauthorized'); return }
+    if (session && !isAdmin(user.role)) { router.push('/login'); return }
+    if (session && !hasPermission(user.role, 'pods')) { router.push('/admin/unauthorized'); return }
   }, [session, router])
 
   useEffect(() => {
@@ -110,7 +110,7 @@ export default function PODManagementPage() {
         setLoading(true)
         setError('')
         if (session === undefined) return
-        if (!session?.user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+        if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
           if (isMounted) { setError('Admin access required'); setLoading(false) }
           return
         }
@@ -125,7 +125,7 @@ export default function PODManagementPage() {
         if (isMounted) setLoading(false)
       }
     }
-    if (session?.user?.id) fetchPODs()
+    if (user?.id) fetchPODs()
     return () => { isMounted = false }
   }, [session])
 

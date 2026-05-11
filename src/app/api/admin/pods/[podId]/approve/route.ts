@@ -12,8 +12,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac'
 import { ObjectId } from 'mongodb'
@@ -25,16 +24,15 @@ export async function PATCH(
   { params }: { params: { podId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    const user = await getAuthUser(req)
+if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       return NextResponse.json(
         { error: 'Only admins can approve PODs' },
         { status: 403 }
       )
     }
 
-    // Role is already validated above via session.user.role check
+    // Role is already validated above via user.role check
 
     const db = await getDatabase()
     const { comments = '' } = await req.json()
@@ -92,7 +90,7 @@ export async function PATCH(
         $set: {
           adminApprovalStatus: 'APPROVED',
           adminApprovedAt: new Date(),
-          adminApprovedBy: new ObjectId(session.user.id),
+          adminApprovedBy: new ObjectId(user.id),
           adminComments: comments,
           
           // Admin approval is sufficient - auto-mark client side as approved too
@@ -144,7 +142,7 @@ export async function PATCH(
     // Create load update
     await db.collection('loadUpdates').insertOne({
       loadId: load._id,
-      userId: new ObjectId(session.user.id),
+      userId: new ObjectId(user.id),
       message: `POD approved by admin - ready for invoice creation`,
       createdAt: new Date(),
     })
@@ -174,9 +172,8 @@ export async function PUT(
   { params }: { params: { podId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== 'CLIENT') {
+    const user = await getAuthUser(req)
+if (!user?.id || user.role !== 'CLIENT') {
       return NextResponse.json(
         { error: 'Only clients can approve PODs' },
         { status: 403 }
@@ -222,7 +219,7 @@ export async function PUT(
     }
 
     // Verify client owns this load
-    if (load.clientId.toString() !== session.user.id) {
+    if (load.clientId.toString() !== user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -244,7 +241,7 @@ export async function PUT(
         $set: {
           clientApprovalStatus: 'APPROVED',
           clientApprovedAt: new Date(),
-          clientApprovedBy: new ObjectId(session.user.id),
+          clientApprovedBy: new ObjectId(user.id),
           clientComments: comments,
           updatedAt: new Date(),
         }
@@ -278,7 +275,7 @@ export async function PUT(
     // Create load update
     await db.collection('loadUpdates').insertOne({
       loadId: load._id,
-      userId: new ObjectId(session.user.id),
+      userId: new ObjectId(user.id),
       message: `POD approved by client - Both admin and client approval complete`,
       createdAt: new Date(),
     })

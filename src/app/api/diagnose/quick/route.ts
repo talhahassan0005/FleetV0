@@ -1,13 +1,10 @@
 // Quick diagnostic - check PODs and Invoices in database
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions)
-  
-  if (!session?.user?.id) {
+  const user = await getAuthUser(req)
+if (!user?.id) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

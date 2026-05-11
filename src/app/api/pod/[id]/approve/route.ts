@@ -1,7 +1,6 @@
 // src/app/api/pod/[id]/approve/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
@@ -10,15 +9,15 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const db = await getDatabase()
     const podId = new ObjectId(params.id)
-    const userId = new ObjectId(session.user.id)
-    const role = session.user.role
+    const userId = new ObjectId(user.id)
+    const role = user.role
 
     const body = await req.json()
     const { approvalType, comments = '' } = body // approvalType: 'admin' or 'client'

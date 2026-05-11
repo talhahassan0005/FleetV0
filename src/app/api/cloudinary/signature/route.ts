@@ -1,13 +1,12 @@
 // src/app/api/cloudinary/signature/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { v2 as cloudinary } from 'cloudinary'
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

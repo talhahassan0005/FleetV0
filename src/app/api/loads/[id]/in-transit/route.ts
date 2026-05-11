@@ -2,16 +2,14 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== 'TRANSPORTER') {
+    const user = await getAuthUser(req)
+if (!user?.id || user.role !== 'TRANSPORTER') {
       return NextResponse.json(
         { error: 'Only transporters can mark loads as in transit' },
         { status: 403 }
@@ -20,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const db = await getDatabase()
     const loadId = new ObjectId(params.id)
-    const transporterId = new ObjectId(session.user.id)
+    const transporterId = new ObjectId(user.id)
 
     // Get load
     const load = await db.collection('loads').findOne({ _id: loadId })
@@ -30,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     // Verify transporter is assigned
-    if (load.assignedTransporterId?.toString() !== session.user.id) {
+    if (load.assignedTransporterId?.toString() !== user.id) {
       return NextResponse.json(
         { error: 'You are not assigned to this load' },
         { status: 403 }

@@ -16,8 +16,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { sendEmail } from '@/lib/email'
@@ -26,9 +25,8 @@ import { createQBCustomer, createQBVendor, createQBInvoice, createQBBill, makeQB
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
+    const user = await getAuthUser(req)
+if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
       return NextResponse.json(
         { error: 'Only admins can create invoices' },
         { status: 403 }
@@ -530,7 +528,7 @@ export async function POST(req: NextRequest) {
     // Create load update
     await db.collection('loadUpdates').insertOne({
       loadId: load._id,
-      userId: new ObjectId(session.user.id),
+      userId: new ObjectId(user.id),
       message: `Invoices generated for ${tonnageForThisInvoice} tons (Progress: ${progressPercentage}%)`,
       createdAt: new Date(),
     })

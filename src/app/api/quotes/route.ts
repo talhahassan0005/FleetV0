@@ -1,7 +1,6 @@
 // src/app/api/quotes/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { z } from 'zod'
@@ -14,18 +13,18 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user || session.user.role !== 'TRANSPORTER')
+  const user = await getAuthUser(req)
+if (!user || user.role !== 'TRANSPORTER')
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   try {
     const db = await getDatabase()
     const body = schema.parse(await req.json())
     const loadId = new ObjectId(body.loadId)
-    const userId = new ObjectId(session.user.id)
+    const userId = new ObjectId(user.id)
 
     console.log('[CreateQuote] 📝 Quote submission:', {
-      transporter: session.user.email,
+      transporter: user.email,
       loadId: body.loadId,
       price: body.price
     })
@@ -135,7 +134,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       _id: result.insertedId, 
       loadId: body.loadId, 
-      transporterId: session.user.id, 
+      transporterId: user.id, 
       price: body.price, 
       notes: body.notes,
       message: 'Quote submitted successfully! Client will review and contact you.'
@@ -148,8 +147,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user || session.user.role !== 'TRANSPORTER') {
+  const user = await getAuthUser(req)
+if (!user || user.role !== 'TRANSPORTER') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -162,7 +161,7 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('[CheckQuote] 🔍 Checking if transporter has already quoted:', {
-      transporter: session.user.email,
+      transporter: user.email,
       loadId
     })
 
@@ -175,7 +174,7 @@ export async function GET(req: NextRequest) {
 
     const existingQuote = await db.collection('quotes').findOne({
       loadId: loadObjectId,
-      transporterId: new ObjectId(session.user.id),
+      transporterId: new ObjectId(user.id),
     })
 
     if (existingQuote) {

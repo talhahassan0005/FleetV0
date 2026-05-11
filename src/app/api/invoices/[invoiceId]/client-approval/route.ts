@@ -1,7 +1,6 @@
 // src/app/api/invoices/[invoiceId]/client-approval/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { sendEmail } from '@/lib/email'
@@ -11,8 +10,8 @@ export async function POST(
   { params }: { params: { invoiceId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id || session.user.role !== 'CLIENT') {
+    const user = await getAuthUser(req)
+if (!user?.id || user.role !== 'CLIENT') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -41,7 +40,7 @@ export async function POST(
     }
 
     // Verify this client owns this invoice
-    const clientIdStr = session.user.id
+    const clientIdStr = user.id
     const invoiceClientId = invoice.clientId?.toString()
     
     if (invoiceClientId !== clientIdStr) {
@@ -52,7 +51,7 @@ export async function POST(
     const updateData: any = {
       clientApprovalStatus: action === 'APPROVE' ? 'APPROVED' : 'REJECTED',
       clientApprovedAt: new Date(),
-      clientApprovedBy: new ObjectId(session.user.id),
+      clientApprovedBy: new ObjectId(user.id),
     }
 
     if (action === 'REJECT') {
@@ -86,7 +85,7 @@ export async function POST(
               paymentStatus: 'APPROVED', // Update payment status for transporter POD grid
               clientApprovalStatus: 'APPROVED',
               clientApprovedAt: new Date(),
-              clientApprovedBy: new ObjectId(session.user.id),
+              clientApprovedBy: new ObjectId(user.id),
               rejectionReason: null,
               updatedAt: new Date(),
             }
@@ -105,7 +104,7 @@ export async function POST(
               paymentStatus: 'REJECTED',
               clientApprovalStatus: 'REJECTED',
               clientApprovedAt: new Date(),
-              clientApprovedBy: new ObjectId(session.user.id),
+              clientApprovedBy: new ObjectId(user.id),
               rejectionReason: rejectionReason.trim(),
               updatedAt: new Date(),
             }

@@ -1,5 +1,3 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import { QBCountryConfig } from '@/lib/models';
 import { NextResponse } from 'next/server';
@@ -37,8 +35,9 @@ export async function GET() {
 // POST — add new country
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
+    const user = await getAuthUser(req)
+;
+    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -74,8 +73,9 @@ export async function POST(req: Request) {
 // PATCH — edit existing country
 export async function PATCH(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
+    const user = await getAuthUser(req)
+;
+    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -102,8 +102,9 @@ export async function PATCH(req: Request) {
 // DELETE — remove country
 export async function DELETE(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
+    const user = await getAuthUser(req)
+;
+    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

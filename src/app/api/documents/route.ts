@@ -1,7 +1,6 @@
 // src/app/api/documents/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { uploadFile } from '@/lib/cloudinary'
 import { sendEmail, documentUploadAcknowledgementEmail } from '@/lib/email'
@@ -10,15 +9,15 @@ import { ObjectId } from 'mongodb'
 export async function GET(req: NextRequest) {
   try {
     console.log('[Documents API] Starting fetch...')
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[Documents API] User:', session.user.email, 'Role:', session.user.role)
+    console.log('[Documents API] User:', user.email, 'Role:', user.role)
     const db = await getDatabase()
-    const userId = new ObjectId(session.user.id)
-    const userRole = session.user.role
+    const userId = new ObjectId(user.id)
+    const userRole = user.role
     
     // Check if user is any type of admin
     const isAdmin = ['SUPER_ADMIN', 'POD_MANAGER', 'OPERATIONS_ADMIN', 'FINANCE_ADMIN'].includes(userRole)
@@ -120,8 +119,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
+  const user = await getAuthUser(req)
+if (!user) {
     console.log('[PostDocument] No session found')
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
@@ -149,8 +148,8 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[PostDocument] Processing upload:', {
-      userId: session.user.id,
-      userRole: session.user.role,
+      userId: user.id,
+      userRole: user.role,
       docType,
       fileName: file.name,
       fileSize: file.size,
@@ -195,7 +194,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Ensure document is always visible to uploader + their role + ADMIN
-    const roles = new Set([session.user.role, 'ADMIN'])
+    const roles = new Set([user.role, 'ADMIN'])
     if (visibleTo) {
       visibleTo.split(',').forEach(r => roles.add(r))
     }
@@ -203,7 +202,7 @@ export async function POST(req: NextRequest) {
     
     // Prepare document object with approval fields for PODs
     const docObject: any = {
-      userId:         new ObjectId(session.user.id),
+      userId:         new ObjectId(user.id),
       loadId:         loadId ? new ObjectId(loadId) : undefined,
       docType:        docType,
       filename:       publicId,
@@ -211,7 +210,7 @@ export async function POST(req: NextRequest) {
       fileUrl:        fileUrl,
       fileData:       !useCloudinary ? buffer.toString('base64') : undefined, // Store base64 if not using Cloudinary
       fileMimeType:   file.type || 'application/octet-stream',
-      uploadedByRole: session.user.role,
+      uploadedByRole: user.role,
       visibleTo:      finalVisibleTo,
       createdAt:      new Date(),
       updatedAt:      new Date(),
@@ -233,9 +232,9 @@ export async function POST(req: NextRequest) {
 
     console.log('[PostDocument] Saved document:', {
       docId: docResult.insertedId.toString(),
-      userId: session.user.id,
+      userId: user.id,
       docType,
-      uploadedByRole: session.user.role,
+      uploadedByRole: user.role,
       visibleTo,
     })
 
@@ -243,7 +242,7 @@ export async function POST(req: NextRequest) {
 
     // Send upload acknowledgement email to user
     try {
-      const userRecord = await db.collection('users').findOne({ _id: new ObjectId(session.user.id) })
+      const userRecord = await db.collection('users').findOne({ _id: new ObjectId(user.id) })
       if (userRecord?.email && docType !== 'POD' && docType !== 'INVOICE') {
         const userName = userRecord.companyName || userRecord.name || userRecord.email
         await sendEmail(
@@ -260,7 +259,7 @@ export async function POST(req: NextRequest) {
     if (docType === 'POD' && loadId) {
       await db.collection('loadUpdates').insertOne({
         loadId: new ObjectId(loadId),
-        userId: new ObjectId(session.user.id),
+        userId: new ObjectId(user.id),
         message: 'Proof of Delivery (POD) uploaded — shared with client.',
         createdAt: new Date(),
       })
@@ -280,7 +279,7 @@ export async function POST(req: NextRequest) {
     }
 
     // If admin uploads invoice, share with client automatically
-    if (docType === 'INVOICE' && loadId && ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
+    if (docType === 'INVOICE' && loadId && ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
       await db.collection('documents').updateOne(
         { _id: docId },
         { $set: { visibleTo: 'CLIENT,ADMIN', updatedAt: new Date() } }
@@ -288,13 +287,13 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ _id: docId, ...({
-      userId:         session.user.id,
+      userId:         user.id,
       loadId:         loadId ?? undefined,
       docType:        docType,
       filename:       publicId,
       originalName:   file.name,
       fileUrl:        fileUrl,
-      uploadedByRole: session.user.role,
+      uploadedByRole: user.role,
       visibleTo:      visibleTo,
     })}, { status: 201 })
   } catch (err: any) {

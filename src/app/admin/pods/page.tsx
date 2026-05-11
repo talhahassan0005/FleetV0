@@ -1,8 +1,8 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 // src/app/admin/pods/page.tsx
 
 import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout } from '@/components/ui'
 import { CheckCircle, XCircle, FileText, Download, MessageSquare } from 'lucide-react'
@@ -27,7 +27,7 @@ interface POD {
 }
 
 export default function AdminPodsPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [pods, setPods] = useState<POD[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,13 +39,13 @@ export default function AdminPodsPage() {
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    if (session && !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    if (session && !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       router.push('/login')
     }
   }, [session, router])
 
   useEffect(() => {
-    if (session?.user) {
+    if (user) {
       fetchPendingPODs()
     }
   }, [session])

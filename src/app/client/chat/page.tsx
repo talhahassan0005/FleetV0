@@ -1,7 +1,7 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 // src/app/client/chat/page.tsx - Socket.io Real-Time Chat
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout, Skeleton } from '@/components/ui'
 import { useVerificationStatus } from '@/hooks/useVerificationStatus'
 import { 
@@ -61,7 +61,7 @@ const formatTime = (dateString?: string) => {
 };
 
 export default function ClientChatPage() {
-  const { data: session, status } = useSession()
+  const { user } = useAuth()
   const { refreshVerificationStatus } = useVerificationStatus()
   const [mounted, setMounted] = useState(false)
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -94,7 +94,7 @@ export default function ClientChatPage() {
 
   // FIX #1 & #2: Fetch conversations from backend
   const fetchConversations = useCallback(async () => {
-    if (!session?.user?.id) return
+    if (!user?.id) return
     try {
       setLoading(true)
       const res = await fetch('/api/chat/conversations')
@@ -107,15 +107,15 @@ export default function ClientChatPage() {
     } finally {
       setLoading(false)
     }
-  }, [session?.user?.id])
+  }, [user?.id])
 
   // Initialize socket ONCE on page load
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id && !socketRef.current) {
-      console.log('[Chat] 🔌 Initializing socket for user:', session.user.id)
+    if (!!user && user?.id && !socketRef.current) {
+      console.log('[Chat] 🔌 Initializing socket for user:', user.id)
       
       // Initialize socket connection
-      const socket = initializeSocket(session.user.id)
+      const socket = initializeSocket(user.id)
       socketRef.current = socket
 
       // Wait for socket to connect
@@ -133,14 +133,14 @@ export default function ClientChatPage() {
         socket.off('connect', handleConnect)
       }
     }
-  }, [status, session?.user?.id])
+  }, [status, user?.id])
 
   // Fetch conversations separately
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
+    if (!!user && user?.id) {
       fetchConversations()
     }
-  }, [status, session?.user?.id, fetchConversations])
+  }, [status, user?.id, fetchConversations])
 
   // FIX #1: Use consistent conversation ID (sorted user IDs, not Date.now()!)
   const fetchMessages = useCallback(async () => {
@@ -180,11 +180,11 @@ export default function ClientChatPage() {
             return prev
           }
 
-          if (messageData.senderId === session?.user?.id) {
+          if (messageData.senderId === user?.id) {
             return prev.map((m) =>
               m._id.startsWith('temp-') &&
               m.message === messageData.message &&
-              m.senderId === session?.user?.id
+              m.senderId === user?.id
                 ? messageData
                 : m
             )
@@ -205,7 +205,7 @@ export default function ClientChatPage() {
     } else if (selectedConversation && !socketRef.current?.connected) {
       console.error('[Chat] ❌ Cannot setup - socket not connected!')
     }
-  }, [selectedConversation?.conversationId, fetchMessages, session?.user?.id])
+  }, [selectedConversation?.conversationId, fetchMessages, user?.id])
 
   // Start a conversation with a transporter
   const handleStartChat = async (transporterId: string) => {
@@ -256,7 +256,7 @@ export default function ClientChatPage() {
   // FIX #1: Send message via Socket.io only (no HTTP API needed)
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || !selectedConversation || !session?.user?.id) return
+    if (!newMessage.trim() || !selectedConversation || !user?.id) return
 
     const messageText = newMessage.trim()
     const conversationId = selectedConversation.conversationId
@@ -272,9 +272,9 @@ export default function ClientChatPage() {
       const optimisticMessage: Message = {
         _id: `temp-${Date.now()}`,
         conversationId,
-        senderId: session.user.id,
-        senderName: session.user.name || 'You',
-        senderRole: session.user.role,
+        senderId: user.id,
+        senderName: user.name || 'You',
+        senderRole: user.role,
         receiverId: receiverId || '',
         message: messageText,
         timestamp: new Date().toISOString(),
@@ -354,7 +354,7 @@ export default function ClientChatPage() {
   }
 
   // After mounted, check auth status
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <>
         <Topbar title="Chat" />
@@ -367,7 +367,7 @@ export default function ClientChatPage() {
     )
   }
 
-  if (status === 'unauthenticated') {
+  if (!user) {
     return (
       <>
         <Topbar title="Chat" />
@@ -487,7 +487,7 @@ export default function ClientChatPage() {
                     </div>
                   ) : (
                     messages.map((msg) => {
-                      const isOwn = msg.senderId === session?.user?.id
+                      const isOwn = msg.senderId === user?.id
                       return (
                         <div
                           key={msg._id}

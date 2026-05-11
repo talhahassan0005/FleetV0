@@ -1,9 +1,9 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 // src/app/admin/pod-management/page.tsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
 
 interface POD {
@@ -22,7 +22,7 @@ interface POD {
 }
 
 export default function AdminPODManagementPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [pods, setPods] = useState<POD[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,7 +61,7 @@ export default function AdminPODManagementPage() {
   }
 
   useEffect(() => {
-    if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       router.push('/login')
       return
     }

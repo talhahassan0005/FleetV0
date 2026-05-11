@@ -1,7 +1,6 @@
 // src/app/api/documents/[id]/approve/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { sendEmail, documentApprovedEmail, documentRejectedEmail } from '@/lib/email'
@@ -11,13 +10,13 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Allow both ADMIN and CLIENT to approve documents
-    const role = session.user.role
+    const role = user.role
     if (!['ADMIN', 'CLIENT'].includes(role)) {
       return NextResponse.json({ error: 'Only admins and clients can approve documents' }, { status: 403 })
     }
@@ -46,7 +45,7 @@ export async function POST(
           // Update client approval status (for invoices and PODs)
           clientApprovalStatus: approved ? 'APPROVED' : 'REJECTED',
           clientApprovedAt: new Date(),
-          clientApprovedBy: new ObjectId(session.user.id),
+          clientApprovedBy: new ObjectId(user.id),
         },
       },
       { returnDocument: 'after' }
@@ -113,7 +112,7 @@ export async function POST(
                   isVerified: true,
                   verificationStatus: 'VERIFIED',
                   verifiedAt: new Date(),
-                  verifiedBy: session.user.email || session.user.id,
+                  verifiedBy: user.email || user.id,
                   updatedAt: new Date(),
                 },
               }
@@ -141,7 +140,7 @@ export async function POST(
             $set: {
               clientApprovalStatus: approved ? 'APPROVED' : 'REJECTED',
               clientApprovedAt: new Date(),
-              clientApprovedBy: new ObjectId(session.user.id),
+              clientApprovedBy: new ObjectId(user.id),
             }
           }
         )
@@ -162,7 +161,7 @@ export async function POST(
             $set: {
               clientApprovalStatus: approved ? 'APPROVED' : 'REJECTED',
               clientApprovedAt: new Date(),
-              clientApprovedBy: new ObjectId(session.user.id),
+              clientApprovedBy: new ObjectId(user.id),
             }
           }
         )

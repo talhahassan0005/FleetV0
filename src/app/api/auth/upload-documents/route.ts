@@ -1,10 +1,9 @@
 // src/app/api/auth/upload-documents/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { uploadFile } from '@/lib/cloudinary'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
-import { authOptions } from '@/lib/auth'
 
 interface DocumentFile {
   file: File
@@ -14,8 +13,8 @@ interface DocumentFile {
 export async function POST(req: NextRequest) {
   try {
     // Get session
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    const user = await getAuthUser(req)
+if (!user?.email) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.' },
         { status: 401 }
@@ -26,7 +25,7 @@ export async function POST(req: NextRequest) {
     
     // Get user
     const user = await db.collection('users').findOne({
-      email: session.user.email.toLowerCase(),
+      email: user.email.toLowerCase(),
     })
 
     if (!user) {

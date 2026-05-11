@@ -1,7 +1,7 @@
 // src/app/admin/pending-verifications/page.tsx
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 import { getDocumentViewUrl } from '@/lib/document-url'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -21,14 +21,14 @@ interface Document {
 }
 
 export default function PendingVerificationsPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [approving, setApproving] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       router.push('/login')
       return
     }

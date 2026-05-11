@@ -1,13 +1,13 @@
 'use client'
 // src/components/shared/VerificationBanner.tsx
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/useAuth'
 
 export function VerificationBanner() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
 
-  if (['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) return null
+  if (['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) return null
 
-  const verificationStatus = (session?.user as any)?.verificationStatus
+  const verificationStatus = user?.verificationStatus
   if (!verificationStatus) return null
 
   if (verificationStatus === 'APPROVED') {

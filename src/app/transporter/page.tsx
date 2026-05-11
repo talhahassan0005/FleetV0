@@ -1,6 +1,6 @@
 // src/app/transporter/page.tsx
 'use client'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -18,13 +18,13 @@ interface Load {
 }
 
 export default function TransporterDashboard() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [loads, setLoads] = useState<Load[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!session?.user?.id || session.user.role !== 'TRANSPORTER') {
+    if (!user?.id || user.role !== 'TRANSPORTER') {
       router.push('/login')
       return
     }
@@ -65,7 +65,7 @@ export default function TransporterDashboard() {
         </Link>
       </div>
 
-      {!session?.user?.isVerified && (
+      {!user?.isVerified && (
         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 border-l-4 border-l-yellow-500 rounded text-yellow-800 text-sm">
           ⏳ Your account is pending verification. You'll see available loads once verified.
         </div>

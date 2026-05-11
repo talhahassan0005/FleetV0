@@ -1,8 +1,8 @@
 // src/app/admin/invoices/page.tsx
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 
 import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout } from '@/components/ui'
 import { hasPermission } from '@/lib/rbac'
@@ -47,7 +47,7 @@ interface FilterState {
 }
 
 export default function AdminInvoicesPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,12 +67,12 @@ export default function AdminInvoicesPage() {
   const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
-    if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       router.push('/login')
       return
     }
 
-    const adminRole = (session.user as any).adminRole
+    const adminRole = (user as any).adminRole
     if (!hasPermission(adminRole, 'invoices')) {
       router.push('/admin/unauthorized')
       return

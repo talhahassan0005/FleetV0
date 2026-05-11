@@ -1,5 +1,3 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { getDatabase } from '@/lib/prisma';
 import { ObjectId } from 'mongodb';
 import { NextResponse } from 'next/server';
@@ -10,18 +8,19 @@ import { requirePermission } from '@/lib/rbac';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
+    const user = await getAuthUser(req)
+;
+    if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
       return NextResponse.json({ isConnected: false }, { status: 401 });
     }
 
-    const adminRole = (session.user as any).adminRole;
+    const adminRole = (user as any).adminRole;
     if (!requirePermission(adminRole, 'quickbooks')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const db = await getDatabase();
-    const user = await db.collection('users').findOne({ _id: new ObjectId(session.user.id) });
+    const user = await db.collection('users').findOne({ _id: new ObjectId(user.id) });
     
     return NextResponse.json({
       isConnected: user?.quickbooks?.isConnected || false,

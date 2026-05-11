@@ -2,8 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import connectToDatabase from '@/lib/db'
 import { Load, Quote, User } from '@/lib/models'
 import { ObjectId } from 'mongodb'
@@ -39,15 +38,15 @@ import { ObjectId } from 'mongodb'
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id || session.user.role !== 'CLIENT') {
+    const user = await getAuthUser(req)
+if (!user?.id || user.role !== 'CLIENT') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     await connectToDatabase()
 
     // Get all loads for this client
-    const clientId = new ObjectId(session.user.id)
+    const clientId = new ObjectId(user.id)
     const loads = await Load.find({ clientId })
       .select('_id ref origin destination status createdAt')
       .sort({ createdAt: -1 })

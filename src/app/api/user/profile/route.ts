@@ -2,15 +2,13 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
-import { authOptions } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.email) {
+    const user = await getAuthUser(req)
+if (!user?.email) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -19,7 +17,7 @@ export async function GET(req: NextRequest) {
 
     const db = await getDatabase()
     const user = await db.collection('users').findOne({
-      email: session.user.email.toLowerCase(),
+      email: user.email.toLowerCase(),
     })
 
     if (!user) {

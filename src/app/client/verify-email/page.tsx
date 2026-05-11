@@ -1,18 +1,18 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 // src/app/client/verify-email/page.tsx
 import { useState } from 'react'
-import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
 import Link from 'next/link'
 
 export default function VerifyEmailPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
 
   async function handleResendVerification() {
-    if (!session?.user?.email) return
+    if (!user?.email) return
     
     setLoading(true)
     setError('')
@@ -22,7 +22,7 @@ export default function VerifyEmailPage() {
       const res = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: session.user.email }),
+        body: JSON.stringify({ email: user.email }),
       })
       
       if (!res.ok) {
@@ -52,7 +52,7 @@ export default function VerifyEmailPage() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-gray-700 mb-2">
-                    An email verification link has been sent to <strong>{session?.user?.email}</strong>
+                    An email verification link has been sent to <strong>{user?.email}</strong>
                   </p>
                   <p className="text-xs text-gray-500">
                     Check your inbox and spam folder. Click the verification link to verify your email and start posting loads.

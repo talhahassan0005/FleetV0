@@ -1,17 +1,16 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { NextRequest, NextResponse } from 'next/server'
+import { getAuthUser } from '@/lib/server-auth'
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id || session.user.role !== 'TRANSPORTER') {
+  const user = await getAuthUser(req)
+if (!user?.id || user.role !== 'TRANSPORTER') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
   const db = await getDatabase()
-  const transporterId = new ObjectId(session.user.id)
+  const transporterId = new ObjectId(user.id)
 
   // Get invoices from new transporter_invoices collection
   const invoices = await db.collection('transporter_invoices').find({

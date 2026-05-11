@@ -1,8 +1,8 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 // src/app/transporter/quotes/page.tsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Topbar, PageLayout } from '@/components/ui'
 
@@ -34,7 +34,7 @@ const QUOTE_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 }
 
 export default function MyQuotesPage() {
-  const { data: session, status } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,8 +43,8 @@ export default function MyQuotesPage() {
 
   // Handle session auth
   useEffect(() => {
-    if (status === 'loading') return
-    if (!session?.user?.role || session.user.role !== 'TRANSPORTER') {
+    if (isLoading) return
+    if (!user?.role || user.role !== 'TRANSPORTER') {
       router.push('/login')
     }
   }, [session, router, status])
@@ -79,12 +79,12 @@ export default function MyQuotesPage() {
       }
     }
 
-    if (status === 'authenticated' && session?.user?.role === 'TRANSPORTER') {
+    if (!!user && user?.role === 'TRANSPORTER') {
       fetchQuotes()
     }
-  }, [status, session?.user?.role])
+  }, [status, user?.role])
 
-  if (loading || status === 'loading') {
+  if (loading || isLoading) {
     return (
       <>
         <Topbar title="My Quotes" />
@@ -92,7 +92,7 @@ export default function MyQuotesPage() {
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#3ab54a]"></div>
             <p className="text-gray-600 mt-4">
-              {status === 'loading' ? 'Verifying session...' : 'Loading your quotes...'}
+              {isLoading ? 'Verifying session...' : 'Loading your quotes...'}
             </p>
           </div>
         </PageLayout>

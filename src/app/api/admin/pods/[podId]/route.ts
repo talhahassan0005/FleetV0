@@ -1,6 +1,4 @@
 // src/app/api/admin/pods/[podId]/route.ts
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { sendEmail } from '@/lib/email'
@@ -8,9 +6,8 @@ import { sendEmail } from '@/lib/email'
 export const dynamic = 'force-dynamic'
 
 export async function PATCH(req: Request, { params }: { params: { podId: string } }) {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+  const user = await getAuthUser(req)
+if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -34,7 +31,7 @@ export async function PATCH(req: Request, { params }: { params: { podId: string 
     if (status === 'APPROVED') {
       updateData.adminApprovalStatus = 'APPROVED'
       updateData.adminApprovedAt = new Date()
-      updateData.adminApprovedBy = new ObjectId(session.user.id)
+      updateData.adminApprovedBy = new ObjectId(user.id)
       updateData.clientApprovalStatus = 'PENDING_CLIENT' // Forward to client
     } else if (status === 'PENDING' && rejectionReason) {
       updateData.adminApprovalStatus = 'PENDING_ADMIN'

@@ -1,7 +1,6 @@
 // src/app/api/documents/[id]/view/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import path from 'path'
@@ -12,16 +11,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    console.log('[ViewDocument] Session check:', {
+    const user = await getAuthUser(req)
+console.log('[ViewDocument] Session check:', {
       hasSession: !!session,
-      userId: session?.user?.id,
-      userRole: session?.user?.role,
+      userId: user?.id,
+      userRole: user?.role,
       docId: params.id
     })
     
-    if (!session?.user) {
+    if (!user) {
       console.log('[ViewDocument] No session - returning 401')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -48,11 +46,11 @@ export async function GET(
     })
 
     // Check authorization - user must own the document OR be admin OR be client/transporter viewing shared documents
-    const userId = new ObjectId(session.user.id)
+    const userId = new ObjectId(user.id)
     const isOwner = document.userId?.toString() === userId.toString()
-    const isAdmin = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')
-    const isClient = session.user.role === 'CLIENT'
-    const isTransporter = session.user.role === 'TRANSPORTER'
+    const isAdmin = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')
+    const isClient = user.role === 'CLIENT'
+    const isTransporter = user.role === 'TRANSPORTER'
     
     // Allow access if:
     // 1. User owns the document
@@ -64,11 +62,11 @@ export async function GET(
                     (isTransporter && document.uploadedByRole === 'CLIENT')
 
     if (!canView) {
-      console.log('[ViewDocument] Access denied:', { isOwner, isAdmin, userRole: session.user.role, docRole: document.uploadedByRole })
+      console.log('[ViewDocument] Access denied:', { isOwner, isAdmin, userRole: user.role, docRole: document.uploadedByRole })
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
     
-    console.log('[ViewDocument] Access granted:', { isOwner, isAdmin, userRole: session.user.role })
+    console.log('[ViewDocument] Access granted:', { isOwner, isAdmin, userRole: user.role })
 
     // CASE 1: Cloudinary URL - redirect directly to viewable URL
     if (document.fileUrl && document.fileUrl.startsWith('http')) {

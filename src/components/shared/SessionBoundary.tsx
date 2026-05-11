@@ -1,23 +1,12 @@
 'use client'
 // src/components/shared/SessionBoundary.tsx
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/useAuth'
 import { ReactNode } from 'react'
 
-/**
- * SessionBoundary - Prevents flicker/blink during session loading
- * 
- * How it works:
- * 1. Shows loading spinner while session is loading
- * 2. Once session loads, renders children
- * 3. No re-renders = No blink!
- * 
- * Industry Standard: Used by Vercel, Next.js official docs
- */
 export function SessionBoundary({ children }: { children: ReactNode }) {
-  const { status } = useSession()
+  const { isLoading } = useAuth()
   
-  // Show loading state until session is ready
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="text-center">
@@ -28,6 +17,5 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
     )
   }
   
-  // Session loaded - render children (Sidebar + Content)
   return <>{children}</>
 }

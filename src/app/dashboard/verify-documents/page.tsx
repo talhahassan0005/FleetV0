@@ -1,7 +1,7 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { Suspense } from 'react'
 
 interface DocumentUpload {
@@ -14,7 +14,7 @@ interface DocumentUpload {
 function VerifyDocumentsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { data: session } = useSession()
+  const { user } = useAuth()
   
   const [documents, setDocuments] = useState<DocumentUpload[]>([
     { type: 'COMPANY_REG', file: null, label: 'Company Registration Certificate', required: true },

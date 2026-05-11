@@ -2,19 +2,18 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
 // Only superadmin can manage sub-admins
 function isSuperAdmin(session: any) {
-  return ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role) && (!session.user.adminRole || session.user.adminRole === 'superadmin')
+  return ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role) && (!user.adminRole || user.adminRole === 'superadmin')
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!isSuperAdmin(session)) {
+  const user = await getAuthUser(req)
+if (!isSuperAdmin(session)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -38,8 +37,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!isSuperAdmin(session)) {
+  const user = await getAuthUser(req)
+if (!isSuperAdmin(session)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

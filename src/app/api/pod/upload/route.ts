@@ -2,20 +2,18 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac'
 import { ObjectId } from 'mongodb'
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    console.log('[PODUpload] 🚀 Uploaded by:', session?.user?.email, 'Role:', session?.user?.role)
+    const user = await getAuthUser(req)
+console.log('[PODUpload] 🚀 Uploaded by:', user?.email, 'Role:', user?.role)
     
     // Only transporters can upload POD
-    if (!session?.user?.role || session.user.role !== 'TRANSPORTER') {
+    if (!user?.role || user.role !== 'TRANSPORTER') {
       return NextResponse.json(
         { error: 'Only transporters can upload POD' },
         { status: 403 }
@@ -92,7 +90,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify transporter is assigned to this load
-    const transporterId = new ObjectId(session.user.id)
+    const transporterId = new ObjectId(user.id)
     
     // Get all quotes for this transporter on this load
     const allQuotes = await db.collection('quotes').find({
@@ -241,22 +239,22 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Add RBAC check for admin users
-    if (['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
-      const adminRole = (session.user as any).adminRole
+    if (['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
+      const adminRole = (user as any).adminRole
       if (!requirePermission(adminRole, 'pods')) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
     }
 
     const db = await getDatabase()
-    const userId = new ObjectId(session.user.id)
-    const role = session.user.role
+    const userId = new ObjectId(user.id)
+    const role = user.role
 
     let query: any = { docType: 'POD' }
 

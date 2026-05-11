@@ -1,15 +1,13 @@
 // src/app/api/auth/refresh-session/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
+    const user = await getAuthUser(req)
+if (!user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -18,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     const db = await getDatabase()
     const user = await db.collection('users').findOne({
-      _id: new ObjectId(session.user.id),
+      _id: new ObjectId(user.id),
     })
 
     if (!user) {

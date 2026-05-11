@@ -1,22 +1,19 @@
 // Diagnostic endpoint to check invoices in database
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions)
-  
-  if (!session?.user?.id) {
+  const user = await getAuthUser(req)
+if (!user?.id) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
     const db = await getDatabase()
-    const userId = new ObjectId(session.user.id)
+    const userId = new ObjectId(user.id)
     
-    const role = session.user.role
-    console.log('[DiagnoseInvoices] User:', session.user.email, 'Role:', role)
+    const role = user.role
+    console.log('[DiagnoseInvoices] User:', user.email, 'Role:', role)
 
     if (role === 'CLIENT') {
       // Get client's loads

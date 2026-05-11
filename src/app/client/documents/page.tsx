@@ -1,12 +1,12 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 // src/app/client/documents/page.tsx
 import { useEffect, useState, useRef } from 'react'
-import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout, DocumentsTableSkeleton, DashboardCardsSkeleton } from '@/components/ui'
 import { Skeleton } from '@/components/ui/skeletons'
 
 export default function ClientDocumentsPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -171,28 +171,28 @@ export default function ClientDocumentsPage() {
       <Topbar title="Documents" />
       
       {/* Verification Status Banner */}
-      {session?.user && !session.user.isVerified && (
+      {user && !user.isVerified && (
         <div className="bg-amber-50 border-b-2 border-amber-300 px-6 py-4">
           <div className="max-w-7xl mx-auto">
             <div className="flex gap-4">
               <div className="mt-0.5">⚠️</div>
               <div className="flex-1">
-                {session.user.verificationStatus === 'REJECTED' ? (
+                {user.verificationStatus === 'REJECTED' ? (
                   <div>
                     <p className="font-semibold text-amber-900">Account Verification Required</p>
                     <p className="text-sm text-amber-800 mt-1">
                       Your account verification was <span className="font-semibold">rejected</span>.
                     </p>
-                    {session.user.verificationComment && (
+                    {user.verificationComment && (
                       <p className="text-sm text-amber-700 mt-1 italic">
-                        Reason: {session.user.verificationComment}
+                        Reason: {user.verificationComment}
                       </p>
                     )}
                     <p className="text-sm text-amber-800 mt-2">
                       Please upload updated documents below to resubmit for verification.
                     </p>
                   </div>
-                ) : session.user.verificationStatus === 'PENDING' ? (
+                ) : user.verificationStatus === 'PENDING' ? (
                   <div>
                     <p className="font-semibold text-amber-900">Verification Pending</p>
                     <p className="text-sm text-amber-800 mt-1">
@@ -219,15 +219,15 @@ export default function ClientDocumentsPage() {
           <div className="bg-green-50 px-6 py-3 border-b border-green-100">
             <div className="flex items-center justify-between">
               <h3 className="font-condensed font-bold text-sm text-[#1a2a5e] uppercase tracking-wide">
-                {!session?.user?.isVerified ? '📋 Upload Verification Documents' : '📋 Upload Document'}
+                {!user?.isVerified ? '📋 Upload Verification Documents' : '📋 Upload Document'}
               </h3>
-              {!session?.user?.isVerified && (
+              {!user?.isVerified && (
                 <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded font-semibold">Required for Verification</span>
               )}
             </div>
           </div>
           <div className="p-6">
-            {!session?.user?.isVerified && (
+            {!user?.isVerified && (
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-900">
                 <p className="font-semibold mb-1">Required Verification Documents (All 3 Required):</p>
                 <ul className="text-xs space-y-1 ml-4">

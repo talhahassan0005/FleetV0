@@ -1,14 +1,14 @@
 // src/app/transporter/profile/page.tsx
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { Topbar, PageLayout } from '@/components/ui'
 import { ObjectId } from 'mongodb'
 
 export default async function TransporterProfilePage() {
-  const session = await getServerSession(authOptions)
+  const _cookies = await cookies()
+  const _token = _cookies.get('accessToken')?.value
+  const user = _token ? verifyAccessToken(_token) : null
   
-  if (!session?.user?.id) {
+  if (!user?.id) {
     return (
       <>
         <Topbar title="My Profile" />
@@ -25,7 +25,7 @@ export default async function TransporterProfilePage() {
   try {
     const db = await getDatabase()
     user = await db.collection('users').findOne({
-      _id: new ObjectId(session.user.id)
+      _id: new ObjectId(user.id)
     })
   } catch (err) {
     console.error('Error fetching user profile:', err)

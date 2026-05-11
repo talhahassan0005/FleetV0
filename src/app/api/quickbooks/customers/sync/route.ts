@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/server-auth'
 import { createQBCustomer, createQBVendor } from '@/lib/quickbooks';
 import { getDatabase } from '@/lib/prisma';
 import { ObjectId } from 'mongodb';
@@ -12,9 +11,10 @@ import { ObjectId } from 'mongodb';
  * Admin-only endpoint
  */
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const user = await getAuthUser(req)
+;
 
-  if (!session?.user || !session.user.email) {
+  if (!user || !user.email) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     // Verify user is admin
     const admin = await db.collection('users').findOne({
-      email: (session.user as any).email,
+      email: (user as any).email,
     });
 
     if (!admin || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(admin.role)) {
@@ -173,9 +173,10 @@ export async function POST(request: NextRequest) {
  * Get sync status - for dashboard
  */
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const user = await getAuthUser(req)
+;
 
-  if (!session?.user || !session.user.email) {
+  if (!user || !user.email) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
@@ -186,7 +187,7 @@ export async function GET(request: NextRequest) {
     const db = await getDatabase();
 
     const user = await db.collection('users').findOne({
-      email: (session.user as any).email,
+      email: (user as any).email,
     });
 
     if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user.role)) {

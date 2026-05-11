@@ -2,16 +2,14 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
-import { authOptions } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== 'TRANSPORTER') {
+    const user = await getAuthUser(req)
+if (!user?.id || user.role !== 'TRANSPORTER') {
       console.log('[TransporterLoads] Unauthorized - Missing user or wrong role')
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -20,9 +18,9 @@ export async function GET(req: NextRequest) {
     }
 
     const db = await getDatabase()
-    const transporterIdObjectId = new ObjectId(session.user.id)
+    const transporterIdObjectId = new ObjectId(user.id)
 
-    console.log('[TransporterLoads] Fetching quotes for transporter:', session.user.id)
+    console.log('[TransporterLoads] Fetching quotes for transporter:', user.id)
 
     // Get all quotes from this transporter
     const quotes = await db

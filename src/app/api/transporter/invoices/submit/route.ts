@@ -1,16 +1,14 @@
 // src/app/api/transporter/invoices/submit/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { sendEmail } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.role || session.user.role !== 'TRANSPORTER') {
+    const user = await getAuthUser(req)
+if (!user?.role || user.role !== 'TRANSPORTER') {
       return NextResponse.json(
         { error: 'Only transporters can submit invoices' },
         { status: 403 }
@@ -30,7 +28,7 @@ export async function POST(req: NextRequest) {
 
     const db = await getDatabase()
     const podObjectId = new ObjectId(podId)
-    const transporterId = new ObjectId(session.user.id)
+    const transporterId = new ObjectId(user.id)
 
     // Get POD details
     const pod = await db.collection('pods').findOne({ _id: podObjectId })

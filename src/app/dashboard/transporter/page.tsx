@@ -1,6 +1,6 @@
 // src/app/dashboard/transporter/page.tsx
 'use client'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -15,13 +15,13 @@ interface User {
 }
 
 export default function TransporterDashboard() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!session?.user?.email) {
+    if (!user?.email) {
       router.push('/login')
       return
     }

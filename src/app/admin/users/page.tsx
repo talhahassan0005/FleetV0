@@ -1,6 +1,6 @@
 // src/app/admin/users/page.tsx
 'use client'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/useAuth'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -18,7 +18,7 @@ interface User {
 }
 
 export default function AdminUsersPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const roleFilter = searchParams.get('role') || ''
@@ -32,16 +32,16 @@ export default function AdminUsersPage() {
   const [subAdminForm, setSubAdminForm] = useState({ email: '', password: '', companyName: '', adminRole: 'pod_manager' })
   const [subAdmins, setSubAdmins] = useState<any[]>([])
 
-  const isSuperAdmin = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '') && (!(session?.user as any)?.adminRole || (session?.user as any)?.adminRole === 'superadmin')
+  const isSuperAdmin = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '') && (!(user as any)?.adminRole || (user as any)?.adminRole === 'superadmin')
 
   useEffect(() => {
-    if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       router.push('/login')
       return
     }
 
     // Only superadmin can access users management
-    const adminRole = (session.user as any).adminRole
+    const adminRole = (user as any).adminRole
     if (adminRole && adminRole !== 'superadmin') {
       router.push('/admin/unauthorized')
       return

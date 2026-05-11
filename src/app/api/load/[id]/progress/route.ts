@@ -1,7 +1,6 @@
 // src/app/api/load/[id]/progress/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
@@ -10,8 +9,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -26,11 +25,11 @@ export async function GET(
     }
 
     // Authorization: User must be involved in this load
-    const userId = new ObjectId(session.user.id)
+    const userId = new ObjectId(user.id)
     const canView = 
       load.clientId?.toString() === userId.toString() ||
       load.transporterId?.toString() === userId.toString() ||
-      ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')
+      ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')
 
     if (!canView) {
       return NextResponse.json(

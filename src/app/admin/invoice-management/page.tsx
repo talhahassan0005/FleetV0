@@ -1,8 +1,8 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 // src/app/admin/invoice-management/page.tsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
 
 interface Invoice {
@@ -23,7 +23,7 @@ interface Invoice {
 }
 
 export default function AdminInvoiceManagementPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,7 +61,7 @@ export default function AdminInvoiceManagementPage() {
   }
 
   useEffect(() => {
-    if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       router.push('/login')
       return
     }

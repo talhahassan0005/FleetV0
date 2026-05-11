@@ -1,9 +1,9 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 // src/app/client/invoices/page.tsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
 
 interface POD {
@@ -66,7 +66,7 @@ interface QBInvoice {
 }
 
 export default function ClientInvoicesPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [loads, setLoads] = useState<LoadForInvoice[]>([])
   const [qbInvoices, setQbInvoices] = useState<QBInvoice[]>([])
@@ -84,7 +84,7 @@ export default function ClientInvoicesPage() {
 
 
   useEffect(() => {
-    if (!session?.user?.id) {
+    if (!user?.id) {
       router.push('/login')
       return
     }

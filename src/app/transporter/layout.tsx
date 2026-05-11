@@ -1,12 +1,14 @@
 // src/app/transporter/layout.tsx
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { cookies } from 'next/headers'
+import { verifyAccessToken } from '@/lib/jwt-utils'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/shared/Sidebar'
 
 export default async function TransporterLayout({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user || session.user.role !== 'TRANSPORTER') redirect('/login')
+  const _cookies = await cookies()
+  const _token = _cookies.get('accessToken')?.value
+  const user = _token ? verifyAccessToken(_token) : null
+  if (!user || user.role !== 'TRANSPORTER') redirect('/login')
   
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">

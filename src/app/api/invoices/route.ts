@@ -1,14 +1,13 @@
 // src/app/api/invoices/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { uploadFile } from '@/lib/cloudinary'
 import { ObjectId } from 'mongodb'
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? ''))
+  const user = await getAuthUser(req)
+if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? ''))
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   try {
@@ -56,7 +55,7 @@ export async function POST(req: NextRequest) {
     // Auto-share with client as a document
     await db.collection('documents').insertOne({
       loadId: loadObjectId,
-      userId: new ObjectId(session.user.id),
+      userId: new ObjectId(user.id),
       docType: 'INVOICE',
       filename: publicId,
       originalName: file.name,
@@ -69,7 +68,7 @@ export async function POST(req: NextRequest) {
 
     await db.collection('loadUpdates').insertOne({
       loadId: loadObjectId,
-      userId: new ObjectId(session.user.id),
+      userId: new ObjectId(user.id),
       message: `QuickBooks invoice ${invoiceNumber} (${currency} ${amount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}) uploaded and shared with client.`,
       createdAt: new Date(),
     })
@@ -82,8 +81,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? ''))
+  const user = await getAuthUser(req)
+if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? ''))
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   try {

@@ -6,24 +6,22 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac'
 import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    const user = await getAuthUser(req)
+if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       return NextResponse.json(
         { error: 'Only admins can view PODs for invoice creation' },
         { status: 403 }
       )
     }
 
-    const adminRole = (session.user as any).adminRole
+    const adminRole = (user as any).adminRole
     if (!requirePermission(adminRole, 'invoices')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }

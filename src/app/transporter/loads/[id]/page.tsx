@@ -1,9 +1,9 @@
 // src/app/transporter/loads/[id]/page.tsx
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 import { getDocumentViewUrl } from '@/lib/document-url'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
 
 interface Load {
@@ -35,7 +35,7 @@ interface Load {
 
 export default function TransporterLoadDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [load, setLoad] = useState<Load | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

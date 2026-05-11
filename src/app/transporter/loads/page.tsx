@@ -1,8 +1,8 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 // src/app/transporter/loads/page.tsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Topbar, PageLayout } from '@/components/ui'
 import { useVerificationStatus } from '@/hooks/useVerificationStatus'
@@ -20,7 +20,7 @@ interface Load {
 }
 
 export default function AvailableLoadsPage() {
-  const { data: session, status } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const { isVerified, refreshVerificationStatus } = useVerificationStatus()
   const [loads, setLoads] = useState<Load[]>([])
@@ -33,8 +33,8 @@ export default function AvailableLoadsPage() {
   }, [])
 
   useEffect(() => {
-    if (status === 'loading') return
-    if (!session?.user?.role || session.user.role !== 'TRANSPORTER') {
+    if (isLoading) return
+    if (!user?.role || user.role !== 'TRANSPORTER') {
       router.push('/login')
       return
     }
@@ -64,7 +64,7 @@ export default function AvailableLoadsPage() {
     }
 
     // Only fetch once on mount when session is verified
-    if (session?.user?.role === 'TRANSPORTER') {
+    if (user?.role === 'TRANSPORTER') {
       fetchLoads()
     }
   }, [session, router])

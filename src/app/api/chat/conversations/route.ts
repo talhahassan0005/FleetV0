@@ -2,10 +2,9 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
-import { authOptions } from '@/lib/auth'
 
 /**
  * HELPER: Generate consistent conversation ID from two user IDs
@@ -19,14 +18,13 @@ function generateConversationId(userId1: string, userId2: string): string {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
+    const user = await getAuthUser(req)
+if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const db = await getDatabase()
-    const userId = session.user.id
+    const userId = user.id
 
     // Get all conversations for this user
     const conversations = await db
@@ -103,9 +101,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
+    const user = await getAuthUser(req)
+if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -119,7 +116,7 @@ export async function POST(req: NextRequest) {
     }
 
     const db = await getDatabase()
-    const userId = session.user.id
+    const userId = user.id
 
     // Generate consistent conversation ID
     const conversationId = generateConversationId(userId, otherUserId)
@@ -158,7 +155,7 @@ export async function POST(req: NextRequest) {
         participants: [
           {
             userId,
-            userRole: session.user.role,
+            userRole: user.role,
             name: currentUser.companyName || currentUser.name || currentUser.email,
             email: currentUser.email,
           },
@@ -186,7 +183,7 @@ export async function POST(req: NextRequest) {
         participants: [
           {
             userId,
-            userRole: session.user.role,
+            userRole: user.role,
             name: currentUser.companyName || currentUser.name || currentUser.email,
             email: currentUser.email,
           },

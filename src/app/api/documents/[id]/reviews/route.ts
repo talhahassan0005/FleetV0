@@ -1,7 +1,6 @@
 // src/app/api/documents/[id]/reviews/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { sendEmail, documentUploadAcknowledgementEmail, userVerifiedEmail, documentApprovedEmail, documentRejectedEmail } from '@/lib/email'
@@ -10,8 +9,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
+  const user = await getAuthUser(req)
+if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -57,7 +56,7 @@ export async function POST(
       )
     }
     
-    const userId = new ObjectId(session.user.id)
+    const userId = new ObjectId(user.id)
 
     const doc = await db.collection('documents').findOne({
       _id: docId,
@@ -69,7 +68,7 @@ export async function POST(
 
     // Check if user already reviewed this document
     const existingReview = doc.reviews?.find(
-      (r: any) => r.reviewerId?.toString() === session.user.id
+      (r: any) => r.reviewerId?.toString() === user.id
     )
 
     if (existingReview) {
@@ -105,7 +104,7 @@ export async function POST(
           $push: {
             reviews: {
               reviewerId: userId,
-              reviewerRole: session.user.role,
+              reviewerRole: user.role,
               status,
               comment,
               timestamp: new Date(),

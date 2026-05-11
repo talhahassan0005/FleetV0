@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { sendEmail } from '@/lib/email'
 
 /**
@@ -53,8 +52,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     // 1. Check user is authenticated
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized - Please login first' },
         { status: 401 }
@@ -62,7 +61,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Check user is verified
-    if (!session.user.isVerified) {
+    if (!user.isVerified) {
       return NextResponse.json(
         { 
           error: 'Account not verified - Please complete account verification before posting loads',
@@ -156,7 +155,7 @@ export async function POST(req: NextRequest) {
               <div style="background: #f0f0f0; padding: 20px; border-radius: 6px; margin: 20px 0;">
                 <p><strong>Load Reference:</strong> ${ref}</p>
                 <p><strong>Route:</strong> ${origin} → ${destination}</p>
-                <p><strong>Posted By:</strong> ${session.user.companyName || session.user.email}</p>
+                <p><strong>Posted By:</strong> ${user.companyName || user.email}</p>
                 <p><strong>Posted At:</strong> ${new Date().toLocaleString()}</p>
               </div>
               <p style="margin: 30px 0;">

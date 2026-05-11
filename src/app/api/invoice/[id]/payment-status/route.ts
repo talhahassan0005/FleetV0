@@ -1,7 +1,6 @@
 // src/app/api/invoice/[id]/payment-status/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
@@ -16,10 +15,9 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    // Only admin can update payment status
-    if (!session?.user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
+    const user = await getAuthUser(req)
+// Only admin can update payment status
+    if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
       return NextResponse.json(
         { error: 'Only admin can update payment status' },
         { status: 403 }
@@ -51,7 +49,7 @@ export async function PATCH(
     const updateData = {
       paymentStatus,
       paymentNotes,
-      paymentTrackedBy: new ObjectId(session.user.id),
+      paymentTrackedBy: new ObjectId(user.id),
       paymentTrackedAt: new Date(),
       updatedAt: new Date()
     }

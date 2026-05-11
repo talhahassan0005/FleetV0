@@ -1,7 +1,6 @@
 // src/app/api/invoice/create/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
@@ -16,10 +15,9 @@ interface InvoiceCreateBody {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    // Only admin can create invoices
-    if (!session?.user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
+    const user = await getAuthUser(req)
+// Only admin can create invoices
+    if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
       return NextResponse.json(
         { error: 'Only admin can create invoices' },
         { status: 403 }

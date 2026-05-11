@@ -2,24 +2,22 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
-import { authOptions } from '@/lib/auth'
 
 import { requirePermission } from '@/lib/rbac'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+    const user = await getAuthUser(req)
+if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
       )
     }
 
-    const adminRole = (session.user as any).adminRole
+    const adminRole = (user as any).adminRole
     if (!requirePermission(adminRole, 'users')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }

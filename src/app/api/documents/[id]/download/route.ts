@@ -1,7 +1,6 @@
 // src/app/api/documents/[id]/download/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
@@ -10,8 +9,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -43,10 +42,10 @@ export async function GET(
     }
 
     // Check if user has access
-    const userId = new ObjectId(session.user.id)
+    const userId = new ObjectId(user.id)
     const canAccess = 
       doc.userId.toString() === userId.toString() ||
-      (doc.visibleTo && doc.visibleTo.includes(session.user.role))
+      (doc.visibleTo && doc.visibleTo.includes(user.role))
 
     if (!canAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })

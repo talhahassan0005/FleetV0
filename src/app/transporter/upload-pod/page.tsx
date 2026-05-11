@@ -1,9 +1,9 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 import { getDocumentViewUrl } from '@/lib/document-url'
 // src/app/transporter/upload-pod/page.tsx
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
 import { AlertCircle, CheckCircle, Upload, FileText, Eye, Clock, CheckCircle2, Loader } from 'lucide-react'
 
@@ -35,7 +35,7 @@ interface SubmittedPOD {
 }
 
 export default function UploadPODPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
 
   // Form states
@@ -65,7 +65,7 @@ export default function UploadPODPage() {
 
   // Auth check
   useEffect(() => {
-    if (session && session.user.role !== 'TRANSPORTER') {
+    if (session && user.role !== 'TRANSPORTER') {
       router.push('/login')
     }
   }, [session, router])
@@ -94,7 +94,7 @@ export default function UploadPODPage() {
       }
     }
 
-    if (session?.user) {
+    if (user) {
       fetchLoads()
     }
   }, [session])
@@ -106,7 +106,7 @@ export default function UploadPODPage() {
     const fetchSubmittedPODs = async () => {
       try {
         setPodsLoading(true)
-        console.log('[TransporterPODs] Fetching PODs for transporter:', session?.user?.email)
+        console.log('[TransporterPODs] Fetching PODs for transporter:', user?.email)
         
         const res = await fetch('/api/pod/upload')
         
@@ -217,7 +217,7 @@ export default function UploadPODPage() {
       }
     }
 
-    if (session?.user && session.user.role === 'TRANSPORTER') {
+    if (user && user.role === 'TRANSPORTER') {
       fetchSubmittedPODs()
       fetchTransporterInvoices()
     }

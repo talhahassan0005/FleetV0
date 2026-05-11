@@ -1,9 +1,9 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 // src/app/client/pods/page.tsx
 
 import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout } from '@/components/ui'
 import { CheckCircle, XCircle, FileText, Download, MessageSquare } from 'lucide-react'
@@ -29,7 +29,7 @@ interface POD {
 }
 
 export default function ClientPodsPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const [pods, setPods] = useState<POD[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,13 +42,13 @@ export default function ClientPodsPage() {
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    if (session && session.user.role !== 'CLIENT') {
+    if (session && user.role !== 'CLIENT') {
       router.push('/login')
     }
   }, [session, router])
 
   useEffect(() => {
-    if (session?.user) {
+    if (user) {
       fetchPendingPODs()
     }
   }, [session])

@@ -2,18 +2,16 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const user = await getAuthUser(req)
+console.log('[AvailableLoads] Session user:', user?.id)
     
-    console.log('[AvailableLoads] Session user:', session?.user?.id)
-    
-    if (!session?.user?.role || session.user.role !== 'TRANSPORTER') {
+    if (!user?.role || user.role !== 'TRANSPORTER') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -23,7 +21,7 @@ export async function GET(req: NextRequest) {
     // Check if transporter is verified
     const db = await getDatabase()
     const transporter = await db.collection('users').findOne({
-      _id: new ObjectId(session.user.id),
+      _id: new ObjectId(user.id),
       role: 'TRANSPORTER'
     })
 
@@ -56,7 +54,7 @@ export async function GET(req: NextRequest) {
 
     // Get quotes from this transporter
     const myQuotes = await db.collection('quotes')
-      .find({ transporterId: new ObjectId(session.user.id) })
+      .find({ transporterId: new ObjectId(user.id) })
       .project({ loadId: 1 })
       .toArray()
     console.log('[AvailableLoads] My quotes count:', myQuotes.length)

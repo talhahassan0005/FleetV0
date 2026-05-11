@@ -1,23 +1,20 @@
 // src/app/api/client/loads-with-pods/route.ts
 export const dynamic = 'force-dynamic'
 
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.id || session.user.role !== 'CLIENT') {
+  const user = await getAuthUser(req)
+if (!user?.id || user.role !== 'CLIENT') {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
     const db = await getDatabase()
-    const clientId = new ObjectId(session.user.id)
+    const clientId = new ObjectId(user.id)
 
-    console.log('[ClientLoadsWithPODs] 📦 Fetching loads for client:', session.user.email)
+    console.log('[ClientLoadsWithPODs] 📦 Fetching loads for client:', user.email)
 
     // Get all loads for this client
     const loads = await db.collection('loads').find({

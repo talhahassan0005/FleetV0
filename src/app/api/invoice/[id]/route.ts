@@ -1,7 +1,6 @@
 // src/app/api/invoice/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
@@ -10,15 +9,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const db = await getDatabase()
     const invoiceId = new ObjectId(params.id)
-    const userId = new ObjectId(session.user.id)
-    const role = session.user.role
+    const userId = new ObjectId(user.id)
+    const role = user.role
 
     const invoice = await db.collection('invoices').findOne({ _id: invoiceId })
 
@@ -70,8 +69,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const user = await getAuthUser(req)
+if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -86,7 +85,7 @@ export async function PATCH(
     }
 
     // Can only update own invoice or admin can update any
-    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '') && invoice.transporterId?.toString() !== session.user.id) {
+    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '') && invoice.transporterId?.toString() !== user.id) {
       return NextResponse.json(
         { error: 'You do not have permission to update this invoice' },
         { status: 403 }
@@ -100,7 +99,7 @@ export async function PATCH(
       allowedUpdates.comments = body.comments
     }
 
-    if (body.status !== undefined && ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role ?? '')) {
+    if (body.status !== undefined && ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
       // Only admin can change status
       const validStatuses = [
         'PENDING_ADMIN_APPROVAL',

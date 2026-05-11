@@ -1,15 +1,15 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 // src/app/client/post-load/page.tsx
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { Topbar, PageLayout } from '@/components/ui'
 import Link from 'next/link'
 import { useVerificationStatus } from '@/hooks/useVerificationStatus'
 
 export default function PostLoadPage() {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const { isVerified, refreshVerificationStatus } = useVerificationStatus()
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
@@ -41,7 +41,7 @@ export default function PostLoadPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     
-    if (!session?.user?.id) {
+    if (!user?.id) {
       setError('You must be logged in to post a load.')
       return
     }
@@ -52,7 +52,7 @@ export default function PostLoadPage() {
         ...form,
         weight: parseFloat(form.weight) || 0,
         postedPrice: parseFloat(form.postedPrice) || 0,
-        clientId: session.user.id,
+        clientId: user.id,
       }
       console.log('[PostLoadForm] Submitting payload:', payload)
       
@@ -96,16 +96,16 @@ export default function PostLoadPage() {
       </Topbar>
       
       {/* Account Verification Banner */}
-      {session?.user && !isVerified && (
+      {user && !isVerified && (
         <div className="bg-amber-50 border-b-2 border-amber-300 px-6 py-4">
           <div className="max-w-7xl mx-auto flex items-start gap-3">
             <div className="mt-0.5">⚠️</div>
             <div className="flex-1">
               <h3 className="font-semibold text-amber-900">Account Verification Required</h3>
               <p className="text-amber-800 text-sm mt-1">You must complete account verification before posting loads.</p>
-              {session.user.verificationStatus === 'REJECTED' && session.user.verificationComment && (
+              {user.verificationStatus === 'REJECTED' && user.verificationComment && (
                 <p className="text-amber-700 text-sm mt-1 italic">
-                  Previous submission rejected: {session.user.verificationComment}
+                  Previous submission rejected: {user.verificationComment}
                 </p>
               )}
               <div className="mt-3 flex gap-2">

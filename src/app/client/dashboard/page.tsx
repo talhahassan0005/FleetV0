@@ -1,14 +1,14 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
 // src/app/client/dashboard/page.tsx
 import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout, StatCard, DashboardCardsSkeleton, ChartSkeleton } from '@/components/ui'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useVerificationStatus } from '@/hooks/useVerificationStatus'
 
 export default function ClientDashboardPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const { isVerified, verificationStatus, verificationComment, refreshVerificationStatus } = useVerificationStatus()
   const [stats, setStats] = useState<any>(null)

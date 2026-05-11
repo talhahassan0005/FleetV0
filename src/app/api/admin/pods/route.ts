@@ -1,6 +1,4 @@
 // src/app/api/admin/pods/route.ts
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
@@ -9,13 +7,12 @@ export const dynamic = 'force-dynamic'
 import { requirePermission } from '@/lib/rbac'
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(session?.user?.role)) {
+  const user = await getAuthUser(req)
+if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const adminRole = (session.user as any).adminRole
+  const adminRole = (user as any).adminRole
   if (!requirePermission(adminRole, 'pods')) {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }

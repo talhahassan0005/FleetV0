@@ -5,8 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 import { sendEmail } from '@/lib/email'
@@ -14,9 +13,8 @@ import { notifyPODApprovedByClient } from '@/lib/notifications'
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== 'CLIENT') {
+    const user = await getAuthUser(req)
+if (!user?.id || user.role !== 'CLIENT') {
       return NextResponse.json(
         { error: 'Only clients can approve/reject PODs' },
         { status: 403 }
@@ -56,7 +54,7 @@ export async function POST(req: NextRequest) {
     // Verify client owns this load
     const load = await db.collection('loads').findOne({
       _id: pod.loadId,
-      clientId: new ObjectId(session.user.id),
+      clientId: new ObjectId(user.id),
     })
 
     if (!load) {
@@ -71,7 +69,7 @@ export async function POST(req: NextRequest) {
       clientApprovalStatus: action === 'approve' ? 'APPROVED' : 'REJECTED',
       clientApprovedAt: action === 'approve' ? new Date() : null,
       clientRejectedAt: action === 'reject' ? new Date() : null,
-      clientApprovedBy: session.user.id,
+      clientApprovedBy: user.id,
       rejectionReason: action === 'reject' ? reason : null,
       updatedAt: new Date(),
     }
@@ -104,7 +102,7 @@ export async function POST(req: NextRequest) {
         adminEmails,
         `POD ${action === 'approve' ? 'Approved' : 'Rejected'} by Client - Load ${load.ref}`,
         `<h2>POD Action by Client</h2>
-         <p>Client <strong>${(session.user as any).email}</strong> has <strong>${action}d</strong> the POD for load <strong>${load.ref}</strong>.</p>
+         <p>Client <strong>${(user as any).email}</strong> has <strong>${action}d</strong> the POD for load <strong>${load.ref}</strong>.</p>
          ${action === 'reject' ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
          <p><strong>Route:</strong> ${load.origin} → ${load.destination}</p>
          <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/admin/pod-management" 

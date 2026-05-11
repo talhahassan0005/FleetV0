@@ -7,16 +7,14 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== 'CLIENT') {
+    const user = await getAuthUser(req)
+if (!user?.id || user.role !== 'CLIENT') {
       return NextResponse.json(
         { error: 'Only clients can view their PODs' },
         { status: 403 }
@@ -24,7 +22,7 @@ export async function GET(req: NextRequest) {
     }
 
     const db = await getDatabase()
-    const clientId = new ObjectId(session.user.id)
+    const clientId = new ObjectId(user.id)
 
     // Get all loads for this client
     const clientLoads = await db.collection('loads')

@@ -2,8 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/server-auth'
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
 
@@ -39,18 +38,18 @@ import { ObjectId } from 'mongodb'
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id || session.user.role !== 'TRANSPORTER') {
+    const user = await getAuthUser(req)
+if (!user?.id || user.role !== 'TRANSPORTER') {
       console.log('[TransporterLoads] Unauthorized access attempt')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const db = await getDatabase()
 
-    console.log('[TransporterLoads] Fetching loads for transporter:', session.user.id)
+    console.log('[TransporterLoads] Fetching loads for transporter:', user.id)
 
     // Get all quotes from this transporter using MongoDB direct query
-    const transporterId = new ObjectId(session.user.id)
+    const transporterId = new ObjectId(user.id)
     const quotes = await db.collection('quotes')
       .find({ transporterId })
       .toArray()
