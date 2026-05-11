@@ -4,11 +4,13 @@ export const dynamic = 'force-dynamic'
 
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
+import { getAuthUser } from '@/lib/server-auth'
+import { NextRequest } from 'next/server'
 
-export async function GET(req: Request) {
-  const user = await getAuthUser(req)
+export async function GET(req: NextRequest) {
+  const authUser = await getAuthUser(req)
 // Only ADMIN can fetch PODs for invoice creation
-  if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
+  if (!authUser?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role ?? '')) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
