@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useContext, createContext } from 'react';
+import React, { useState, useEffect, useCallback, useContext, createContext } from 'react';
 import { JWTPayload } from '@/lib/jwt-utils';
 import Cookies from 'js-cookie';
 
