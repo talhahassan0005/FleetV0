@@ -3,9 +3,9 @@ import { ObjectId } from 'mongodb'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/server-auth'
 
-export async function GET() {
-  const user = await getAuthUser(req)
-if (!user?.id || user.role !== 'TRANSPORTER') {
+export async function GET(req: NextRequest) {
+  const authUser = await getAuthUser(req)
+if (!authUser?.id || authUser.role !== 'TRANSPORTER') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
