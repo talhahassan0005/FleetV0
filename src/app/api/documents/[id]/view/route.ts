@@ -13,14 +13,14 @@ export async function GET(
   try {
     const user = await getAuthUser(req)
 console.log('[ViewDocument] Session check:', {
-      hasSession: !!session,
+      hasAuthenticated: !!user,
       userId: user?.id,
       userRole: user?.role,
       docId: params.id
     })
     
     if (!user) {
-      console.log('[ViewDocument] No session - returning 401')
+      console.log('[ViewDocument] No auth - returning 401')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

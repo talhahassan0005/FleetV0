@@ -20,7 +20,7 @@ interface Load {
 }
 
 export default function AvailableLoadsPage() {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
   const { isVerified, refreshVerificationStatus } = useVerificationStatus()
   const [loads, setLoads] = useState<Load[]>([])
@@ -38,7 +38,7 @@ export default function AvailableLoadsPage() {
       router.push('/login')
       return
     }
-  }, [session, status, router])
+  }, [user, status, router])
 
   useEffect(() => {
     const fetchLoads = async () => {
@@ -67,7 +67,7 @@ export default function AvailableLoadsPage() {
     if (user?.role === 'TRANSPORTER') {
       fetchLoads()
     }
-  }, [session, router])
+  }, [user, router])
 
   if (loading) {
     return (

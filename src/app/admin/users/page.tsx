@@ -75,7 +75,7 @@ export default function AdminUsersPage() {
         .then(d => setSubAdmins(d.admins || []))
         .catch(console.error)
     }
-  }, [session, router, roleFilter, isSuperAdmin])
+  }, [user, router, roleFilter, isSuperAdmin])
 
   const handleApproveUser = async (userId: string) => {
     try {

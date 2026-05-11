@@ -34,7 +34,7 @@ const QUOTE_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 }
 
 export default function MyQuotesPage() {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,7 +47,7 @@ export default function MyQuotesPage() {
     if (!user?.role || user.role !== 'TRANSPORTER') {
       router.push('/login')
     }
-  }, [session, router, status])
+  }, [user, router, status])
 
   useEffect(() => {
     const fetchQuotes = async () => {

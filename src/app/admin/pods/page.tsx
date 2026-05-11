@@ -39,16 +39,16 @@ export default function AdminPodsPage() {
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    if (session && !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
+    if (user && !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       router.push('/login')
     }
-  }, [session, router])
+  }, [user, router])
 
   useEffect(() => {
     if (user) {
       fetchPendingPODs()
     }
-  }, [session])
+  }, [user])
 
   const fetchPendingPODs = async () => {
     try {

@@ -51,7 +51,7 @@ export default function ClientDashboard() {
     }
 
     fetchLoads()
-  }, [session, router])
+  }, [user, router])
 
   if (loading) {
     return (

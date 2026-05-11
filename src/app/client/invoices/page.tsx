@@ -91,7 +91,7 @@ export default function ClientInvoicesPage() {
 
     fetchLoads()
     fetchQBInvoices()
-  }, [session, router])
+  }, [user, router])
 
   const fetchLoads = async () => {
     try {

@@ -68,7 +68,7 @@ export default function AdminPODManagementPage() {
 
     fetchPODs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, router, filter])
+  }, [user, router, filter])
 
   const handleVerifyPOD = async (podId: string, approved: boolean) => {
     if (!approved && !rejectionReason?.trim()) {

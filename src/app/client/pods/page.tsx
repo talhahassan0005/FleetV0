@@ -42,16 +42,16 @@ export default function ClientPodsPage() {
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    if (session && user.role !== 'CLIENT') {
+    if (user && user.role !== 'CLIENT') {
       router.push('/login')
     }
-  }, [session, router])
+  }, [user, router])
 
   useEffect(() => {
     if (user) {
       fetchPendingPODs()
     }
-  }, [session])
+  }, [user])
 
   const fetchPendingPODs = async () => {
     try {

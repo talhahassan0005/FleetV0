@@ -79,7 +79,7 @@ export default function AdminInvoicesPage() {
     }
 
     fetchInvoices()
-  }, [session, router])
+  }, [user, router])
 
   const stats = {
     total: invoices.length,

@@ -65,10 +65,10 @@ export default function UploadPODPage() {
 
   // Auth check
   useEffect(() => {
-    if (session && user.role !== 'TRANSPORTER') {
+    if (user && user.role !== 'TRANSPORTER') {
       router.push('/login')
     }
-  }, [session, router])
+  }, [user, router])
 
   // Fetch assigned loads
   useEffect(() => {
@@ -97,7 +97,7 @@ export default function UploadPODPage() {
     if (user) {
       fetchLoads()
     }
-  }, [session])
+  }, [user])
 
   // Fetch submitted PODs
   useEffect(() => {
@@ -225,7 +225,7 @@ export default function UploadPODPage() {
     return () => {
       isMounted = false
     }
-  }, [session, success])
+  }, [user, success])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

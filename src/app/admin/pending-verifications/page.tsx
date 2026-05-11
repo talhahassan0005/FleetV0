@@ -34,7 +34,7 @@ export default function PendingVerificationsPage() {
     }
 
     fetchPendingDocuments()
-  }, [session, router])
+  }, [user, router])
 
   async function fetchPendingDocuments() {
     try {

@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getAuthUser(req)
 console.log('[GetPendingVerifications] Session:', { 
-      hasSession: !!session, 
+      hasAuthenticated: !!user, 
       role: user?.role 
     })
 

@@ -61,7 +61,7 @@ const formatTime = (dateString?: string) => {
 };
 
 export default function TransporterChatPage() {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
   const { refreshVerificationStatus } = useVerificationStatus()
   const [mounted, setMounted] = useState(false)
   const [conversations, setConversations] = useState<Conversation[]>([])

@@ -98,10 +98,10 @@ export default function PODManagementPage() {
   const [invoiceRejectionReason, setInvoiceRejectionReason] = useState('')
 
   useEffect(() => {
-    if (session === null) { router.push('/login'); return }
-    if (session && !isAdmin(user.role)) { router.push('/login'); return }
-    if (session && !hasPermission(user.role, 'pods')) { router.push('/admin/unauthorized'); return }
-  }, [session, router])
+    if (!user) { router.push('/login'); return }
+    if (user && !isAdmin(user.role)) { router.push('/login'); return }
+    if (user && !hasPermission(user.role, 'pods')) { router.push('/admin/unauthorized'); return }
+  }, [user, router])
 
   useEffect(() => {
     let isMounted = true
@@ -109,7 +109,7 @@ export default function PODManagementPage() {
       try {
         setLoading(true)
         setError('')
-        if (session === undefined) return
+        if (user === undefined) return
         if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
           if (isMounted) { setError('Admin access required'); setLoading(false) }
           return
@@ -127,7 +127,7 @@ export default function PODManagementPage() {
     }
     if (user?.id) fetchPODs()
     return () => { isMounted = false }
-  }, [session])
+  }, [user])
 
   const filteredPods = pods.filter(pod => {
     const status = pod.adminApprovalStatus || 'PENDING_ADMIN'

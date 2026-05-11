@@ -7,13 +7,13 @@ import { getDatabase } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
 // Only superadmin can manage sub-admins
-function isSuperAdmin(session: any) {
+function isSuperAdmin(user: any) {
   return ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role) && (!user.adminRole || user.adminRole === 'superadmin')
 }
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser(req)
-if (!isSuperAdmin(session)) {
+if (!isSuperAdmin(user)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -38,7 +38,7 @@ if (!isSuperAdmin(session)) {
 
 export async function POST(req: NextRequest) {
   const user = await getAuthUser(req)
-if (!isSuperAdmin(session)) {
+if (!isSuperAdmin(user)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

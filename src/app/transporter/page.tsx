@@ -46,7 +46,7 @@ export default function TransporterDashboard() {
     }
 
     fetchLoads()
-  }, [session, router])
+  }, [user, router])
 
   if (loading) {
     return (
