@@ -89,8 +89,14 @@ export async function POST(request: NextRequest) {
 
     console.log('[JWT-Login] Response data prepared, user role:', responseData.user.role);
 
-    // Create response
-    const response = NextResponse.json(responseData, { status: 200 });
+    // Create response with explicit headers
+    const response = new NextResponse(JSON.stringify(responseData), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    });
 
     console.log('[JWT-Login] Setting cookies...');
 
