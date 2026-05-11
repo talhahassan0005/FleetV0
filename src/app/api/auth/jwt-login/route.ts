@@ -65,6 +65,12 @@ export async function POST(request: NextRequest) {
       verificationComment: user.verificationComment,
     });
 
+    console.log('[JWT-Login] Access token generated, length:', accessToken.length);
+
+    const refreshToken = await generateRefreshTokenEdge(user._id.toString());
+
+    console.log('[JWT-Login] Refresh token generated, length:', refreshToken.length);
+
     // Create response data
     const responseData = {
       success: true,
