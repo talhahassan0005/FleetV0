@@ -97,7 +97,9 @@ export default function TransporterChatPage() {
     if (!user?.id) return
     try {
       setLoading(true)
-      const res = await fetch('/api/chat/conversations')
+      const res = await fetch('/api/chat/conversations', {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (data.success) {
         setConversations(data.data || [])
@@ -253,7 +255,9 @@ export default function TransporterChatPage() {
     setLoadingLoads(true)
     try {
       console.log('[Chat] Fetching transporter loads for chat...')
-      const res = await fetch('/api/chat/transporter-loads')
+      const res = await fetch('/api/chat/transporter-loads', {
+        credentials: 'include',
+      })
       const data = await res.json()
       console.log('[Chat] Transporter loads response:', data)
       if (data.success) {

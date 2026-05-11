@@ -18,7 +18,9 @@ export default function TransporterDashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/dashboard/transporter-stats')
+        const res = await fetch('/api/dashboard/transporter-stats', {
+          credentials: 'include',
+        })
         const data = await res.json()
         setStats(data)
       } catch (err) {

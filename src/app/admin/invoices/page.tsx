@@ -92,7 +92,9 @@ export default function AdminInvoicesPage() {
   const fetchInvoices = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/admin/invoices')
+      const res = await fetch('/api/admin/invoices', {
+        credentials: 'include',
+      })
       
       if (!res.ok) {
         throw new Error('Failed to fetch invoices')

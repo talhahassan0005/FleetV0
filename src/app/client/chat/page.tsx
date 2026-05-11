@@ -97,7 +97,9 @@ export default function ClientChatPage() {
     if (!user?.id) return
     try {
       setLoading(true)
-      const res = await fetch('/api/chat/conversations')
+      const res = await fetch('/api/chat/conversations', {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (data.success) {
         setConversations(data.data || [])
@@ -239,7 +241,9 @@ export default function ClientChatPage() {
   const handleOpenNewChat = async () => {
     setLoadingLoads(true)
     try {
-      const res = await fetch('/api/client/loads')
+      const res = await fetch('/api/client/loads', {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (data.success) {
         setAvailableLoads(data.data || [])

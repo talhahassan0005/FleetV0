@@ -37,7 +37,9 @@ export default function TransporterInvoicesPage() {
   const fetchInvoices = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/transporter/invoices')
+      const res = await fetch('/api/transporter/invoices', {
+        credentials: 'include',
+      })
       if (res.ok) {
         const data = await res.json()
         setInvoices(data.invoices || [])
