@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     const accessToken = await generateAccessTokenEdge({
       id: user._id.toString(),
       email: user.email,
+      name: user.name,
       role: user.role,
       adminRole: user.adminRole,
       companyName: user.companyName,
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest) {
         user: {
           id: user._id.toString(),
           email: user.email,
+          name: user.name,
           role: user.role,
           adminRole: user.adminRole,
           companyName: user.companyName,

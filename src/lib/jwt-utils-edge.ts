@@ -10,6 +10,7 @@ const JWT_REFRESH_EXPIRY = '7d'; // 7 days
 interface JWTPayload {
   id: string;
   email: string;
+  name?: string;
   role: string;
   adminRole?: string;
   companyName?: string;
