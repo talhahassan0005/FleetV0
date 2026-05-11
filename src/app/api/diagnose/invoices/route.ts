@@ -1,19 +1,21 @@
 // Diagnostic endpoint to check invoices in database
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
+import { getAuthUser } from '@/lib/server-auth'
+import { NextRequest } from 'next/server'
 
-export async function GET(req: Request) {
-  const user = await getAuthUser(req)
-if (!user?.id) {
+export async function GET(req: NextRequest) {
+  const authUser = await getAuthUser(req)
+if (!authUser?.id) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
     const db = await getDatabase()
-    const userId = new ObjectId(user.id)
+    const userId = new ObjectId(authUser.id)
     
-    const role = user.role
-    console.log('[DiagnoseInvoices] User:', user.email, 'Role:', role)
+    const role = authUser.role
+    console.log('[DiagnoseInvoices] User:', authUser.email, 'Role:', role)
 
     if (role === 'CLIENT') {
       // Get client's loads
