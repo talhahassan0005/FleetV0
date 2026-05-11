@@ -17,7 +17,6 @@ export async function GET(request: Request) {
     'OAuthCallback': 'OAuth callback failed',
     'OAuthCreateAccount': 'Could not create OAuth account',
     'EmailCreateAccount': 'Could not create email account',
-    'Callback': 'Callback error',
     'OAuthAccountNotLinked': 'OAuth account not linked',
     'EmailSignInError': 'Email sign-in failed',
     'CredentialsSignin': 'Invalid credentials',
