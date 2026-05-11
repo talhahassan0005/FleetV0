@@ -14,13 +14,14 @@ export interface TokenData {
   exp: number
 }
 
-// Get token from cookie
+// Get access token from cookie
 export function getToken(): string | null {
-  const cookieName = process.env.NODE_ENV === 'production' 
-    ? '__Secure-next-auth.session-token'
-    : 'next-auth.session-token'
-  
-  return Cookies.get(cookieName) || null
+  return Cookies.get('accessToken') || null
+}
+
+// Get refresh token from cookie (usually httpOnly, but can check)
+export function getRefreshToken(): string | null {
+  return Cookies.get('refreshToken') || null
 }
 
 // Decode token and get user data
@@ -28,7 +29,7 @@ export function getTokenData(): TokenData | null {
   try {
     const token = getToken()
     if (!token) {
-      console.log('[Token] ❌ No token found')
+      console.log('[Token] ❌ No access token found')
       return null
     }
     
@@ -82,12 +83,55 @@ export function isAuthenticated(): boolean {
   return getToken() !== null
 }
 
-// Clear token (logout)
-export function clearToken(): void {
-  const cookieName = process.env.NODE_ENV === 'production' 
-    ? '__Secure-next-auth.session-token'
-    : 'next-auth.session-token'
+// Check if token is expired
+export function isTokenExpired(): boolean {
+  const data = getTokenData()
+  if (!data || !data.exp) return true
   
-  Cookies.remove(cookieName)
-  console.log('[Token] 🗑️ Token cleared')
+  // exp is in seconds, Date.now() is in milliseconds
+  return Date.now() >= data.exp * 1000
+}
+
+// Clear tokens (logout)
+export function clearToken(): void {
+  Cookies.remove('accessToken')
+  Cookies.remove('refreshToken')
+  console.log('[Token] 🗑️ Tokens cleared')
+}
+
+// Set access token
+export function setToken(accessToken: string): void {
+  Cookies.set('accessToken', accessToken, {
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    expires: 1/12 // 2 hours (1/12 of a day)
+  })
+}
+
+// Refresh access token using refresh token
+export async function refreshAccessToken(): Promise<boolean> {
+  try {
+    const response = await fetch('/api/auth/jwt-refresh', {
+      method: 'POST',
+      credentials: 'include', // Important: include cookies
+    })
+
+    if (!response.ok) {
+      console.error('[Token] ❌ Refresh failed:', response.status)
+      return false
+    }
+
+    const data = await response.json()
+    
+    if (data.accessToken) {
+      setToken(data.accessToken)
+      console.log('[Token] ✅ Token refreshed')
+      return true
+    }
+
+    return false
+  } catch (error) {
+    console.error('[Token] ❌ Refresh error:', error)
+    return false
+  }
 }

@@ -65,12 +65,20 @@ export async function POST(request: NextRequest) {
           verificationStatus: user.verificationStatus,
         },
         accessToken,
-        refreshToken,
       },
       { status: 200 }
     );
 
-    // Set refresh token as HTTP-only cookie
+    // Set access token cookie (2 hours)
+    response.cookies.set('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 2 * 60 * 60, // 2 hours
+      path: '/',
+    });
+
+    // Set refresh token cookie (7 days)
     response.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

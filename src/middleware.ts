@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import { verifyAccessToken } from '@/lib/jwt-utils'
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
 
@@ -20,14 +20,27 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+  // Get access token from cookie
+  const accessToken = req.cookies.get('accessToken')?.value
 
-  if (!token) {
+  if (!accessToken) {
     const loginUrl = new URL('/login', req.url)
     return NextResponse.redirect(loginUrl)
   }
 
-  const role = token.role as string
+  // Verify JWT token
+  const tokenData = verifyAccessToken(accessToken)
+
+  if (!tokenData) {
+    const loginUrl = new URL('/login', req.url)
+    const response = NextResponse.redirect(loginUrl)
+    // Clear invalid token
+    response.cookies.delete('accessToken')
+    response.cookies.delete('refreshToken')
+    return response
+  }
+
+  const role = tokenData.role
 
   // Check admin access
   if (pathname.startsWith('/admin')) {

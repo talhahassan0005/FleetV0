@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/prisma';
-import { verifyRefreshToken, generateAccessToken } from '@/lib/jwt-utils';
+import { generateAccessToken, verifyRefreshToken } from '@/lib/jwt-utils';
+import { ObjectId } from 'mongodb';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get refresh token from cookie
     const refreshToken = request.cookies.get('refreshToken')?.value;
 
     if (!refreshToken) {
@@ -15,6 +17,7 @@ export async function POST(request: NextRequest) {
 
     // Verify refresh token
     const decoded = verifyRefreshToken(refreshToken);
+    
     if (!decoded || decoded.type !== 'refresh') {
       return NextResponse.json(
         { error: 'Invalid refresh token' },
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
     // Get user from database
     const db = await getDatabase();
     const user = await db.collection('users').findOne({
-      _id: require('mongodb').ObjectId.createFromHexString(decoded.id),
+      _id: new ObjectId(decoded.id),
     });
 
     if (!user) {
@@ -36,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate new access token
-    const newAccessToken = generateAccessToken({
+    const accessToken = generateAccessToken({
       id: user._id.toString(),
       email: user.email,
       role: user.role,
@@ -47,17 +50,29 @@ export async function POST(request: NextRequest) {
       verificationComment: user.verificationComment,
     });
 
-    return NextResponse.json(
+    // Create response with new access token
+    const response = NextResponse.json(
       {
         success: true,
-        accessToken: newAccessToken,
+        accessToken,
       },
       { status: 200 }
     );
+
+    // Update access token cookie
+    response.cookies.set('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 2 * 60 * 60, // 2 hours
+      path: '/',
+    });
+
+    return response;
   } catch (error: any) {
     console.error('Token refresh error:', error);
     return NextResponse.json(
-      { error: 'Token refresh failed' },
+      { error: error.message || 'Token refresh failed' },
       { status: 500 }
     );
   }
