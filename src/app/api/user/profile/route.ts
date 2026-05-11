@@ -7,8 +7,8 @@ import { getDatabase } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getAuthUser(req)
-if (!user?.email) {
+    const authUser = await getAuthUser(req)
+if (!authUser?.email) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -17,7 +17,7 @@ if (!user?.email) {
 
     const db = await getDatabase()
     const user = await db.collection('users').findOne({
-      email: user.email.toLowerCase(),
+      email: authUser.email.toLowerCase(),
     })
 
     if (!user) {

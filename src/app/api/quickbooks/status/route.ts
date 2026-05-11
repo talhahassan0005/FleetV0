@@ -1,26 +1,25 @@
 import { getDatabase } from '@/lib/prisma';
 import { ObjectId } from 'mongodb';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/rbac';
 
 export const dynamic = 'force-dynamic';
 
-import { requirePermission } from '@/lib/rbac';
-
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const user = await getAuthUser(req)
-;
-    if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
+    const authUser = await getAuthUser(req);
+    if (!authUser?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role ?? '')) {
       return NextResponse.json({ isConnected: false }, { status: 401 });
     }
 
-    const adminRole = (user as any).adminRole;
+    const adminRole = (authUser as any).adminRole;
     if (!requirePermission(adminRole, 'quickbooks')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const db = await getDatabase();
-    const user = await db.collection('users').findOne({ _id: new ObjectId(user.id) });
+    const user = await db.collection('users').findOne({ _id: new ObjectId(authUser.id) });
     
     return NextResponse.json({
       isConnected: user?.quickbooks?.isConnected || false,

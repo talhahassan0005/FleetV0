@@ -7,8 +7,8 @@ import { getDatabase } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getAuthUser(req)
-if (!user?.email || !user?.role) {
+    const authUser = await getAuthUser(req)
+if (!authUser?.email || !authUser?.role) {
       return NextResponse.json(
         { canPostLoad: false, reason: 'Not authenticated' },
         { status: 401 }
@@ -16,7 +16,7 @@ if (!user?.email || !user?.role) {
     }
 
     // Only clients can post loads
-    if (user.role !== 'CLIENT') {
+    if (authUser.role !== 'CLIENT') {
       return NextResponse.json({
         canPostLoad: false,
         reason: 'Only clients can post loads',
@@ -25,7 +25,7 @@ if (!user?.email || !user?.role) {
 
     const db = await getDatabase()
     const user = await db.collection('users').findOne({
-      email: user.email.toLowerCase(),
+      email: authUser.email.toLowerCase(),
     })
 
     if (!user) {
