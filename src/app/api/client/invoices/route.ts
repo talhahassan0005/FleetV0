@@ -13,7 +13,7 @@ if (!authUser?.id || authUser.role !== 'CLIENT') {
   const db = await getDatabase()
   const clientId = new ObjectId(authUser.id)
 
-  console.log('[ClientInvoices] Fetching invoices for client:', user.id)
+  console.log('[ClientInvoices] Fetching invoices for client:', authUser.id)
 
   // Get invoices from invoices collection where invoiceType is CLIENT_INVOICE
   const invoices = await db.collection('invoices').find({
