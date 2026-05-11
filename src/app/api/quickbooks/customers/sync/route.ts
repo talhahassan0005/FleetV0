@@ -11,10 +11,9 @@ import { ObjectId } from 'mongodb';
  * Admin-only endpoint
  */
 export async function POST(request: NextRequest) {
-  const user = await getAuthUser(req)
-;
+  const authUser = await getAuthUser(request);
 
-  if (!user || !user.email) {
+  if (!authUser || !authUser.email) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
@@ -26,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     // Verify user is admin
     const admin = await db.collection('users').findOne({
-      email: (user as any).email,
+      email: (authUser as any).email,
     });
 
     if (!admin || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(admin.role)) {
@@ -173,10 +172,9 @@ export async function POST(request: NextRequest) {
  * Get sync status - for dashboard
  */
 export async function GET(request: NextRequest) {
-  const user = await getAuthUser(req)
-;
+  const authUser = await getAuthUser(request);
 
-  if (!user || !user.email) {
+  if (!authUser || !authUser.email) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
@@ -186,11 +184,11 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getDatabase();
 
-    const user = await db.collection('users').findOne({
-      email: (user as any).email,
+    const dbUser = await db.collection('users').findOne({
+      email: (authUser as any).email,
     });
 
-    if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user.role)) {
+    if (!dbUser || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(dbUser.role)) {
       return NextResponse.json(
         { error: 'Forbidden - Admin only' },
         { status: 403 }
@@ -221,7 +219,7 @@ export async function GET(request: NextRequest) {
         synced: syncedTransporters,
         percentage: totalTransporters > 0 ? Math.round((syncedTransporters / totalTransporters) * 100) : 0,
       },
-      qbConnected: user.quickbooks?.isConnected || false,
+      qbConnected: dbUser.quickbooks?.isConnected || false,
     };
 
     return NextResponse.json({
