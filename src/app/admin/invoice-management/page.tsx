@@ -68,7 +68,7 @@ export default function AdminInvoiceManagementPage() {
 
     fetchInvoices()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, router, filter])
+  }, [user, router, filter])
 
   const handleApproveInvoice = async (invoiceId: string) => {
     try {
