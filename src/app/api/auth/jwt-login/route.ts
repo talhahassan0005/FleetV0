@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { getDatabase } from '@/lib/prisma';
-import { generateAccessToken, generateRefreshToken } from '@/lib/jwt-utils';
+import { generateAccessTokenEdge, generateRefreshTokenEdge } from '@/lib/jwt-utils-edge';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate tokens
-    const accessToken = generateAccessToken({
+    const accessToken = await generateAccessTokenEdge({
       id: user._id.toString(),
       email: user.email,
       role: user.role,
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       verificationComment: user.verificationComment,
     });
 
-    const refreshToken = generateRefreshToken(user._id.toString());
+    const refreshToken = await generateRefreshTokenEdge(user._id.toString());
 
     // Create response with tokens
     const response = NextResponse.json(

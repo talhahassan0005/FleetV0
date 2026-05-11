@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifyAccessToken } from '@/lib/jwt-utils'
+import { verifyAccessTokenEdge } from '@/lib/jwt-utils-edge'
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
 
@@ -28,8 +28,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Verify JWT token
-  const tokenData = verifyAccessToken(accessToken)
+  // Verify JWT token (async)
+  const tokenData = await verifyAccessTokenEdge(accessToken)
 
   if (!tokenData) {
     const loginUrl = new URL('/login', req.url)
