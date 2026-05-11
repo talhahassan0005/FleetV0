@@ -15,13 +15,13 @@ interface User {
 }
 
 export default function TransporterDashboard() {
-  const { user } = useAuth()
+  const { user: authUser } = useAuth()
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user?.email) {
+    if (!authUser?.email) {
       router.push('/login')
       return
     }
@@ -43,7 +43,7 @@ export default function TransporterDashboard() {
     }
 
     fetchUser()
-  }, [session, router])
+  }, [authUser, router])
 
   if (loading) {
     return (
