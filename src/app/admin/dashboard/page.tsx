@@ -11,7 +11,9 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/dashboard/admin-stats')
+        const res = await fetch('/api/dashboard/admin-stats', {
+          credentials: 'include',
+        })
         const data = await res.json()
         setStats(data)
       } catch (err) {
