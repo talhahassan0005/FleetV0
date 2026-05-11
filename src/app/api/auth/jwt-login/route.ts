@@ -3,12 +3,19 @@ import bcrypt from 'bcryptjs';
 import { getDatabase } from '@/lib/prisma';
 import { generateAccessTokenEdge, generateRefreshTokenEdge } from '@/lib/jwt-utils-edge';
 
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
+  console.log('[JWT-Login] ========== REQUEST RECEIVED ==========');
+  
   try {
+    console.log('[JWT-Login] Parsing request body...');
     const body = await request.json();
     const { email, password } = body;
+    console.log('[JWT-Login] Email:', email);
 
     if (!email || !password) {
+      console.log('[JWT-Login] Missing email or password');
       return NextResponse.json(
         { error: 'Email and password are required' },
         { status: 400 }
@@ -16,26 +23,34 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user from database
+    console.log('[JWT-Login] Fetching user from database...');
     const db = await getDatabase();
     const user = await db.collection('users').findOne({
       email: email.toLowerCase(),
     });
 
     if (!user) {
+      console.log('[JWT-Login] User not found');
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
+    console.log('[JWT-Login] User found:', user.email);
+
     // Verify password
+    console.log('[JWT-Login] Verifying password...');
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      console.log('[JWT-Login] Invalid password');
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
+
+    console.log('[JWT-Login] Password valid, generating tokens...');
 
     // Generate tokens
     const accessToken = await generateAccessTokenEdge({
@@ -50,26 +65,34 @@ export async function POST(request: NextRequest) {
       verificationComment: user.verificationComment,
     });
 
+    console.log('[JWT-Login] Access token generated, length:', accessToken.length);
+
     const refreshToken = await generateRefreshTokenEdge(user._id.toString());
 
-    // Create response with tokens
-    const response = NextResponse.json(
-      {
-        success: true,
-        user: {
-          id: user._id.toString(),
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          adminRole: user.adminRole,
-          companyName: user.companyName,
-          isVerified: user.isVerified,
-          verificationStatus: user.verificationStatus,
-        },
-        accessToken,
+    console.log('[JWT-Login] Refresh token generated, length:', refreshToken.length);
+
+    // Create response data
+    const responseData = {
+      success: true,
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        adminRole: user.adminRole,
+        companyName: user.companyName,
+        isVerified: user.isVerified,
+        verificationStatus: user.verificationStatus,
       },
-      { status: 200 }
-    );
+      accessToken,
+    };
+
+    console.log('[JWT-Login] Response data prepared, user role:', responseData.user.role);
+
+    // Create response
+    const response = NextResponse.json(responseData, { status: 200 });
+
+    console.log('[JWT-Login] Setting cookies...');
 
     // Set access token cookie (2 hours)
     response.cookies.set('accessToken', accessToken, {
@@ -89,9 +112,16 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
+    console.log('[JWT-Login] Cookies set successfully');
+    console.log('[JWT-Login] ========== RETURNING RESPONSE ==========');
+
     return response;
   } catch (error: any) {
-    console.error('Login error:', error);
+    console.error('[JWT-Login] ========== ERROR ==========');
+    console.error('[JWT-Login] Error message:', error.message);
+    console.error('[JWT-Login] Error stack:', error.stack);
+    console.error('[JWT-Login] ========================================');
+    
     return NextResponse.json(
       { error: error.message || 'Authentication failed' },
       { status: 500 }
