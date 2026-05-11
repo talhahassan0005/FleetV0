@@ -1,16 +1,17 @@
 // src/app/api/client/invoices/route.ts
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
+import { getAuthUser } from '@/lib/server-auth'
 
-export async function GET() {
-  const user = await getAuthUser(req)
-if (!user?.id || user.role !== 'CLIENT') {
+export async function GET(req: NextRequest) {
+  const authUser = await getAuthUser(req)
+if (!authUser?.id || authUser.role !== 'CLIENT') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
   const db = await getDatabase()
-  const clientId = new ObjectId(user.id)
+  const clientId = new ObjectId(authUser.id)
 
   console.log('[ClientInvoices] Fetching invoices for client:', user.id)
 
