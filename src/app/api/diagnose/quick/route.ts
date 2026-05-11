@@ -1,10 +1,12 @@
 // Quick diagnostic - check PODs and Invoices in database
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
+import { getAuthUser } from '@/lib/server-auth'
+import { NextRequest } from 'next/server'
 
-export async function GET(req: Request) {
-  const user = await getAuthUser(req)
-if (!user?.id) {
+export async function GET(req: NextRequest) {
+  const authUser = await getAuthUser(req)
+if (!authUser?.id) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
