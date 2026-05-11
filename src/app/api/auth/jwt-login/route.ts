@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     // Create response data
     const responseData = {
       success: true,
-      accessToken,  // ✅ Token in response
+      accessToken,
       user: {
         id: user._id.toString(),
         email: user.email,
@@ -94,18 +94,12 @@ export async function POST(request: NextRequest) {
       userEmail: responseData.user.email,
     });
 
-    // Create response with body
-    const responseBody = JSON.stringify(responseData);
-    console.log('[JWT-Login] Response body length:', responseBody.length);
-    
-    const response = new NextResponse(responseBody, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-      },
-    });
+    // Create JSON response with cookies
+    const response = NextResponse.json(responseData, { status: 200 });
 
+    // Add cache headers
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    
     console.log('[JWT-Login] Setting cookies...');
     
     // Set access token cookie (2 hours) - for middleware
