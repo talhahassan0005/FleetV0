@@ -76,7 +76,7 @@ if (!user?.id) {
     await connectToDatabase()
 
     // Get sender info with fallback
-    let senderName = user.name || user.email || 'User'
+    let senderName = (user as any).name || user.email || 'User'
     let senderRole = user.role || 'CLIENT'
     
     try {
