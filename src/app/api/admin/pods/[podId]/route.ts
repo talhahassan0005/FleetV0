@@ -33,7 +33,7 @@ if (!authUser?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_M
     if (status === 'APPROVED') {
       updateData.adminApprovalStatus = 'APPROVED'
       updateData.adminApprovedAt = new Date()
-      updateData.adminApprovedBy = new ObjectId(user.id)
+      updateData.adminApprovedBy = new ObjectId(authUser.id)
       updateData.clientApprovalStatus = 'PENDING_CLIENT' // Forward to client
     } else if (status === 'PENDING' && rejectionReason) {
       updateData.adminApprovalStatus = 'PENDING_ADMIN'
