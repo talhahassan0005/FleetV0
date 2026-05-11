@@ -51,6 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(async (email: string, password: string) => {
     try {
+      console.log('[useAuth] Login attempt for:', email);
+      
       const response = await fetch('/api/auth/jwt-login', {
         method: 'POST',
         headers: {
@@ -60,20 +62,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ email, password }),
       });
 
+      console.log('[useAuth] Response status:', response.status);
+      console.log('[useAuth] Response OK:', response.ok);
+
       if (!response.ok) {
         const error = await response.json();
+        console.error('[useAuth] Login error:', error);
         throw new Error(error.error || 'Login failed');
       }
 
       const data = await response.json();
+      console.log('[useAuth] Response data received:', {
+        hasAccessToken: !!data.accessToken,
+        hasUser: !!data.user,
+        userRole: data.user?.role,
+        accessTokenLength: data.accessToken?.length,
+      });
+      
+      if (!data.accessToken) {
+        throw new Error('No access token in response');
+      }
       
       // Store access token in localStorage
       localStorage.setItem('accessToken', data.accessToken);
       setAccessToken(data.accessToken);
       setUser(data.user);
 
+      console.log('[useAuth] Login successful for user:', data.user?.email);
       return { success: true, user: data.user };
     } catch (error: any) {
+      console.error('[useAuth] Login error:', error.message);
       return { success: false, error: error.message };
     }
   }, []);

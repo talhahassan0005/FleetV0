@@ -65,15 +65,10 @@ export async function POST(request: NextRequest) {
       verificationComment: user.verificationComment,
     });
 
-    console.log('[JWT-Login] Access token generated, length:', accessToken.length);
-
-    const refreshToken = await generateRefreshTokenEdge(user._id.toString());
-
-    console.log('[JWT-Login] Refresh token generated, length:', refreshToken.length);
-
     // Create response data
     const responseData = {
       success: true,
+      accessToken,  // ✅ Token in response
       user: {
         id: user._id.toString(),
         email: user.email,
@@ -84,13 +79,20 @@ export async function POST(request: NextRequest) {
         isVerified: user.isVerified,
         verificationStatus: user.verificationStatus,
       },
-      accessToken,
     };
 
-    console.log('[JWT-Login] Response data prepared, user role:', responseData.user.role);
+    console.log('[JWT-Login] Final response data:', {
+      success: responseData.success,
+      userRole: responseData.user.role,
+      accessTokenLength: responseData.accessToken.length,
+      userEmail: responseData.user.email,
+    });
 
-    // Create response with explicit headers
-    const response = new NextResponse(JSON.stringify(responseData), {
+    // Create response with body
+    const responseBody = JSON.stringify(responseData);
+    console.log('[JWT-Login] Response body length:', responseBody.length);
+    
+    const response = new NextResponse(responseBody, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -99,16 +101,8 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('[JWT-Login] Setting cookies...');
-    // accessToken cookie — server-side layout ke liye zaroori
-    response.cookies.set('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 2, // 2 hours
-      path: '/',
-    });
-
-    // Set access token cookie (2 hours)
+    
+    // Set access token cookie (2 hours) - for middleware
     response.cookies.set('accessToken', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
