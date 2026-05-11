@@ -29,7 +29,9 @@ export default function TransporterDocumentsPage() {
       setLoading(true)
       console.log('[TransporterDocuments] Starting fetch...')
       
-      const res = await fetch('/api/documents')
+      const res = await fetch('/api/documents', {
+        credentials: 'include',
+      })
       console.log('[TransporterDocuments] Got response:', res.status, res.ok)
       
       if (!res.ok) {
@@ -78,6 +80,7 @@ export default function TransporterDocumentsPage() {
 
       const res = await fetch('/api/documents', {
         method: 'POST',
+        credentials: 'include',
         body: formData,
       })
 
