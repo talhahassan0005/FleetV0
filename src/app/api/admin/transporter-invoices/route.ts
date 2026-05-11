@@ -10,7 +10,7 @@ if (!authUser?.id || authUser.role !== 'TRANSPORTER') {
   }
 
   const db = await getDatabase()
-  const transporterId = new ObjectId(user.id)
+  const transporterId = new ObjectId(authUser.id)
 
   // Get invoices from new transporter_invoices collection
   const invoices = await db.collection('transporter_invoices').find({
