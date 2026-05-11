@@ -2,13 +2,15 @@
 import { getDatabase } from '@/lib/prisma'
 import { Topbar, PageLayout } from '@/components/ui'
 import { ObjectId } from 'mongodb'
+import { cookies } from 'next/headers'
+import { verifyAccessToken } from '@/lib/jwt-utils'
 
 export default async function TransporterProfilePage() {
   const _cookies = await cookies()
   const _token = _cookies.get('accessToken')?.value
-  const user = _token ? verifyAccessToken(_token) : null
+  const tokenData = _token ? verifyAccessToken(_token) : null
   
-  if (!user?.id) {
+  if (!tokenData?.id) {
     return (
       <>
         <Topbar title="My Profile" />
@@ -25,7 +27,7 @@ export default async function TransporterProfilePage() {
   try {
     const db = await getDatabase()
     user = await db.collection('users').findOne({
-      _id: new ObjectId(user.id)
+      _id: new ObjectId(tokenData.id)
     })
   } catch (err) {
     console.error('Error fetching user profile:', err)
