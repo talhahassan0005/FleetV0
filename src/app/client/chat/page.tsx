@@ -273,7 +273,7 @@ export default function ClientChatPage() {
         _id: `temp-${Date.now()}`,
         conversationId,
         senderId: user.id,
-        senderName: user.name || 'You',
+        senderName: (user as any).name || 'You',
         senderRole: user.role,
         receiverId: receiverId || '',
         message: messageText,
