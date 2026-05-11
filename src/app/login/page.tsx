@@ -37,7 +37,11 @@ function LoginContent() {
     setLoading(true)
     setError('')
     
+    console.log('[Login] Starting login process...')
+    console.log('[Login] Email:', email)
+    
     try {
+      console.log('[Login] Calling /api/auth/jwt-login...')
       const response = await fetch('/api/auth/jwt-login', {
         method: 'POST',
         headers: {
@@ -47,27 +51,38 @@ function LoginContent() {
         body: JSON.stringify({ email, password }),
       })
 
+      console.log('[Login] Response status:', response.status)
+      console.log('[Login] Response ok:', response.ok)
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('[Login] Error response:', errorData)
         setLoading(false)
         setError(errorData.error || 'Login failed. Please try again.')
         return
       }
 
       const data = await response.json()
+      console.log('[Login] Success! User data:', data.user)
+      console.log('[Login] Access token received:', data.accessToken ? 'YES' : 'NO')
       
       // Redirect based on role
       const role = data.user?.role
+      console.log('[Login] User role:', role)
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
       
       if (adminRoles.includes(role)) {
+        console.log('[Login] Redirecting to admin dashboard...')
         window.location.href = '/admin/dashboard'
       } else if (role === 'TRANSPORTER') {
+        console.log('[Login] Redirecting to transporter dashboard...')
         window.location.href = '/transporter/dashboard'
       } else {
+        console.log('[Login] Redirecting to client dashboard...')
         window.location.href = '/client/dashboard'
       }
     } catch (err: any) {
+      console.error('[Login] Catch error:', err)
       setLoading(false)
       setError(err.message || 'Login failed. Please try again.')
     }
