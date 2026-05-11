@@ -1,17 +1,18 @@
 'use client'
 // src/app/login/page.tsx
 import { useState, useEffect } from 'react'
-import { signIn, useSession, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
-import { isAdmin } from '@/lib/rbac'
+import { useAuth, useAutoRefreshToken } from '@/hooks/useAuth'
 import { Suspense } from 'react'
 
 function LoginContent() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { user, isAuthenticated, login } = useAuth()
+  useAutoRefreshToken() // Auto-refresh token before expiry
+  
   const searchParams = useSearchParams()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -37,8 +38,8 @@ function LoginContent() {
 
   // If user is already authenticated, redirect them immediately
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.role) {
-      const role = session.user.role
+    if (isAuthenticated && user?.role) {
+      const role = user.role
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
       
       if (adminRoles.includes(role)) {
@@ -49,56 +50,36 @@ function LoginContent() {
         window.location.href = '/client/dashboard'
       }
     }
-  }, [status, session])
+  }, [isAuthenticated, user])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
     
-    const res = await signIn('credentials', { email, password, redirect: false })
-    
-    if (res?.error) { 
-      setLoading(false)
-      setError('Invalid email or password.'); 
-      return 
-    }
-    
-    if (res?.ok) {
-      // Get the session to determine the correct redirect URL
-      try {
-        // Wait a moment for NextAuth to fully process the session
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        const session = await getSession()
-        const role = (session?.user as any)?.role
-        
-        if (role) {
-          const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
-          
-          // Redirect based on role
-          if (adminRoles.includes(role)) {
-            window.location.href = '/admin/dashboard'
-          } else if (role === 'TRANSPORTER') {
-            window.location.href = '/transporter/dashboard'
-          } else {
-            window.location.href = '/client/dashboard'
-          }
-          // Browser reload will happen, so we don't set loading to false
-        } else {
-          // Fallback if session isn't immediately available - do a hard page reload
-          // This forces the browser to re-evaluate authentication
-          setTimeout(() => {
-            window.location.href = '/'
-          }, 300)
-        }
-      } catch (e) {
-        console.error('Session retrieval failed:', e)
-        // Hard reload to reset page state
-        setTimeout(() => {
-          window.location.href = '/'
-        }, 300)
+    try {
+      const result = await login(email, password)
+      
+      if (!result.success) {
+        setLoading(false)
+        setError(result.error || 'Login failed. Please try again.')
+        return
       }
+
+      // Redirect based on role
+      const role = result.user?.role
+      const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
+      
+      if (adminRoles.includes(role)) {
+        window.location.href = '/admin/dashboard'
+      } else if (role === 'TRANSPORTER') {
+        window.location.href = '/transporter/dashboard'
+      } else {
+        window.location.href = '/client/dashboard'
+      }
+    } catch (err: any) {
+      setLoading(false)
+      setError(err.message || 'Login failed. Please try again.')
     }
   }
 

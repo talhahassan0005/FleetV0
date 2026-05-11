@@ -1,6 +1,18 @@
-// src/app/api/auth/[...nextauth]/route.ts
-import NextAuth from 'next-auth'
-import { authOptions } from '@/lib/auth'
+// NextAuth disabled - using JWT instead
+// See src/app/api/auth/jwt-login and jwt-refresh for authentication endpoints
 
-const handler = NextAuth(authOptions)
-export { handler as GET, handler as POST }
+import { NextResponse } from 'next/server';
+
+export function GET() {
+  return NextResponse.json(
+    { error: 'NextAuth disabled - Use JWT endpoints instead' },
+    { status: 403 }
+  );
+}
+
+export function POST() {
+  return NextResponse.json(
+    { error: 'NextAuth disabled - Use JWT endpoints instead' },
+    { status: 403 }
+  );
+}
