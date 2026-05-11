@@ -40,17 +40,16 @@ export async function GET(request: NextRequest) {
 
     // Step 1: Initial OAuth redirect
     if (action === 'connect') {
-      const user = await getAuthUser(req)
-;
+      const authUser = await getAuthUser(request);
 
-      if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
+      if (!authUser || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role ?? '')) {
         return NextResponse.json(
           { error: 'Unauthorized - Admin only' },
           { status: 401 }
         );
       }
 
-      const adminRole = (user as any).adminRole;
+      const adminRole = (authUser as any).adminRole;
       if (!requirePermission(adminRole, 'quickbooks')) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
@@ -85,20 +84,19 @@ export async function GET(request: NextRequest) {
     console.log('[QB Auth Callback] Query params:', { code, realmId, state });
     
     if (code && realmId && state) {
-      const user = await getAuthUser(req)
-;
+      const authUser = await getAuthUser(request);
 
-      if (!user) {
+      if (!authUser) {
         return NextResponse.json(
           { error: 'Unauthorized - Please login first' },
           { status: 401 }
         );
       }
 
-      const userId = (user as any).id;
+      const userId = (authUser as any).id;
       console.log('[QB Auth] Session user ID type:', typeof userId);
       console.log('[QB Auth] Session user ID:', userId);
-      console.log('[QB Auth] Full session user object:', JSON.stringify(user, null, 2));
+      console.log('[QB Auth] Full session user object:', JSON.stringify(authUser, null, 2));
 
       // Get stored state from cookies
       const storedState = request.cookies.get('qb_state')?.value;
@@ -130,7 +128,7 @@ export async function GET(request: NextRequest) {
       const db = await getDatabase();
       console.log('[QB Auth] ✅ Database connected');
 
-      console.log('[QB Auth] Saving QB credentials for user:', (user as any).id);
+      console.log('[QB Auth] Saving QB credentials for user:', (authUser as any).id);
       console.log('[QB Auth] Token data:', {
         accessToken: token.accessToken ? '✅ present' : '❌ missing',
         refreshToken: token.refreshToken ? '✅ present' : '❌ missing',
@@ -153,10 +151,10 @@ export async function GET(request: NextRequest) {
       };
 
       try {
-        const userId = (user as any).id;
+        const userId = (authUser as any).id;
         console.log('[QB Auth] Raw userId (string):', userId);
-        console.log('[QB Auth] Session user email:', (user as any).email);
-        console.log('[QB Auth] Session user role:', (user as any).role);
+        console.log('[QB Auth] Session user email:', (authUser as any).email);
+        console.log('[QB Auth] Session user role:', (authUser as any).role);
         
         // Convert string ID to MongoDB ObjectId
         let objectId;
@@ -175,9 +173,9 @@ export async function GET(request: NextRequest) {
         console.log('[QB Auth] Attempting to find user...');
         
         // Find the user first - using the SAME database as auth.ts
-        const user = await db.collection('users').findOne({ _id: objectId });
+        const dbUser = await db.collection('users').findOne({ _id: objectId });
         
-        if (!user) {
+        if (!dbUser) {
           console.error('[QB Auth] ❌ User not found in database');
           return NextResponse.json(
             { 
@@ -189,7 +187,7 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        console.log('[QB Auth] ✅ User found:', user.email);
+        console.log('[QB Auth] ✅ User found:', dbUser.email);
         console.log('[QB Auth] Updating quickbooksAccounts field...');
         
         // Remove existing account for this country if it exists
@@ -198,7 +196,7 @@ export async function GET(request: NextRequest) {
           { $pull: { quickbooksAccounts: { country: country } } as any }
         );
 
-        const isPrimary = country === 'ZA' || (!user.quickbooks?.isConnected && !user.quickbooksAccounts?.length);
+        const isPrimary = country === 'ZA' || (!dbUser.quickbooks?.isConnected && !dbUser.quickbooksAccounts?.length);
 
         // Update the user's quickbooksAccounts array
         const result = await db.collection('users').findOneAndUpdate(
@@ -303,10 +301,9 @@ export async function GET(request: NextRequest) {
  * Disconnect QB account
  */
 export async function POST(request: NextRequest) {
-  const user = await getAuthUser(req)
-;
+  const authUser = await getAuthUser(request);
 
-  if (!user) {
+  if (!authUser) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
@@ -318,7 +315,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const db = await getDatabase();
-    const objectId = new ObjectId((user as any).id);
+    const objectId = new ObjectId((authUser as any).id);
 
     if (action === 'disconnect') {
       if (country) {
@@ -331,8 +328,8 @@ export async function POST(request: NextRequest) {
         );
         
         // If it was the primary account, disconnect the legacy field too
-        const user = await db.collection('users').findOne({ _id: objectId });
-        const remainingAccounts = user?.quickbooksAccounts || [];
+        const dbUser = await db.collection('users').findOne({ _id: objectId });
+        const remainingAccounts = dbUser?.quickbooksAccounts || [];
         
         if (remainingAccounts.length === 0 || country === 'ZA') {
            await db.collection('users').updateOne(
@@ -376,9 +373,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'refresh-token') {
-      const user = await db.collection('users').findOne({ _id: objectId });
+      const dbUser = await db.collection('users').findOne({ _id: objectId });
 
-      if (!user?.quickbooks?.refreshToken) {
+      if (!dbUser?.quickbooks?.refreshToken) {
         return NextResponse.json(
           { error: 'QB not connected' },
           { status: 400 }
@@ -386,7 +383,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Refresh the token
-      const newToken = await refreshAccessToken(user.quickbooks.refreshToken);
+      const newToken = await refreshAccessToken(dbUser.quickbooks.refreshToken);
 
       // Update user with new tokens
       const result = await db.collection('users').findOneAndUpdate(
