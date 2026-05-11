@@ -14,17 +14,16 @@ import { requirePermission } from '@/lib/rbac';
  * 2. Automatically by cron job
  */
 export async function POST(request: NextRequest) {
-  const user = await getAuthUser(req)
-;
+  const authUser = await getAuthUser(request);
 
-  if (!user || !user.email || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
+  if (!authUser || !authUser.email || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role ?? '')) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
     );
   }
 
-  const adminRole = (user as any).adminRole;
+  const adminRole = (authUser as any).adminRole;
   if (!requirePermission(adminRole, 'quickbooks')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -34,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     // Verify user is admin
     const admin = await db.collection('users').findOne({
-      email: (user as any).email,
+      email: (authUser as any).email,
     });
 
     if (!admin || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(admin.role)) {
@@ -136,17 +135,16 @@ export async function POST(request: NextRequest) {
  * Get sync status - for dashboard
  */
 export async function GET(request: NextRequest) {
-  const user = await getAuthUser(req)
-;
+  const authUser = await getAuthUser(request);
 
-  if (!user || !user.email || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
+  if (!authUser || !authUser.email || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role ?? '')) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
     );
   }
 
-  const adminRole = (user as any).adminRole;
+  const adminRole = (authUser as any).adminRole;
   if (!requirePermission(adminRole, 'quickbooks')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -154,11 +152,11 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getDatabase();
 
-    const user = await db.collection('users').findOne({
-      email: (user as any).email,
+    const dbUser = await db.collection('users').findOne({
+      email: (authUser as any).email,
     });
 
-    if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user.role)) {
+    if (!dbUser || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(dbUser.role)) {
       return NextResponse.json(
         { error: 'Forbidden - Admin only' },
         { status: 403 }
@@ -183,7 +181,7 @@ export async function GET(request: NextRequest) {
         syncedInvoices,
         syncPercentage: totalInvoices > 0 ? Math.round((syncedInvoices / totalInvoices) * 100) : 0,
         lastSyncTime: lastSyncDoc?.qb_sync?.lastSyncedAt,
-        qbConnected: user.quickbooks?.isConnected,
+        qbConnected: dbUser.quickbooks?.isConnected,
       },
     });
   } catch (error) {
