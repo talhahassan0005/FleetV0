@@ -2,15 +2,17 @@
 import connectToDatabase from '@/lib/db'
 import { Load, POD, User } from '@/lib/models'
 import { sendEmail } from '@/lib/email'
+import { getAuthUser } from '@/lib/server-auth'
+import { NextRequest } from 'next/server'
 
-export async function POST(req: Request) {
-  const user = await getAuthUser(req)
+export async function POST(req: NextRequest) {
+  const authUser = await getAuthUser(req)
 // Check authentication
-  if (!user) {
+  if (!authUser) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  if (user.role !== 'TRANSPORTER') {
+  if (authUser.role !== 'TRANSPORTER') {
     return Response.json({ error: 'Only transporters can upload PODs' }, { status: 403 })
   }
 
@@ -40,7 +42,7 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Load must be marked as DELIVERED before POD upload' }, { status: 400 })
     }
 
-    if (load.assignedTransporterId?.toString() !== user.id) {
+    if (load.assignedTransporterId?.toString() !== authUser.id) {
       return Response.json({ error: 'You can only upload POD for loads assigned to you' }, { status: 403 })
     }
 
@@ -53,7 +55,7 @@ export async function POST(req: Request) {
     // Create POD record
     const pod = new POD({
       loadId,
-      transporterId: user.id,
+      transporterId: authUser.id,
       deliveryDate: new Date(deliveryDate),
       deliveryTime: deliveryTime || null,
       notes,
@@ -68,7 +70,7 @@ export async function POST(req: Request) {
     // DO NOT change load status to DELIVERED - keep it IN_TRANSIT until admin approves POD
 
     // Get transporter and client info for email
-    const transporter = await User.findById(user.id)
+    const transporter = await User.findById(authUser.id)
     const client = load.clientId
 
     // Send email notifications
