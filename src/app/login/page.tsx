@@ -254,7 +254,7 @@ function LoginContent() {
             Enterprise Freight Management Platform
             <span className="w-1 h-1 rounded-full bg-[#3ab54a]/60"></span>
           </p>
-          <p className="text-xs text-white/30 mt-2">Secure login powered by NextAuth</p>
+          <p className="text-xs text-white/30 mt-2">Secure login powered by JWT</p>
         </div>
       </div>
 
