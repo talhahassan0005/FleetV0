@@ -6,8 +6,8 @@ import { ObjectId } from 'mongodb'
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getAuthUser(req)
-if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
+    const authUser = await getAuthUser(req)
+if (!authUser?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -33,7 +33,7 @@ if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAG
           verificationStatus: 'APPROVED',
           approved: true,
           approvedAt: new Date(),
-          approvedBy: user.email,
+          approvedBy: authUser.email,
         },
       }
     )

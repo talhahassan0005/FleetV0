@@ -13,8 +13,8 @@ interface DocumentFile {
 export async function POST(req: NextRequest) {
   try {
     // Get session
-    const user = await getAuthUser(req)
-if (!user?.email) {
+    const authUser = await getAuthUser(req)
+if (!authUser?.email) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.' },
         { status: 401 }
@@ -25,7 +25,7 @@ if (!user?.email) {
     
     // Get user
     const user = await db.collection('users').findOne({
-      email: user.email.toLowerCase(),
+      email: authUser.email.toLowerCase(),
     })
 
     if (!user) {

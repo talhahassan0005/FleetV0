@@ -6,8 +6,8 @@ import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getAuthUser(req)
-if (!user?.id) {
+    const authUser = await getAuthUser(req)
+if (!authUser?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -16,7 +16,7 @@ if (!user?.id) {
 
     const db = await getDatabase()
     const user = await db.collection('users').findOne({
-      _id: new ObjectId(user.id),
+      _id: new ObjectId(authUser.id),
     })
 
     if (!user) {
