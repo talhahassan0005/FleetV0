@@ -1,48 +1,94 @@
 import { NextRequest } from 'next/server';
-import { verifyAccessToken } from './jwt-utils';
-import { getDatabase } from './prisma';
-import { ObjectId } from 'mongodb';
+import { verifyAccessToken, JWTPayload } from './jwt-utils';
 
-export async function getAuthUser(request: NextRequest) {
+/**
+ * Get authenticated user from request cookies
+ * Use this in API routes to verify JWT authentication
+ */
+export async function getAuthUser(request: NextRequest): Promise<JWTPayload | null> {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Get access token from cookie
+    const accessToken = request.cookies.get('accessToken')?.value;
+
+    if (!accessToken) {
+      console.log('[Auth] No access token in request');
       return null;
     }
 
-    const token = authHeader.substring(7);
-    const payload = verifyAccessToken(token);
-    
-    if (!payload) {
-      return null;
-    }
-
-    // Fetch full user from database
-    const db = await getDatabase();
-    const user = await db.collection('users').findOne({
-      _id: new ObjectId(payload.id)
-    });
+    // Verify and decode token
+    const user = verifyAccessToken(accessToken);
 
     if (!user) {
+      console.log('[Auth] Invalid or expired token');
       return null;
     }
 
-    return {
-      id: user._id.toString(),
-      email: user.email,
-      role: user.role,
-      adminRole: user.adminRole,
-      companyName: user.companyName,
-      isVerified: user.isVerified,
-      verificationStatus: user.verificationStatus,
-    };
+    return user;
   } catch (error) {
-    console.error('Auth error:', error);
+    console.error('[Auth] Error getting authenticated user:', error);
     return null;
   }
 }
 
-export function isAdmin(user: any): boolean {
-  const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER'];
-  return user && adminRoles.includes(user.role);
+/**
+ * Check if user has admin role
+ */
+export function isAdmin(user: JWTPayload | null): boolean {
+  if (!user) return false;
+  
+  const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER'];
+  return ADMIN_ROLES.includes(user.role);
+}
+
+/**
+ * Check if user has specific admin role
+ */
+export function hasAdminRole(user: JWTPayload | null, role: string): boolean {
+  if (!user) return false;
+  return user.adminRole === role;
+}
+
+/**
+ * Check if user is verified
+ */
+export function isVerified(user: JWTPayload | null): boolean {
+  if (!user) return false;
+  return user.isVerified === true;
+}
+
+/**
+ * Get user from Authorization header (Bearer token)
+ * Alternative to cookie-based auth for API clients
+ */
+export function getAuthUserFromHeader(request: NextRequest): JWTPayload | null {
+  try {
+    const authHeader = request.headers.get('Authorization');
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null;
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const user = verifyAccessToken(token);
+
+    return user;
+  } catch (error) {
+    console.error('[Auth] Error getting user from header:', error);
+    return null;
+  }
+}
+
+/**
+ * Get user from either cookie or Authorization header
+ */
+export async function getAuthUserFlexible(request: NextRequest): Promise<JWTPayload | null> {
+  // Try cookie first
+  let user = await getAuthUser(request);
+  
+  // If not found, try Authorization header
+  if (!user) {
+    user = getAuthUserFromHeader(request);
+  }
+  
+  return user;
 }
