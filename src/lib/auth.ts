@@ -75,7 +75,7 @@ export const authOptions: NextAuthOptions = {
     updateAge: 24 * 60 * 60, // 24 hours
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: false,
+  debug: process.env.NODE_ENV === 'development',
   // trustHost is required when running behind a reverse proxy (e.g. Nginx) in production
   // Without this, NextAuth rejects requests from the proxy and session cookies fail
   ...(process.env.NODE_ENV === 'production' && { trustHost: true }),
@@ -90,6 +90,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production' ? '.fleetxchange.africa' : undefined,
       },
     },
   },

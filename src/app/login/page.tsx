@@ -37,18 +37,24 @@ function LoginContent() {
 
   // Redirect after successful login
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
+    if (status === 'authenticated' && session?.user?.role) {
       const role = session.user.role
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
-      if (adminRoles.includes(role)) {
-        router.replace('/admin/dashboard')
-      } else if (role === 'TRANSPORTER') {
-        router.replace('/transporter/dashboard')
-      } else {
-        router.replace('/client/dashboard')
-      }
+      
+      // Add small delay to ensure session is properly stored
+      const timer = setTimeout(() => {
+        if (adminRoles.includes(role)) {
+          router.push('/admin/dashboard')
+        } else if (role === 'TRANSPORTER') {
+          router.push('/transporter/dashboard')
+        } else {
+          router.push('/client/dashboard')
+        }
+      }, 500)
+      
+      return () => clearTimeout(timer)
     }
-  }, [status, session])
+  }, [status, session, router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -71,26 +77,45 @@ function LoginContent() {
         }
       }
 
-      // Retry getSession up to 3 times with delay to allow cookie to be set
+      // Wait a bit for NextAuth to process and store the session cookie
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Retry getSession up to 5 times with delay to allow cookie to be set
       let sessionRole: string | null = null
-      for (let attempt = 0; attempt < 3; attempt++) {
-        if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 500))
-        const s = await getSession()
-        const role = (s?.user as any)?.role
-        if (role) { sessionRole = role; break }
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 300))
+        try {
+          const s = await getSession()
+          const role = (s?.user as any)?.role
+          if (role) { 
+            sessionRole = role
+            break 
+          }
+        } catch (e) {
+          console.error(`Session fetch attempt ${attempt + 1} failed:`, e)
+        }
       }
 
       if (sessionRole) {
         redirectByRole(sessionRole)
       } else {
         // Fallback: fetch session directly from API
-        const fallbackSession = await fetch('/api/auth/session').then(r => r.json())
-        if (fallbackSession?.user?.role) {
-          redirectByRole(fallbackSession.user.role)
-        } else {
-          setLoading(false)
-          setError('Session could not be established. Please try again.')
+        try {
+          const fallbackSession = await fetch('/api/auth/session', { 
+            method: 'GET',
+            credentials: 'include'
+          }).then(r => r.json())
+          
+          if (fallbackSession?.user?.role) {
+            redirectByRole(fallbackSession.user.role)
+            return
+          }
+        } catch (e) {
+          console.error('Fallback session fetch failed:', e)
         }
+        
+        setLoading(false)
+        setError('Session could not be established. Please try again.')
       }
     }
   }
