@@ -99,6 +99,14 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('[JWT-Login] Setting cookies...');
+    // accessToken cookie — server-side layout ke liye zaroori
+    response.cookies.set('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 2, // 2 hours
+      path: '/',
+    });
 
     // Set access token cookie (2 hours)
     response.cookies.set('accessToken', accessToken, {

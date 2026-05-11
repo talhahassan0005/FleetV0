@@ -79,10 +79,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(() => {
+    // Clear server-side httpOnly cookies via API
+    fetch('/api/auth/jwt-logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    // Clear client-side storage
     localStorage.removeItem('accessToken');
     setAccessToken(null);
     setUser(null);
     Cookies.remove('refreshToken');
+    Cookies.remove('accessToken');
   }, []);
 
   const refreshTokenHandler = useCallback(async (): Promise<boolean> => {

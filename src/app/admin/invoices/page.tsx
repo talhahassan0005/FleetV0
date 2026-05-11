@@ -47,7 +47,7 @@ interface FilterState {
 }
 
 export default function AdminInvoicesPage() {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,19 +67,18 @@ export default function AdminInvoicesPage() {
   const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
+    if (isLoading) return
     if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       router.push('/login')
       return
     }
-
-    const adminRole = (user as any).adminRole
-    if (!hasPermission(adminRole, 'invoices')) {
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN'
+    if (!isSuperAdmin && !hasPermission(user.role, 'invoices')) {
       router.push('/admin/unauthorized')
       return
     }
-
     fetchInvoices()
-  }, [user, router])
+  }, [user, router, isLoading])
 
   const stats = {
     total: invoices.length,

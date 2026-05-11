@@ -3,8 +3,8 @@ module.exports = {
     {
       name: "fleetxch",
       script: "node_modules/.bin/next",
-      args: "start -p 3000",
-      cwd: "/var/www/FleetV0",
+      args: "start -p 3001",
+      cwd: "/var/www/fleetxchange/FleetV0",
       env: {
         NODE_ENV: "production"
       }
@@ -12,7 +12,7 @@ module.exports = {
     {
       name: "fleet-socket",
       script: "socket-server.js",
-      cwd: "/var/www/FleetV0",
+      cwd: "/var/www/fleetxchange/FleetV0",
       env: {
         NODE_ENV: "production"
       }

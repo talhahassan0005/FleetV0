@@ -82,7 +82,7 @@ async function fetchAndEnrichPods(): Promise<POD[]> {
 }
 
 export default function PODManagementPage() {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
 
   const [pods, setPods] = useState<POD[]>([])
@@ -98,10 +98,11 @@ export default function PODManagementPage() {
   const [invoiceRejectionReason, setInvoiceRejectionReason] = useState('')
 
   useEffect(() => {
+    if (isLoading) return
     if (!user) { router.push('/login'); return }
-    if (user && !isAdmin(user.role)) { router.push('/login'); return }
-    if (user && !hasPermission(user.role, 'pods')) { router.push('/admin/unauthorized'); return }
-  }, [user, router])
+    if (!isAdmin(user.role)) { router.push('/login'); return }
+    if (user.role !== 'SUPER_ADMIN' && !hasPermission(user.role, 'pods')) { router.push('/admin/unauthorized'); return }
+  }, [user, router, isLoading])
 
   useEffect(() => {
     let isMounted = true

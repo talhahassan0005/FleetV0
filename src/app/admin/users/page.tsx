@@ -18,7 +18,7 @@ interface User {
 }
 
 export default function AdminUsersPage() {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const roleFilter = searchParams.get('role') || ''
@@ -35,14 +35,12 @@ export default function AdminUsersPage() {
   const isSuperAdmin = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '') && (!(user as any)?.adminRole || (user as any)?.adminRole === 'superadmin')
 
   useEffect(() => {
+    if (isLoading) return
     if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       router.push('/login')
       return
     }
-
-    // Only superadmin can access users management
-    const adminRole = (user as any).adminRole
-    if (adminRole && adminRole !== 'superadmin') {
+    if (user.role !== 'SUPER_ADMIN') {
       router.push('/admin/unauthorized')
       return
     }
@@ -75,7 +73,7 @@ export default function AdminUsersPage() {
         .then(d => setSubAdmins(d.admins || []))
         .catch(console.error)
     }
-  }, [user, router, roleFilter, isSuperAdmin])
+  }, [user, router, roleFilter, isLoading])
 
   const handleApproveUser = async (userId: string) => {
     try {
