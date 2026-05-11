@@ -1,18 +1,17 @@
 'use client'
 // src/app/login/page.tsx
 import { useState, useEffect } from 'react'
+import { signIn, useSession, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
-import { useAuth, useAutoRefreshToken } from '@/hooks/useAuth'
+import { isAdmin } from '@/lib/rbac'
 import { Suspense } from 'react'
 
 function LoginContent() {
   const router = useRouter()
-  const { user, isAuthenticated, login } = useAuth()
-  useAutoRefreshToken() // Auto-refresh token before expiry
-  
+  const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -36,50 +35,49 @@ function LoginContent() {
     }
   }, [searchParams, isMounted])
 
-  // If user is already authenticated, redirect them immediately
+  // Redirect after successful login
   useEffect(() => {
-    if (isAuthenticated && user?.role) {
-      const role = user.role
+    if (status === 'authenticated' && session?.user) {
+      const role = session.user.role
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
-      
       if (adminRoles.includes(role)) {
-        window.location.href = '/admin/dashboard'
+        router.replace('/admin/dashboard')
       } else if (role === 'TRANSPORTER') {
-        window.location.href = '/transporter/dashboard'
+        router.replace('/transporter/dashboard')
       } else {
-        window.location.href = '/client/dashboard'
+        router.replace('/client/dashboard')
       }
     }
-  }, [isAuthenticated, user])
+  }, [status, session])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
-    setError('')
-    
-    try {
-      const result = await login(email, password)
-      
-      if (!result.success) {
-        setLoading(false)
-        setError(result.error || 'Login failed. Please try again.')
-        return
-      }
-
-      // Redirect based on role
-      const role = result.user?.role
-      const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
-      
-      if (adminRoles.includes(role)) {
-        window.location.href = '/admin/dashboard'
-      } else if (role === 'TRANSPORTER') {
-        window.location.href = '/transporter/dashboard'
-      } else {
-        window.location.href = '/client/dashboard'
-      }
-    } catch (err: any) {
+    setLoading(true); setError('')
+    const res = await signIn('credentials', { email, password, redirect: false })
+    if (res?.error) { 
       setLoading(false)
-      setError(err.message || 'Login failed. Please try again.')
+      setError('Invalid email or password.'); 
+      return 
+    }
+    if (res?.ok) {
+      // Force session refresh — needed in production where cookie name changes
+      // useSession sometimes doesn't auto-update after signIn with redirect:false
+      const updatedSession = await getSession()
+      if (updatedSession?.user) {
+        const role = (updatedSession.user as any).role
+        const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
+        if (adminRoles.includes(role)) {
+          router.replace('/admin/dashboard')
+        } else if (role === 'TRANSPORTER') {
+          router.replace('/transporter/dashboard')
+        } else {
+          router.replace('/client/dashboard')
+        }
+      } else {
+        // getSession failed — cookie mismatch or slow propagation
+        // Last resort: reload the page, middleware will redirect based on cookie
+        window.location.reload()
+      }
     }
   }
 

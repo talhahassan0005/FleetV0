@@ -116,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [logout]);
 
-  const value: AuthContextType = {
+  const contextValue: AuthContextType = {
     user,
     isLoading,
     isAuthenticated: !!user && !!accessToken,
@@ -126,10 +126,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshToken: refreshTokenHandler,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  return React.createElement(
+    AuthContext.Provider,
+    { value: contextValue },
+    children
   );
 };
 
