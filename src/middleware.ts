@@ -20,7 +20,19 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Get access token from cookie
+  // Skip middleware for client-side pages that handle auth with useAuth hook
+  // These pages check JWT from localStorage on client-side
+  if (
+    pathname.startsWith('/admin/') ||
+    pathname.startsWith('/client/') ||
+    pathname.startsWith('/transporter/')
+  ) {
+    // Client-side components will handle authentication with useAuth hook
+    // and localStorage JWT tokens
+    return NextResponse.next()
+  }
+
+  // For other protected routes, verify JWT token from cookies
   const accessToken = req.cookies.get('accessToken')?.value
 
   if (!accessToken) {
@@ -40,14 +52,7 @@ export async function middleware(req: NextRequest) {
     return response
   }
 
-  const role = tokenData.role
-
-  // Check admin access
-  if (pathname.startsWith('/admin')) {
-    if (!ADMIN_ROLES.includes(role)) {
-      const loginUrl = new URL('/login', req.url)
-      return NextResponse.redirect(loginUrl)
-    }
+  return NextResponse.next()
     const response = NextResponse.next()
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
     response.headers.set('Pragma', 'no-cache')
