@@ -161,8 +161,8 @@ export default function ClientChatPage() {
   // Listen for socket messages when conversation selected
   useEffect(() => {
     if (selectedConversation?.conversationId && socketRef.current?.connected) {
-      console.log('[Chat] 💬 Setting up conversation:', selectedConversation.conversationId)
-      console.log('[Chat] ✅ Socket connected:', socketRef.current?.connected)
+      console.log('[Chat]  Setting up conversation:', selectedConversation.conversationId)
+      console.log('[Chat]  Socket connected:', socketRef.current?.connected)
       
       // Fetch initial messages
       fetchMessages()
@@ -172,7 +172,7 @@ export default function ClientChatPage() {
 
       // Set up message listener
       const handleNewMessage = (messageData: any) => {
-        console.log('[Chat] 📨 Received message in UI:', messageData)
+        console.log('[Chat]  Received message UI:', messageData)
         setMessages((prev) => {
           const exists = prev.some((m) => m._id === messageData._id)
           if (exists) {
