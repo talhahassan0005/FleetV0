@@ -56,9 +56,6 @@ function LoginContent() {
 
       const data = await response.json()
       
-      // Store access token in localStorage
-      localStorage.setItem('accessToken', data.accessToken)
-
       // Redirect based on role
       const role = data.user?.role
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
