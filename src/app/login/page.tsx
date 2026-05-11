@@ -35,87 +35,69 @@ function LoginContent() {
     }
   }, [searchParams, isMounted])
 
-  // Redirect after successful login
+  // If user is already authenticated, redirect them immediately
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.role) {
       const role = session.user.role
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
       
-      // Add small delay to ensure session is properly stored
-      const timer = setTimeout(() => {
-        if (adminRoles.includes(role)) {
-          router.push('/admin/dashboard')
-        } else if (role === 'TRANSPORTER') {
-          router.push('/transporter/dashboard')
-        } else {
-          router.push('/client/dashboard')
-        }
-      }, 500)
-      
-      return () => clearTimeout(timer)
+      if (adminRoles.includes(role)) {
+        window.location.href = '/admin/dashboard'
+      } else if (role === 'TRANSPORTER') {
+        window.location.href = '/transporter/dashboard'
+      } else {
+        window.location.href = '/client/dashboard'
+      }
     }
-  }, [status, session, router])
+  }, [status, session])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true); setError('')
+    setLoading(true)
+    setError('')
+    
     const res = await signIn('credentials', { email, password, redirect: false })
+    
     if (res?.error) { 
       setLoading(false)
       setError('Invalid email or password.'); 
       return 
     }
+    
     if (res?.ok) {
-      const redirectByRole = (role: string) => {
-        const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
-        if (adminRoles.includes(role)) {
-          window.location.href = '/admin/dashboard'
-        } else if (role === 'TRANSPORTER') {
-          window.location.href = '/transporter/dashboard'
-        } else {
-          window.location.href = '/client/dashboard'
-        }
-      }
-
-      // Wait a bit for NextAuth to process and store the session cookie
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Retry getSession up to 5 times with delay to allow cookie to be set
-      let sessionRole: string | null = null
-      for (let attempt = 0; attempt < 5; attempt++) {
-        if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 300))
-        try {
-          const s = await getSession()
-          const role = (s?.user as any)?.role
-          if (role) { 
-            sessionRole = role
-            break 
-          }
-        } catch (e) {
-          console.error(`Session fetch attempt ${attempt + 1} failed:`, e)
-        }
-      }
-
-      if (sessionRole) {
-        redirectByRole(sessionRole)
-      } else {
-        // Fallback: fetch session directly from API
-        try {
-          const fallbackSession = await fetch('/api/auth/session', { 
-            method: 'GET',
-            credentials: 'include'
-          }).then(r => r.json())
-          
-          if (fallbackSession?.user?.role) {
-            redirectByRole(fallbackSession.user.role)
-            return
-          }
-        } catch (e) {
-          console.error('Fallback session fetch failed:', e)
-        }
+      // Get the session to determine the correct redirect URL
+      try {
+        // Wait a moment for NextAuth to fully process the session
+        await new Promise(resolve => setTimeout(resolve, 500))
         
-        setLoading(false)
-        setError('Session could not be established. Please try again.')
+        const session = await getSession()
+        const role = (session?.user as any)?.role
+        
+        if (role) {
+          const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
+          
+          // Redirect based on role
+          if (adminRoles.includes(role)) {
+            window.location.href = '/admin/dashboard'
+          } else if (role === 'TRANSPORTER') {
+            window.location.href = '/transporter/dashboard'
+          } else {
+            window.location.href = '/client/dashboard'
+          }
+          // Browser reload will happen, so we don't set loading to false
+        } else {
+          // Fallback if session isn't immediately available - do a hard page reload
+          // This forces the browser to re-evaluate authentication
+          setTimeout(() => {
+            window.location.href = '/'
+          }, 300)
+        }
+      } catch (e) {
+        console.error('Session retrieval failed:', e)
+        // Hard reload to reset page state
+        setTimeout(() => {
+          window.location.href = '/'
+        }, 300)
       }
     }
   }
