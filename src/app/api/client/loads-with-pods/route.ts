@@ -3,18 +3,20 @@ export const dynamic = 'force-dynamic'
 
 import { getDatabase } from '@/lib/prisma'
 import { ObjectId } from 'mongodb'
+import { getAuthUser } from '@/lib/server-auth'
+import { NextRequest } from 'next/server'
 
-export async function GET(req: Request) {
-  const user = await getAuthUser(req)
-if (!user?.id || user.role !== 'CLIENT') {
+export async function GET(req: NextRequest) {
+  const authUser = await getAuthUser(req)
+if (!authUser?.id || authUser.role !== 'CLIENT') {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
     const db = await getDatabase()
-    const clientId = new ObjectId(user.id)
+    const clientId = new ObjectId(authUser.id)
 
-    console.log('[ClientLoadsWithPODs] 📦 Fetching loads for client:', user.email)
+    console.log('[ClientLoadsWithPODs] 📦 Fetching loads for client:', authUser.email)
 
     // Get all loads for this client
     const loads = await db.collection('loads').find({
