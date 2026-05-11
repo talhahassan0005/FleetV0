@@ -48,16 +48,16 @@ export default function CreateInvoicePage() {
   const [markupAmount, setMarkupAmount] = useState(0)
 
   useEffect(() => {
-    if (session && !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
+    if (user && !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
       router.push('/login')
     }
-  }, [session, router])
+  }, [user, router])
 
   useEffect(() => {
     if (user) {
       fetchApprovedPODs()
     }
-  }, [session])
+  }, [user])
 
   // Calculate markup when amount or percentage changes
   useEffect(() => {
