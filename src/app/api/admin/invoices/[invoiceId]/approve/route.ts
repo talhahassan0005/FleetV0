@@ -2,10 +2,11 @@
 import connectToDatabase from '@/lib/db'
 import { Invoice, Load, User } from '@/lib/models'
 import { sendEmail } from '@/lib/email'
+import { getAuthUser } from '@/lib/server-auth'
 
 export async function PATCH(req: Request, { params }: { params: { invoiceId: string } }) {
-  const user = await getAuthUser(req)
-if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
+  const authUser = await getAuthUser(req)
+if (!authUser?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
