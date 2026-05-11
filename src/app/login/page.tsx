@@ -53,7 +53,6 @@ function LoginContent() {
 
       console.log('[Login] Response status:', response.status)
       console.log('[Login] Response ok:', response.ok)
-      console.log('[Login] Response headers:', response.headers)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -63,29 +62,9 @@ function LoginContent() {
         return
       }
 
-      // Check if response has content
-      const contentType = response.headers.get('content-type')
-      console.log('[Login] Content-Type:', contentType)
-      
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('[Login] Response is not JSON!')
-        setLoading(false)
-        setError('Invalid response from server')
-        return
-      }
-
-      const text = await response.text()
-      console.log('[Login] Response text:', text)
-      
-      if (!text) {
-        console.error('[Login] Empty response body!')
-        setLoading(false)
-        setError('Empty response from server')
-        return
-      }
-
-      const data = JSON.parse(text)
-      console.log('[Login] Success! User data:', data.user)
+      const data = await response.json()
+      console.log('[Login] Success! Response data:', data)
+      console.log('[Login] User data:', data.user)
       console.log('[Login] Access token received:', data.accessToken ? 'YES' : 'NO')
       
       // Redirect based on role
