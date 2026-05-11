@@ -1,6 +1,7 @@
 import connectToDatabase from '@/lib/db';
 import { QBCountryConfig } from '@/lib/models';
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
+import { getAuthUser } from '@/lib/server-auth';
 
 const DEFAULT_COUNTRIES = [
   { country: 'ZA', label: 'South Africa', currency: 'ZAR', flag: '🇿🇦', sortOrder: 1 },
@@ -33,11 +34,10 @@ export async function GET() {
 }
 
 // POST — add new country
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const user = await getAuthUser(req)
-;
-    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
+    const authUser = await getAuthUser(req);
+    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role ?? '')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -71,11 +71,10 @@ export async function POST(req: Request) {
 }
 
 // PATCH — edit existing country
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
   try {
-    const user = await getAuthUser(req)
-;
-    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
+    const authUser = await getAuthUser(req);
+    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role ?? '')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -100,11 +99,10 @@ export async function PATCH(req: Request) {
 }
 
 // DELETE — remove country
-export async function DELETE(req: Request) {
+export async function DELETE(req: NextRequest) {
   try {
-    const user = await getAuthUser(req)
-;
-    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
+    const authUser = await getAuthUser(req);
+    if (!['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role ?? '')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
