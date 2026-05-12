@@ -62,6 +62,9 @@ if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','A
         averageQuoteValue: allQuotes.length > 0 
           ? Math.round(allQuotes.reduce((sum: number, q: any) => sum + q.price, 0) / allQuotes.length)
           : 0,
+        totalQuotes: allQuotes.length,
+        pendingLoads: allLoads.filter((l: any) => l.status === 'PENDING').length,
+        inTransitLoads: allLoads.filter((l: any) => l.status === 'IN_TRANSIT').length,
       },
       monthlyData: generateMonthlyData(allLoads),
     })

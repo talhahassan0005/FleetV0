@@ -191,7 +191,14 @@ export default function UploadPODPage() {
         enrichedPODs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         console.log('[TransporterPODs] Enriched PODs:', enrichedPODs.length)
         setSubmittedPODs(enrichedPODs)
-        setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
+        const calculatedTotalPages = Math.max(1, Math.ceil((data.total || enrichedPODs.length) / itemsPerPage))
+        setTotalPages(calculatedTotalPages)
+        console.log('Upload POD Pagination Debug:', { 
+          total: data.total, 
+          podsLength: enrichedPODs.length, 
+          itemsPerPage, 
+          calculatedTotalPages 
+        })
       } catch (err) {
         console.error('[TransporterPODs] Failed to fetch submitted PODs:', err)
         if (isMounted) {
@@ -646,8 +653,11 @@ export default function UploadPODPage() {
           </div>
 
           {/* Pagination */}
-          {!podsLoading && submittedPODs.length > 0 && (
+          {!podsLoading && submittedPODs.length > 0 && totalPages > 0 && (
             <div className="mt-8">
+              <div className="text-sm text-gray-600 mb-2">
+                Debug: Current Page: {currentPage}, Total Pages: {totalPages}, PODs: {submittedPODs.length}
+              </div>
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}

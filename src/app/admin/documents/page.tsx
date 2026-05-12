@@ -1,14 +1,15 @@
 'use client'
 // src/app/admin/documents/page.tsx
 import { useEffect, useState } from 'react'
-import { Topbar, PageLayout, DocumentsTableSkeleton } from '@/components/ui'
+import { Topbar, PageLayout, DocumentsTableSkeleton, Pagination } from '@/components/ui'
 import AdminDocumentViewModal from '@/components/admin/AdminDocumentViewModal'
 
 export default function AdminDocumentsPage() {
   const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 15
   const [selectedDoc, setSelectedDoc] = useState<any>(null)
   const [reviewComment, setReviewComment] = useState('')
   const [reviewStatus, setReviewStatus] = useState('APPROVED')
@@ -40,7 +41,7 @@ export default function AdminDocumentsPage() {
         alert(`⚠️ Verification Check Result:\n\n${data.message}\n\nMissing Documents:\n${data.missingDocuments?.join('\n') || 'None'}\n\nApproved Documents:\n${data.approvedDocuments?.join('\n') || 'None'}`)
       }
       
-      await fetchDocuments()
+      await fetchDocuments(currentPage)
     } catch (err: any) {
       console.error('Manual verify error:', err)
       alert(err.message || 'Failed to verify user')
@@ -67,7 +68,7 @@ export default function AdminDocumentsPage() {
 
       const data = await res.json()
       alert(`Success!\n\nFixed ${data.fixed} documents\nVerified ${data.verified} accounts`)
-      await fetchDocuments()
+      await fetchDocuments(currentPage)
     } catch (err: any) {
       console.error('Fix documents error:', err)
       alert(err.message || 'Failed to fix documents')
@@ -76,18 +77,14 @@ export default function AdminDocumentsPage() {
     }
   }
 
-  const fetchDocuments = async (loadMore = false) => {
+  const fetchDocuments = async (page: number = 1) => {
     try {
-      if (loadMore) {
-        setLoadingMore(true)
-      } else {
-        setLoading(true)
-      }
+      setLoading(true)
       
-      const skip = loadMore ? documents.length : 0
-      const limit = 15
+      const skip = (page - 1) * itemsPerPage
+      const limit = itemsPerPage
       
-      console.log('[AdminDocuments] Fetching documents...', { skip, limit })
+      console.log('[AdminDocuments] Fetching documents...', { skip, limit, page })
       const res = await fetch(`/api/documents?skip=${skip}&limit=${limit}`)
       
       if (!res.ok) {
@@ -98,24 +95,22 @@ export default function AdminDocumentsPage() {
       }
       
       const data = await res.json()
-      console.log('[AdminDocuments] Success! Documents:', data.data)
+      console.log('[AdminDocuments] Success! Documents:', data.data?.length)
       
-      if (loadMore) {
-        // Append new documents, ensuring no duplicates
-        const existingIds = new Set(documents.map(d => d._id))
-        const newDocs = (data.data || []).filter((d: any) => !existingIds.has(d._id))
-        setDocuments(prev => [...prev, ...newDocs])
-      } else {
-        setDocuments(data.data || [])
-      }
-      
-      setHasMore(data.hasMore || false)
+      setDocuments(data.data || [])
+      const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.data?.length || 0) / itemsPerPage))
+      setTotalPages(calculatedTotalPages)
+      console.log('Admin Documents Pagination Debug:', { 
+        total: data.total, 
+        documentsLength: data.data?.length, 
+        itemsPerPage, 
+        calculatedTotalPages 
+      })
     } catch (err) {
       console.error('[AdminDocuments] Fetch failed:', err)
       setDocuments([])
     } finally {
       setLoading(false)
-      setLoadingMore(false)
     }
   }
 
@@ -158,8 +153,8 @@ export default function AdminDocumentsPage() {
   })
 
   useEffect(() => {
-    fetchDocuments()
-  }, [])
+    fetchDocuments(currentPage)
+  }, [currentPage])
 
   const handleSubmitReview = async (comment: string, status: string) => {
     if (!selectedDoc) {
@@ -244,7 +239,7 @@ export default function AdminDocumentsPage() {
                 All Documents ({filteredDocuments.length}{documents.length !== filteredDocuments.length ? ` of ${documents.length}` : ''})
               </h3>
               <button
-                onClick={() => fetchDocuments()}
+                onClick={() => fetchDocuments(currentPage)}
                 disabled={loading}
                 className="px-3 py-1.5 rounded text-xs font-semibold bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
               >
@@ -399,16 +394,18 @@ export default function AdminDocumentsPage() {
             </div>
           )}
           
-          {/* Load More Button */}
-          {!loading && documents.length > 0 && hasMore && !searchTerm && filterType === 'ALL' && filterStatus === 'ALL' && (
+          {/* Pagination */}
+          {!loading && documents.length > 0 && totalPages > 0 && (
             <div className="flex justify-center mt-6">
-              <button
-                onClick={() => fetchDocuments(true)}
-                disabled={loadingMore}
-                className="px-6 py-3 rounded-lg text-sm font-semibold bg-[#3ab54a] text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loadingMore ? 'Loading...' : 'Load More'}
-              </button>
+              <div className="text-sm text-gray-600 mb-2">
+                Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Documents: {documents.length}
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                loading={loading}
+              />
             </div>
           )}
         </div>

@@ -8,12 +8,23 @@ interface PaginationProps {
 }
 
 export function Pagination({ currentPage, totalPages, onPageChange, loading = false }: PaginationProps) {
-  if (totalPages <= 1) return null
+  console.log('Pagination Debug:', { currentPage, totalPages, loading })
+  
+  // Ensure totalPages is at least 1 and currentPage is valid
+  const safeTotalPages = Math.max(1, totalPages || 1)
+  const safeCurrentPage = Math.max(1, Math.min(currentPage || 1, safeTotalPages))
+  
+  // Always show pagination if we have valid props (for debugging)
+  // Remove this condition temporarily to see pagination
+  // if (safeTotalPages <= 1) {
+  //   console.log('Pagination hidden: safeTotalPages <= 1', { safeTotalPages })
+  //   return null
+  // }
 
   const pages: (number | string)[] = []
   const maxVisible = 5
-  let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2))
-  let endPage = Math.min(totalPages, startPage + maxVisible - 1)
+  let startPage = Math.max(1, safeCurrentPage - Math.floor(maxVisible / 2))
+  let endPage = Math.min(safeTotalPages, startPage + maxVisible - 1)
   
   if (endPage - startPage + 1 < maxVisible) {
     startPage = Math.max(1, endPage - maxVisible + 1)
@@ -28,16 +39,16 @@ export function Pagination({ currentPage, totalPages, onPageChange, loading = fa
     pages.push(i)
   }
 
-  if (endPage < totalPages) {
-    if (endPage < totalPages - 1) pages.push('...')
-    pages.push(totalPages)
+  if (endPage < safeTotalPages) {
+    if (endPage < safeTotalPages - 1) pages.push('...')
+    pages.push(safeTotalPages)
   }
 
   return (
     <div className="flex items-center justify-center gap-2 mt-6">
       <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1 || loading}
+        onClick={() => onPageChange(safeCurrentPage - 1)}
+        disabled={safeCurrentPage === 1 || loading}
         className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
       >
         <ChevronLeft className="w-5 h-5" />
@@ -49,7 +60,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, loading = fa
           onClick={() => typeof page === 'number' && onPageChange(page)}
           disabled={page === '...' || loading}
           className={`px-3 py-2 rounded-lg font-medium transition ${
-            page === currentPage
+            page === safeCurrentPage
               ? 'bg-[#3ab54a] text-white'
               : page === '...'
               ? 'cursor-default text-gray-400'
@@ -61,15 +72,15 @@ export function Pagination({ currentPage, totalPages, onPageChange, loading = fa
       ))}
 
       <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages || loading}
+        onClick={() => onPageChange(safeCurrentPage + 1)}
+        disabled={safeCurrentPage === safeTotalPages || loading}
         className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
       >
         <ChevronRight className="w-5 h-5" />
       </button>
 
       <span className="ml-4 text-sm text-gray-600">
-        Page {currentPage} of {totalPages}
+        Page {safeCurrentPage} of {safeTotalPages}
       </span>
     </div>
   )

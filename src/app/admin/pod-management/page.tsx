@@ -56,7 +56,14 @@ export default function AdminPODManagementPage() {
       const data = await res.json()
       if (data.success && Array.isArray(data.pods)) {
         setPods(data.pods)
-        setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
+        const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.pods.length) / itemsPerPage))
+        setTotalPages(calculatedTotalPages)
+        console.log('POD Pagination Debug:', { 
+          total: data.total, 
+          podsLength: data.pods.length, 
+          itemsPerPage, 
+          calculatedTotalPages 
+        })
       }
     } catch (err) {
       console.error('[AdminPOD] Error fetching PODs:', err)
@@ -221,9 +228,12 @@ export default function AdminPODManagementPage() {
           </div>
         )}
 
-        {/* Pagination */}
-        {!loading && pods.length > 0 && (
+        {/* Pagination - Debug Info */}
+        {!loading && pods.length > 0 && totalPages > 0 && (
           <div className="mt-6">
+            <div className="text-sm text-gray-600 mb-2">
+              Debug: Current Page: {currentPage}, Total Pages: {totalPages}, PODs: {pods.length}
+            </div>
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}

@@ -50,7 +50,14 @@ export default function AdminLoadsPage() {
         if (res.ok) {
           const data = await res.json()
           setLoads(data.loads || [])
-          setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
+          const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.loads?.length || 0) / itemsPerPage))
+          setTotalPages(calculatedTotalPages)
+          console.log('Admin Loads Pagination Debug:', { 
+            total: data.total, 
+            loadsLength: data.loads?.length, 
+            itemsPerPage, 
+            calculatedTotalPages 
+          })
         }
       } catch (err) {
         console.error('Error fetching loads:', err)
@@ -75,7 +82,8 @@ export default function AdminLoadsPage() {
         if (res.ok) {
           const data = await res.json()
           setLoads(data.loads || [])
-          setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
+          const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.loads?.length || 0) / itemsPerPage))
+          setTotalPages(calculatedTotalPages)
         }
       } catch (err) {
         console.error('Error refreshing loads:', err)
@@ -204,13 +212,18 @@ export default function AdminLoadsPage() {
       </div>
 
       {/* Pagination */}
-      {!loading && loads.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          loading={loading}
-        />
+      {!loading && loads.length > 0 && totalPages > 0 && (
+        <div className="mt-6">
+          <div className="text-sm text-gray-600 mb-2">
+            Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Loads: {loads.length}
+          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            loading={loading}
+          />
+        </div>
       )}
     </div>
   )

@@ -59,7 +59,14 @@ export default function AvailableLoadsPage() {
 
         const data = await res.json()
         setLoads(data.loads || [])
-        setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
+        const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.loads?.length || 0) / itemsPerPage))
+        setTotalPages(calculatedTotalPages)
+        console.log('Loads Pagination Debug:', { 
+          total: data.total, 
+          loadsLength: data.loads?.length, 
+          itemsPerPage, 
+          calculatedTotalPages 
+        })
         setError('')
       } catch (err) {
         console.error('Error fetching loads:', err)
@@ -222,8 +229,11 @@ export default function AvailableLoadsPage() {
         </div>
 
         {/* Pagination */}
-        {!loading && loads.length > 0 && (
+        {!loading && loads.length > 0 && totalPages > 0 && (
           <div className="mt-8">
+            <div className="text-sm text-gray-600 mb-2">
+              Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Loads: {loads.length}
+            </div>
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}

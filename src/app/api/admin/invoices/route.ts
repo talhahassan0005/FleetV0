@@ -34,6 +34,19 @@ if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER
 
     // Get total count first
     const total = await db.collection('invoices').countDocuments({})
+    
+    // Get all invoices for stats calculation (without pagination)
+    const allInvoices = await db.collection('invoices').find({}).toArray()
+    
+    // Calculate correct stats from all invoices
+    const stats = {
+      total: allInvoices.length,
+      unpaid: allInvoices.filter(i => i.paymentStatus === 'UNPAID').length,
+      partialPaid: allInvoices.filter(i => i.paymentStatus === 'PARTIAL_PAID').length,
+      paid: allInvoices.filter(i => i.paymentStatus === 'PAID').length,
+      totalAmount: allInvoices.reduce((sum, i) => sum + (i.amount || 0), 0),
+      collectedAmount: allInvoices.reduce((sum, i) => sum + (i.paymentAmount || 0), 0),
+    }
 
     // Get paginated invoices with aggregation to get related data
     const invoices = await db.collection('invoices').aggregate([
@@ -141,14 +154,7 @@ if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER
       success: true,
       invoices,
       total,
-      stats: {
-        total: invoices.length,
-        unpaid: invoices.filter(i => i.paymentStatus === 'UNPAID').length,
-        partialPaid: invoices.filter(i => i.paymentStatus === 'PARTIAL_PAID').length,
-        paid: invoices.filter(i => i.paymentStatus === 'PAID').length,
-        totalAmount: invoices.reduce((sum, i) => sum + (i.amount || 0), 0),
-        collectedAmount: invoices.reduce((sum, i) => sum + (i.paymentAmount || 0), 0),
-      }
+      stats
     })
 
   } catch (error: any) {

@@ -61,7 +61,14 @@ export default function AdminUsersPage() {
         if (res.ok) {
           const data = await res.json()
           setUsers(data.users || [])
-          setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
+          const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.users?.length || 0) / itemsPerPage))
+          setTotalPages(calculatedTotalPages)
+          console.log('Users Pagination Debug:', { 
+            total: data.total, 
+            usersLength: data.users?.length, 
+            itemsPerPage, 
+            calculatedTotalPages 
+          })
         } else if (res.status === 401) {
           router.push('/login')
         }
@@ -306,8 +313,11 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Pagination */}
-      {!loading && users.length > 0 && (
+      {!loading && users.length > 0 && totalPages > 0 && (
         <div className="mt-6">
+          <div className="text-sm text-gray-600 mb-2">
+            Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Users: {users.length}
+          </div>
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

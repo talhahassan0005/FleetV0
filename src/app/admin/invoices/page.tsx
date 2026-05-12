@@ -52,6 +52,7 @@ export default function AdminInvoicesPage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [allInvoicesStats, setAllInvoicesStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -85,13 +86,14 @@ export default function AdminInvoicesPage() {
     fetchInvoices(currentPage)
   }, [user, router, isLoading, currentPage])
 
-  const stats = {
-    total: invoices.length,
-    unpaid: invoices.filter(i => i.paymentStatus === 'UNPAID').length,
-    partialPaid: invoices.filter(i => i.paymentStatus === 'PARTIAL_PAID').length,
-    paid: invoices.filter(i => i.paymentStatus === 'PAID').length,
-    totalAmount: invoices.reduce((sum, i) => sum + i.amount, 0),
-    collectedAmount: invoices.reduce((sum, i) => sum + (i.paymentAmount || 0), 0),
+  // Use stats from API instead of calculating from current page invoices
+  const stats = allInvoicesStats || {
+    total: 0,
+    unpaid: 0,
+    partialPaid: 0,
+    paid: 0,
+    totalAmount: 0,
+    collectedAmount: 0,
   }
 
   const fetchInvoices = async (page: number = 1) => {
@@ -108,7 +110,21 @@ export default function AdminInvoicesPage() {
       
       const data = await res.json()
       setInvoices(data.invoices || [])
-      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
+      
+      // Set stats from API response
+      if (data.stats) {
+        setAllInvoicesStats(data.stats)
+      }
+      
+      const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.invoices?.length || 0) / itemsPerPage))
+      setTotalPages(calculatedTotalPages)
+      console.log('Invoice Pagination Debug:', { 
+        total: data.total, 
+        invoicesLength: data.invoices?.length, 
+        itemsPerPage, 
+        calculatedTotalPages,
+        stats: data.stats
+      })
       setError('')
     } catch (err: any) {
       setError(err.message)
@@ -283,7 +299,7 @@ export default function AdminInvoicesPage() {
               <div>
                 <p className="text-gray-500 text-sm">Status</p>
                 <p className="text-sm font-semibold text-gray-900">
-                  {((stats.paid / stats.total) * 100).toFixed(0)}% collected
+                  {stats.total > 0 ? ((stats.paid / stats.total) * 100).toFixed(0) : 0}% collected
                 </p>
               </div>
               <div className="text-xs text-gray-500 text-right">
@@ -490,12 +506,17 @@ export default function AdminInvoicesPage() {
 
         {/* Pagination */}
         {!loading && filteredInvoices.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            loading={loading}
-          />
+          <div className="mt-6">
+            <div className="text-sm text-gray-600 mb-2">
+              Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Invoices: {invoices.length}
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              loading={loading}
+            />
+          </div>
         )}
 
         {/* Payment Status Modal */}

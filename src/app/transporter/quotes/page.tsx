@@ -75,7 +75,14 @@ export default function MyQuotesPage() {
         }
 
         setQuotes(data.quotes || [])
-        setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
+        const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.quotes?.length || 0) / itemsPerPage))
+        setTotalPages(calculatedTotalPages)
+        console.log('Quotes Pagination Debug:', { 
+          total: data.total, 
+          quotesLength: data.quotes?.length, 
+          itemsPerPage, 
+          calculatedTotalPages 
+        })
         setError('')
       } catch (err) {
         console.error('Error fetching quotes:', err)
@@ -271,8 +278,11 @@ export default function MyQuotesPage() {
         </div>
 
         {/* Pagination */}
-        {!loading && quotes.length > 0 && (
+        {!loading && quotes.length > 0 && totalPages > 0 && (
           <div className="mt-8">
+            <div className="text-sm text-gray-600 mb-2">
+              Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Quotes: {quotes.length}
+            </div>
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}

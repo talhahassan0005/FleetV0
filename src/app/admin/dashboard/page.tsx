@@ -1,26 +1,40 @@
 'use client'
 // src/app/admin/dashboard/page.tsx
 import { useEffect, useState } from 'react'
-import { Topbar, PageLayout, StatCard } from '@/components/ui'
+import { Topbar, PageLayout, StatCard, Pagination } from '@/components/ui'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
   const [recentLoads, setRecentLoads] = useState<any[]>([])
-  const [hasMore, setHasMore] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 15
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/dashboard/admin-stats?skip=0&limit=15', {
+        const skip = (currentPage - 1) * itemsPerPage
+        const res = await fetch(`/api/dashboard/admin-stats?skip=${skip}&limit=${itemsPerPage}`, {
           credentials: 'include',
         })
         const data = await res.json()
-        setStats(data)
+        
+        if (currentPage === 1) {
+          setStats(data)
+        }
+        
         setRecentLoads(data.recentLoads || [])
-        setHasMore(data.hasMore || false)
+        const calculatedTotalPages = Math.max(1, Math.ceil((data.totalRecentLoads || data.totalLoads || 0) / itemsPerPage))
+        setTotalPages(calculatedTotalPages)
+        console.log('Admin Dashboard Pagination Debug:', { 
+          totalLoads: data.totalLoads,
+          totalRecentLoads: data.totalRecentLoads, 
+          recentLoadsLength: data.recentLoads?.length, 
+          itemsPerPage, 
+          calculatedTotalPages 
+        })
       } catch (err) {
         console.error('Failed to fetch stats:', err)
       } finally {
@@ -28,28 +42,9 @@ export default function AdminDashboardPage() {
       }
     }
     fetchStats()
-  }, [])
+  }, [currentPage])
   
-  const loadMoreLoads = async () => {
-    try {
-      setLoadingMore(true)
-      const skip = recentLoads.length
-      const res = await fetch(`/api/dashboard/admin-stats?skip=${skip}&limit=15`, {
-        credentials: 'include',
-      })
-      const data = await res.json()
-      
-      // Append new loads, ensuring no duplicates
-      const existingIds = new Set(recentLoads.map(l => l.id?.toString()))
-      const newLoads = (data.recentLoads || []).filter((l: any) => !existingIds.has(l.id?.toString()))
-      setRecentLoads(prev => [...prev, ...newLoads])
-      setHasMore(data.hasMore || false)
-    } catch (err) {
-      console.error('Failed to load more:', err)
-    } finally {
-      setLoadingMore(false)
-    }
-  }
+  // Remove the old loadMoreLoads function since we're using pagination now
 
   if (loading) {
     return (
@@ -87,6 +82,14 @@ export default function AdminDashboardPage() {
           <StatCard label="Total Transporters" value={stats?.totalTransporters || 0} />
           <StatCard label="Platform Value" value={`R${(stats?.totalValue || 0).toLocaleString()}`} />
           <StatCard label="Completed" value={stats?.platformMetrics?.completedLoads || 0} />
+        </div>
+        
+        {/* Additional Metrics Row */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <StatCard label="Pending Loads" value={stats?.platformMetrics?.pendingLoads || 0} />
+          <StatCard label="In Transit" value={stats?.platformMetrics?.inTransitLoads || 0} />
+          <StatCard label="Total Quotes" value={stats?.platformMetrics?.totalQuotes || 0} />
+          <StatCard label="Avg Quote Value" value={`R${(stats?.platformMetrics?.averageQuoteValue || 0).toLocaleString()}`} />
         </div>
 
         {/* Charts Row 1 */}
@@ -172,16 +175,15 @@ export default function AdminDashboardPage() {
             </table>
           </div>
           
-          {/* Load More Button */}
-          {!loading && recentLoads.length > 0 && hasMore && (
+          {/* Pagination */}
+          {!loading && totalPages > 1 && (
             <div className="flex justify-center mt-6">
-              <button
-                onClick={loadMoreLoads}
-                disabled={loadingMore}
-                className="px-6 py-3 rounded-lg text-sm font-semibold bg-[#3ab54a] text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loadingMore ? 'Loading...' : 'Load More'}
-              </button>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                loading={loading}
+              />
             </div>
           )}
         </div>
