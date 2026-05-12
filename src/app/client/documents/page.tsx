@@ -4,13 +4,12 @@ import { useAuth } from '@/hooks/useAuth'
 import { useEffect, useState, useRef } from 'react'
 import { Topbar, PageLayout, DocumentsTableSkeleton, DashboardCardsSkeleton } from '@/components/ui'
 import { Skeleton } from '@/components/ui/skeletons'
+import { Pagination } from '@/components/ui/Pagination'
 
 export default function ClientDocumentsPage() {
   const { user } = useAuth()
   const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedType, setSelectedType] = useState('COMPANY')
@@ -20,6 +19,9 @@ export default function ClientDocumentsPage() {
   const [submittingReview, setSubmittingReview] = useState(false)
   const [editingDoc, setEditingDoc] = useState<any>(null)
   const [uploadError, setUploadError] = useState<string>('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 15
 
   const docTypes = [
     { value: 'COMPANY', label: 'Company Registration' },
@@ -28,55 +30,29 @@ export default function ClientDocumentsPage() {
     { value: 'OTHER', label: 'Other' },
   ]
 
-  const fetchDocuments = async (loadMore = false) => {
+  const fetchDocuments = async () => {
     try {
-      console.log('[ClientDocuments] Fetching documents...')
-      if (loadMore) {
-        setLoadingMore(true)
-      } else {
-        setLoading(true)
-      }
-      
-      const skip = loadMore ? documents.length : 0
-      const limit = 15
-      
-      const res = await fetch(`/api/documents?skip=${skip}&limit=${limit}`)
-      
+      setLoading(true)
+      const skip = (currentPage - 1) * itemsPerPage
+      const res = await fetch(`/api/documents?skip=${skip}&limit=${itemsPerPage}`)
       if (!res.ok) {
-        console.error('[ClientDocuments] API error:', res.status)
-        if (res.status === 401) {
-          console.log('[ClientDocuments] Unauthorized - session may have expired')
-        }
         setDocuments([])
         return
       }
-      
       const data = await res.json()
-      console.log('[ClientDocuments] Received documents:', data.data?.length || 0)
-      
-      if (loadMore) {
-        // Append new documents, ensuring no duplicates
-        const existingIds = new Set(documents.map(d => d._id))
-        const newDocs = (data.data || []).filter((d: any) => !existingIds.has(d._id))
-        setDocuments(prev => [...prev, ...newDocs])
-      } else {
-        setDocuments(data.data || [])
-      }
-      
-      setHasMore(data.hasMore || false)
+      setDocuments(data.data || [])
+      const total = data.total || data.data?.length || 0
+      setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
     } catch (err) {
-      console.error('[ClientDocuments] Failed to fetch documents:', err)
       setDocuments([])
     } finally {
       setLoading(false)
-      setLoadingMore(false)
     }
   }
 
   useEffect(() => {
-    console.log('[ClientDocuments] Component mounted, fetching documents...')
     fetchDocuments()
-  }, [])
+  }, [currentPage])
 
   const handleUpload = async (file: File) => {
     if (!file) return
@@ -357,16 +333,9 @@ export default function ClientDocumentsPage() {
             </div>
           )}
           
-          {/* Load More Button */}
-          {!loading && ownDocuments.length > 0 && hasMore && (
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={() => fetchDocuments(true)}
-                disabled={loadingMore}
-                className="px-6 py-3 rounded-lg text-sm font-semibold bg-[#3ab54a] text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loadingMore ? 'Loading...' : 'Load More'}
-              </button>
+          {totalPages > 1 && (
+            <div className="mt-6">
+              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} loading={loading} />
             </div>
           )}
         </div>
@@ -406,18 +375,7 @@ export default function ClientDocumentsPage() {
             </div>
           )}
           
-          {/* Load More Button for Transporter Documents */}
-          {!loading && transporterDocuments.length > 0 && hasMore && (
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={() => fetchDocuments(true)}
-                disabled={loadingMore}
-                className="px-6 py-3 rounded-lg text-sm font-semibold bg-[#3ab54a] text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loadingMore ? 'Loading...' : 'Load More'}
-              </button>
-            </div>
-          )}
+          {/* Note: Transporter docs share same pagination as own docs */}
         </div>
 
         {/* Edit Document Modal */}

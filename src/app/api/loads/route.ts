@@ -24,7 +24,11 @@ export async function GET(req: NextRequest) {
       }
     }
     
-    const loads = await db.collection('loads').find(filter).sort({ createdAt: -1 }).limit(50).toArray()
+    const skip = parseInt(searchParams.get('skip') || '0', 10)
+    const limit = parseInt(searchParams.get('limit') || '10', 10)
+
+    const total = await db.collection('loads').countDocuments(filter)
+    const loads = await db.collection('loads').find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
     
     const loadsWithQuotes = await Promise.all(
       loads.map(async (load) => {
@@ -38,7 +42,7 @@ export async function GET(req: NextRequest) {
       })
     )
     
-    return NextResponse.json({ success: true, loads: loadsWithQuotes, count: loadsWithQuotes.length })
+    return NextResponse.json({ success: true, loads: loadsWithQuotes, total, count: loadsWithQuotes.length })
   } catch (err: any) {
     console.error('[GetLoads] Error:', err)
     return NextResponse.json({ error: 'Failed to fetch loads' }, { status: 500 })

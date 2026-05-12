@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Pagination } from '@/components/ui/Pagination'
 
 interface Load {
   _id: string
@@ -26,6 +27,10 @@ export default function ClientDashboard() {
   const router = useRouter()
   const [loads, setLoads] = useState<Load[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const itemsPerPage = 10
 
   useEffect(() => {
     if (!user?.id) {
@@ -35,11 +40,14 @@ export default function ClientDashboard() {
 
     const fetchLoads = async () => {
       try {
-        const res = await fetch('/api/loads?clientId=' + user.id)
+        const skip = (currentPage - 1) * itemsPerPage
+        const res = await fetch(`/api/loads?clientId=${user.id}&skip=${skip}&limit=${itemsPerPage}`)
         if (res.ok) {
           const data = await res.json()
-          console.log('Fetched loads data:', data)
           setLoads(data.loads || [])
+          const total = data.total || 0
+          setTotalCount(total)
+          setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
         } else if (res.status === 401) {
           router.push('/login')
         }
@@ -51,7 +59,7 @@ export default function ClientDashboard() {
     }
 
     fetchLoads()
-  }, [user, router])
+  }, [user, router, currentPage])
 
   if (loading) {
     return (
@@ -64,7 +72,10 @@ export default function ClientDashboard() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#1a2a5e]">My Loads</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-[#1a2a5e]">My Loads</h1>
+          {totalCount > 0 && <p className="text-sm text-gray-500 mt-1">{totalCount} load{totalCount !== 1 ? 's' : ''} total</p>}
+        </div>
         <Link href="/client/post-load" className="px-4 py-2 bg-[#3ab54a] text-white rounded hover:bg-[#2d9e3c] transition-colors text-sm font-semibold">
           + Post Load
         </Link>
@@ -152,6 +163,12 @@ export default function ClientDashboard() {
           </table>
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-6">
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} loading={loading} />
+        </div>
+      )}
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout } from '@/components/ui'
+import { Pagination } from '@/components/ui/Pagination'
 import { CheckCircle, XCircle, FileText, Download, MessageSquare } from 'lucide-react'
 
 interface POD {
@@ -40,6 +41,10 @@ export default function ClientPodsPage() {
   const [showModal, setShowModal] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const itemsPerPage = 10
 
   useEffect(() => {
     if (user && user.role !== 'CLIENT') {
@@ -51,16 +56,20 @@ export default function ClientPodsPage() {
     if (user) {
       fetchPendingPODs()
     }
-  }, [user])
+  }, [user, currentPage])
 
   const fetchPendingPODs = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/client/pods/all')
+      const skip = (currentPage - 1) * itemsPerPage
+      const res = await fetch(`/api/client/pods/all?skip=${skip}&limit=${itemsPerPage}`)
       if (!res.ok) throw new Error('Failed to fetch PODs')
 
       const data = await res.json()
       setPods(data.data || [])
+      const total = data.total || 0
+      setTotalCount(total)
+      setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
       setError('')
     } catch (err) {
       console.error('[ClientPODs] Error:', err)
@@ -157,7 +166,7 @@ export default function ClientPodsPage() {
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-[#1a2a5e] mb-2">POD Management</h2>
           <p className="text-gray-600">
-            View and manage all PODs for your loads
+            {totalCount > 0 ? `${totalCount} POD${totalCount !== 1 ? 's' : ''} total` : 'View and manage all PODs for your loads'}
           </p>
         </div>
 
@@ -296,6 +305,12 @@ export default function ClientPodsPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="mt-8">
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} loading={loading} />
           </div>
         )}
 

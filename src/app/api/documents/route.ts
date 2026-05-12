@@ -28,7 +28,7 @@ if (!user) {
     const isAdmin = ['SUPER_ADMIN', 'POD_MANAGER', 'OPERATIONS_ADMIN', 'FINANCE_ADMIN'].includes(userRole)
     
     if (isAdmin) {
-      console.log('[Documents API] Fetching all documents for ADMIN...')
+      const total = await db.collection('documents').countDocuments({})
       const documents = await db.collection('documents')
         .aggregate([
           {
@@ -103,14 +103,16 @@ if (!user) {
         } : null
       }))
 
-      console.log('[Documents API] Returning response...')
       return NextResponse.json({
         success: true,
         data: serializedDocs,
+        total,
         hasMore: serializedDocs.length === limit,
       })
     } else {
-      const documents = await db.collection('documents').find({ userId: userId }).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
+      const userFilter = { userId: userId }
+      const total = await db.collection('documents').countDocuments(userFilter)
+      const documents = await db.collection('documents').find(userFilter).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
 
       const serializedDocs = documents.map((doc: any) => ({
         ...doc,
@@ -122,6 +124,7 @@ if (!user) {
       return NextResponse.json({
         success: true,
         data: serializedDocs,
+        total,
         hasMore: serializedDocs.length === limit,
       })
     }

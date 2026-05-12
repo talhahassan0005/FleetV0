@@ -24,6 +24,9 @@ if (!user?.id || user.role !== 'CLIENT') {
     const db = await getDatabase()
     const clientId = new ObjectId(user.id)
 
+    const skip = parseInt(req.nextUrl.searchParams.get('skip') || '0', 10)
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10)
+
     // Get all loads for this client
     const clientLoads = await db.collection('loads')
       .find({ clientId: clientId })
@@ -32,16 +35,20 @@ if (!user?.id || user.role !== 'CLIENT') {
 
     const loadIds = clientLoads.map(l => l._id)
 
-    // Get ALL PODs for client's loads (admin approved)
-    const allPODs = await db.collection('documents').find({
+    const podFilter = {
       docType: 'POD',
       loadId: { $in: loadIds },
       adminApprovalStatus: 'APPROVED'
-    })
-    .sort({ createdAt: -1 })
-    .toArray()
+    }
 
-    console.log('[ClientAllPODs] Found', allPODs.length, 'PODs for client')
+    const total = await db.collection('documents').countDocuments(podFilter)
+
+    // Get ALL PODs for client's loads (admin approved)
+    const allPODs = await db.collection('documents').find(podFilter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray()
 
     // Enrich with load and transporter details
     const enrichedPODs = await Promise.all(
@@ -79,6 +86,7 @@ if (!user?.id || user.role !== 'CLIENT') {
     return NextResponse.json({
       success: true,
       data: enrichedPODs,
+      total,
       count: enrichedPODs.length,
     })
 

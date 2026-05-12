@@ -13,17 +13,17 @@ if (!authUser?.id || authUser.role !== 'CLIENT') {
   const db = await getDatabase()
   const clientId = new ObjectId(authUser.id)
 
-  console.log('[ClientInvoices] Fetching invoices for client:', authUser.id)
+  const skip = parseInt(req.nextUrl.searchParams.get('skip') || '0', 10)
+  const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10)
 
-  // Get invoices from invoices collection where invoiceType is CLIENT_INVOICE
-  const invoices = await db.collection('invoices').find({
-    clientId,
-    invoiceType: 'CLIENT_INVOICE'
-  })
+  const filter = { clientId, invoiceType: 'CLIENT_INVOICE' }
+  const total = await db.collection('invoices').countDocuments(filter)
+
+  const invoices = await db.collection('invoices').find(filter)
   .sort({ createdAt: -1 })
+  .skip(skip)
+  .limit(limit)
   .toArray()
-
-  console.log('[ClientInvoices] Found', invoices.length, 'client invoices')
 
   // Get load details for each invoice
   const invoicesWithDetails = await Promise.all(
@@ -47,5 +47,5 @@ if (!authUser?.id || authUser.role !== 'CLIENT') {
     })
   )
 
-  return NextResponse.json({ success: true, invoices: invoicesWithDetails })
+  return NextResponse.json({ success: true, invoices: invoicesWithDetails, total })
 }

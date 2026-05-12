@@ -5,6 +5,7 @@ import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout } from '@/components/ui'
+import { Pagination } from '@/components/ui/Pagination'
 
 interface POD {
   _id: string
@@ -81,6 +82,9 @@ export default function ClientInvoicesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState({ startDate: '', endDate: '' })
   const [viewingInvoice, setViewingInvoice] = useState<QBInvoice | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 10
 
 
   useEffect(() => {
@@ -88,39 +92,29 @@ export default function ClientInvoicesPage() {
       router.push('/login')
       return
     }
-
     fetchLoads()
     fetchQBInvoices()
   }, [user, router])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, dateFilter.startDate, dateFilter.endDate])
 
   const fetchLoads = async () => {
     try {
       setLoading(true)
       setError('')
       const res = await fetch('/api/client/loads-with-pods')
-
       if (!res.ok) {
         const errorData = await res.json()
-        console.error('[ClientInvoices] API Error:', errorData)
         setError(errorData.error || 'Failed to fetch loads')
         return
       }
-
       const data = await res.json()
-      console.log('[ClientInvoices] 📦 Fetched data:', data)
-      console.log('[ClientInvoices] Total loads:', data.loads?.length)
-      
-      if (data.loads) {
-        data.loads.forEach((load: LoadForInvoice) => {
-          console.log(`[ClientInvoices] Load ${load.ref}: statusAmount=${load.status}, invoices=${load.invoiceCount}`)
-        })
-      }
-      
       if (data.success && Array.isArray(data.loads)) {
         setLoads(data.loads)
       }
     } catch (err) {
-      console.error('[ClientInvoices] Error fetching loads:', err)
       setError('Error loading loads')
     } finally {
       setLoading(false)
@@ -130,22 +124,13 @@ export default function ClientInvoicesPage() {
   const fetchQBInvoices = async () => {
     try {
       const res = await fetch('/api/client/invoices')
-
-      if (!res.ok) {
-        console.error('[ClientInvoices] QB Invoice fetch error:', await res.json())
-        // Don't set error - gracefully handle missing endpoint
-        return
-      }
-
+      if (!res.ok) return
       const data = await res.json()
-      console.log('[ClientInvoices] 💰 QB Invoices:', data.invoices)
-      
       if (data.success && Array.isArray(data.invoices)) {
         setQbInvoices(data.invoices)
       }
     } catch (err) {
-      console.error('[ClientInvoices] Error fetching QB invoices:', err)
-      // Silently fail - endpoint might not exist yet
+      // Silently fail
     }
   }
 
@@ -291,7 +276,6 @@ export default function ClientInvoicesPage() {
 
   // Filter invoices based on search and date
   const filteredQBInvoices = qbInvoices.filter(invoice => {
-    // Search filter
     if (searchTerm) {
       const search = searchTerm.toLowerCase()
       const matchesSearch = 
@@ -299,28 +283,23 @@ export default function ClientInvoicesPage() {
         invoice.loadRef?.toLowerCase().includes(search) ||
         invoice.amount?.toString().includes(search) ||
         invoice.currency?.toLowerCase().includes(search)
-      
       if (!matchesSearch) return false
     }
-
-    // Date filter
     if (dateFilter.startDate || dateFilter.endDate) {
       const invoiceDate = new Date(invoice.createdAt)
-      
-      if (dateFilter.startDate) {
-        const startDate = new Date(dateFilter.startDate)
-        if (invoiceDate < startDate) return false
-      }
-      
+      if (dateFilter.startDate && invoiceDate < new Date(dateFilter.startDate)) return false
       if (dateFilter.endDate) {
         const endDate = new Date(dateFilter.endDate)
         endDate.setHours(23, 59, 59, 999)
         if (invoiceDate > endDate) return false
       }
     }
-
     return true
   })
+
+  // Reset to page 1 when filters change — handled via useEffect
+  const paginatedInvoices = filteredQBInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const computedTotalPages = Math.max(1, Math.ceil(filteredQBInvoices.length / itemsPerPage))
 
   if (loading) {
     return (
@@ -429,7 +408,7 @@ export default function ClientInvoicesPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredQBInvoices.map(invoice => (
+                      {paginatedInvoices.map(invoice => (
                         <tr key={invoice._id} className="border-b hover:bg-gray-50 transition-colors">
                           <td className="px-4 py-3 font-bold text-[#1a2a5e]">{invoice.invoiceNumber}</td>
                           <td className="px-4 py-3 text-sm">{invoice.loadRef || '-'}</td>
@@ -510,6 +489,12 @@ export default function ClientInvoicesPage() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+
+            {computedTotalPages > 1 && (
+              <div className="mt-8">
+                <Pagination currentPage={currentPage} totalPages={computedTotalPages} onPageChange={setCurrentPage} loading={loading} />
               </div>
             )}
           </div>
