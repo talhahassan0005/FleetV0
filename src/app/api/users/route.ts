@@ -6,7 +6,7 @@ import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser(req)
-if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(user?.role ?? ''))
+if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? ''))
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const db = await getDatabase()
@@ -21,7 +21,7 @@ if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','A
 
 export async function PATCH(req: NextRequest) {
   const user = await getAuthUser(req)
-if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(user?.role ?? ''))
+if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? ''))
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const db = await getDatabase()

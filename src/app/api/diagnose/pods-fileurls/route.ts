@@ -8,7 +8,7 @@ import { getDatabase } from '@/lib/prisma'
 export async function GET(req: NextRequest) {
   try {
     const authUser = await getAuthUser(req)
-if (!authUser || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(authUser?.role ?? '')) {
+if (!authUser || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role ?? '')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

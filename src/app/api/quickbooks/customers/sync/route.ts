@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       email: (authUser as any).email,
     });
 
-    if (!admin || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(admin.role)) {
+    if (!admin || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(admin.role)) {
       return NextResponse.json(
         { error: 'Forbidden - Admin access required' },
         { status: 403 }

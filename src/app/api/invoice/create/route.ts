@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser(req)
 // Only admin can create invoices
-    if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(user?.role ?? '')) {
+    if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) {
       return NextResponse.json(
         { error: 'Only admin can create invoices' },
         { status: 403 }

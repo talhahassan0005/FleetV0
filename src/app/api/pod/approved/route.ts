@@ -10,7 +10,7 @@ import { NextRequest } from 'next/server'
 export async function GET(req: NextRequest) {
   const authUser = await getAuthUser(req)
 // Only ADMIN can fetch PODs for invoice creation
-  if (!authUser?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(authUser?.role ?? '')) {
+  if (!authUser?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role ?? '')) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
