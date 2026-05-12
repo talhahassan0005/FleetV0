@@ -39,6 +39,10 @@ export default function TransporterInvoicesPage() {
       setLoading(true)
       const res = await fetch('/api/transporter/invoices', {
         credentials: 'include',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
       })
       if (res.ok) {
         const data = await res.json()
