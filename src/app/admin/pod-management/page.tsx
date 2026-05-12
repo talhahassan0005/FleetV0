@@ -102,12 +102,10 @@ export default function AdminPODManagementPage() {
         return
       }
 
-      setSuccess(approved ? '✓ POD approved successfully!' : '✗ POD rejected. Transporter will be notified.')
+      showToast(approved ? 'POD approved successfully!' : 'POD rejected. Transporter will be notified.')
       setRejectionReason('')
       setSelectedPOD(null)
       setVerifyingId(null)
-
-      showToast(approved ? 'POD approved successfully!' : 'POD rejected. Transporter will be notified.')
 
       setTimeout(() => {
         setCurrentPage(1)
@@ -146,8 +144,6 @@ export default function AdminPODManagementPage() {
     <>
       <Topbar title="Proof of Delivery (POD) Management" />
       <PageLayout>
-        )}
-
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 border-l-4 border-l-red-500 rounded text-red-800 text-sm">
             {error}
