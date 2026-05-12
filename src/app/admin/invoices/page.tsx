@@ -344,7 +344,7 @@ export default function AdminInvoicesPage() {
             </div>
 
             <button
-              onClick={fetchInvoices}
+              onClick={() => fetchInvoices()}
               className="mt-6 p-2 hover:bg-gray-100 rounded-lg transition"
             >
               <RefreshCw className="w-5 h-5 text-gray-600" />

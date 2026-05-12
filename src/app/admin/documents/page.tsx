@@ -244,7 +244,7 @@ export default function AdminDocumentsPage() {
                 All Documents ({filteredDocuments.length}{documents.length !== filteredDocuments.length ? ` of ${documents.length}` : ''})
               </h3>
               <button
-                onClick={fetchDocuments}
+                onClick={() => fetchDocuments()}
                 disabled={loading}
                 className="px-3 py-1.5 rounded text-xs font-semibold bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
               >

@@ -6,10 +6,12 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
 import { Suspense } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
@@ -18,6 +20,21 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
+
+  // Redirect authenticated users
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
+      
+      if (adminRoles.includes(user.role)) {
+        window.location.replace('/admin/dashboard')
+      } else if (user.role === 'TRANSPORTER') {
+        window.location.replace('/transporter/dashboard')
+      } else {
+        window.location.replace('/client/dashboard')
+      }
+    }
+  }, [isAuthenticated, user, isLoading])
 
   // Ensure component is mounted before using searchParams to avoid hydration errors
   useEffect(() => {

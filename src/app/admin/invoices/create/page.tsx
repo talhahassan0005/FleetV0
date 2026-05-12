@@ -167,7 +167,6 @@ export default function CreateInvoicePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setSuccess('')
 
     // Validation
     if (!selectedPodId || !tonnageForThisInvoice || !transporterInvoiceNumber || !transporterAmount) {
