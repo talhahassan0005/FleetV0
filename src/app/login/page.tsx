@@ -67,21 +67,31 @@ function LoginContent() {
       console.log('[Login] User data:', data.user)
       console.log('[Login] Access token received:', data.accessToken ? 'YES' : 'NO')
       
+      // Store token in localStorage BEFORE redirect
+      if (data.accessToken) {
+        console.log('[Login] Storing access token in localStorage...')
+        localStorage.setItem('accessToken', data.accessToken)
+        console.log('[Login] Token stored, length:', data.accessToken.length)
+      }
+      
       // Redirect based on role
       const role = data.user?.role
       console.log('[Login] User role:', role)
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
       
-      if (adminRoles.includes(role)) {
-        console.log('[Login] Redirecting to admin dashboard...')
-        window.location.href = '/admin/dashboard'
-      } else if (role === 'TRANSPORTER') {
-        console.log('[Login] Redirecting to transporter dashboard...')
-        window.location.href = '/transporter/dashboard'
-      } else {
-        console.log('[Login] Redirecting to client dashboard...')
-        window.location.href = '/client/dashboard'
-      }
+      // Wait 100ms to ensure localStorage is flushed
+      setTimeout(() => {
+        if (adminRoles.includes(role)) {
+          console.log('[Login] Redirecting to admin dashboard...')
+          window.location.href = '/admin/dashboard'
+        } else if (role === 'TRANSPORTER') {
+          console.log('[Login] Redirecting to transporter dashboard...')
+          window.location.href = '/transporter/dashboard'
+        } else {
+          console.log('[Login] Redirecting to client dashboard...')
+          window.location.href = '/client/dashboard'
+        }
+      }, 100)
     } catch (err: any) {
       console.error('[Login] Catch error:', err)
       setLoading(false)
