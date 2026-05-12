@@ -12,11 +12,18 @@ if (!authUser?.id || authUser.role !== 'TRANSPORTER') {
   const db = await getDatabase()
   const transporterId = new ObjectId(authUser.id)
 
+  const skip = parseInt(req.nextUrl.searchParams.get('skip') || '0', 10)
+  const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10)
+
+  const total = await db.collection('transporter_invoices').countDocuments({ transporterId })
+
   // Get invoices from new transporter_invoices collection
   const invoices = await db.collection('transporter_invoices').find({
     transporterId
   })
   .sort({ createdAt: -1 })
+  .skip(skip)
+  .limit(limit)
   .toArray()
 
   // Get load details for each invoice
@@ -45,5 +52,5 @@ if (!authUser?.id || authUser.role !== 'TRANSPORTER') {
     })
   )
 
-  return NextResponse.json({ success: true, invoices: invoicesWithDetails })
+  return NextResponse.json({ success: true, invoices: invoicesWithDetails, total })
 }

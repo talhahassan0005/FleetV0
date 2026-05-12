@@ -8,18 +8,10 @@ interface PaginationProps {
 }
 
 export function Pagination({ currentPage, totalPages, onPageChange, loading = false }: PaginationProps) {
-  console.log('Pagination Debug:', { currentPage, totalPages, loading })
-  
-  // Ensure totalPages is at least 1 and currentPage is valid
   const safeTotalPages = Math.max(1, totalPages || 1)
   const safeCurrentPage = Math.max(1, Math.min(currentPage || 1, safeTotalPages))
   
-  // Always show pagination if we have valid props (for debugging)
-  // Remove this condition temporarily to see pagination
-  // if (safeTotalPages <= 1) {
-  //   console.log('Pagination hidden: safeTotalPages <= 1', { safeTotalPages })
-  //   return null
-  // }
+  if (safeTotalPages <= 1) return null
 
   const pages: (number | string)[] = []
   const maxVisible = 5

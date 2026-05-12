@@ -18,7 +18,6 @@ export async function getAuthUser(request: NextRequest): Promise<JWTPayload | nu
     }
 
     if (!accessToken) {
-      console.log('[Auth] No access token in request');
       return null;
     }
 
@@ -26,7 +25,6 @@ export async function getAuthUser(request: NextRequest): Promise<JWTPayload | nu
     const user = verifyAccessToken(accessToken);
 
     if (!user) {
-      console.log('[Auth] Invalid or expired token');
       return null;
     }
 

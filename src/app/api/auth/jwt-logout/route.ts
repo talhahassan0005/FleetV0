@@ -6,23 +6,20 @@ export async function POST(request: NextRequest) {
     { status: 200 }
   );
 
-  // Clear access token cookie
-  response.cookies.set('accessToken', '', {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     maxAge: 0,
+    expires: new Date(0), // Force immediate expiry in all browsers
     path: '/',
-  });
+  };
+
+  // Clear access token cookie
+  response.cookies.set('accessToken', '', cookieOptions);
 
   // Clear refresh token cookie
-  response.cookies.set('refreshToken', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 0,
-    path: '/',
-  });
+  response.cookies.set('refreshToken', '', cookieOptions);
 
   return response;
 }

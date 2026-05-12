@@ -29,6 +29,7 @@ export default function AvailableLoadsPage() {
   const [error, setError] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
   const itemsPerPage = 10
 
   // BUG FIX #3: Refresh verification status on mount
@@ -59,14 +60,9 @@ export default function AvailableLoadsPage() {
 
         const data = await res.json()
         setLoads(data.loads || [])
-        const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.loads?.length || 0) / itemsPerPage))
-        setTotalPages(calculatedTotalPages)
-        console.log('Loads Pagination Debug:', { 
-          total: data.total, 
-          loadsLength: data.loads?.length, 
-          itemsPerPage, 
-          calculatedTotalPages 
-        })
+        const total = data.total || 0
+        setTotalCount(total)
+        setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
         setError('')
       } catch (err) {
         console.error('Error fetching loads:', err)
@@ -144,9 +140,9 @@ export default function AvailableLoadsPage() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-[#1a2a5e] mb-2">Available Loads</h1>
             <p className="text-gray-600">
-              {loads.length === 0 
+              {totalCount === 0 
                 ? 'No available loads at the moment. Check back later!' 
-                : `Found ${loads.length} load${loads.length !== 1 ? 's' : ''} available for quoting`}
+                : `Found ${totalCount} load${totalCount !== 1 ? 's' : ''} available for quoting`}
             </p>
           </div>
 
@@ -229,11 +225,8 @@ export default function AvailableLoadsPage() {
         </div>
 
         {/* Pagination */}
-        {!loading && loads.length > 0 && totalPages > 0 && (
+        {!loading && totalPages > 1 && (
           <div className="mt-8">
-            <div className="text-sm text-gray-600 mb-2">
-              Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Loads: {loads.length}
-            </div>
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}

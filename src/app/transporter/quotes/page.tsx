@@ -43,6 +43,7 @@ export default function MyQuotesPage() {
   const [error, setError] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
   const itemsPerPage = 10
 
   // Handle session auth
@@ -75,14 +76,9 @@ export default function MyQuotesPage() {
         }
 
         setQuotes(data.quotes || [])
-        const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.quotes?.length || 0) / itemsPerPage))
-        setTotalPages(calculatedTotalPages)
-        console.log('Quotes Pagination Debug:', { 
-          total: data.total, 
-          quotesLength: data.quotes?.length, 
-          itemsPerPage, 
-          calculatedTotalPages 
-        })
+        const total = data.total || 0
+        setTotalCount(total)
+        setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
         setError('')
       } catch (err) {
         console.error('Error fetching quotes:', err)
@@ -161,9 +157,9 @@ export default function MyQuotesPage() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-[#1a2a5e] mb-2">My Quotes</h1>
             <p className="text-gray-600">
-              {quotes.length === 0 
+              {totalCount === 0 
                 ? 'You haven\'t submitted any quotes yet.' 
-                : `You have ${quotes.length} quote${quotes.length !== 1 ? 's' : ''}`}
+                : `You have ${totalCount} quote${totalCount !== 1 ? 's' : ''}`}
             </p>
           </div>
 
@@ -278,11 +274,8 @@ export default function MyQuotesPage() {
         </div>
 
         {/* Pagination */}
-        {!loading && quotes.length > 0 && totalPages > 0 && (
+        {!loading && totalPages > 1 && (
           <div className="mt-8">
-            <div className="text-sm text-gray-600 mb-2">
-              Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Quotes: {quotes.length}
-            </div>
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}

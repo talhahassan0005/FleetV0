@@ -13,38 +13,44 @@ export default function AdminDashboardPage() {
   const itemsPerPage = 15
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const skip = (currentPage - 1) * itemsPerPage
-        const res = await fetch(`/api/dashboard/admin-stats?skip=${skip}&limit=${itemsPerPage}`, {
-          credentials: 'include',
-        })
-        const data = await res.json()
-        
-        if (currentPage === 1) {
-          setStats(data)
+    // Add small delay to prevent API calls during logout
+    const timer = setTimeout(() => {
+      const fetchStats = async () => {
+        try {
+          const skip = (currentPage - 1) * itemsPerPage
+          const res = await fetch(`/api/dashboard/admin-stats?skip=${skip}&limit=${itemsPerPage}`, {
+            credentials: 'include',
+          })
+          
+          // Silently handle 401 without logging
+          if (res.status === 401) {
+            return
+          }
+          
+          if (!res.ok) {
+            throw new Error('Failed to fetch stats')
+          }
+          
+          const data = await res.json()
+          
+          if (currentPage === 1) {
+            setStats(data)
+          }
+          
+          setRecentLoads(data.recentLoads || [])
+          const calculatedTotalPages = Math.max(1, Math.ceil((data.totalRecentLoads || data.totalLoads || 0) / itemsPerPage))
+          setTotalPages(calculatedTotalPages)
+        } catch (err) {
+          // Silently handle errors
+        } finally {
+          setLoading(false)
         }
-        
-        setRecentLoads(data.recentLoads || [])
-        const calculatedTotalPages = Math.max(1, Math.ceil((data.totalRecentLoads || data.totalLoads || 0) / itemsPerPage))
-        setTotalPages(calculatedTotalPages)
-        console.log('Admin Dashboard Pagination Debug:', { 
-          totalLoads: data.totalLoads,
-          totalRecentLoads: data.totalRecentLoads, 
-          recentLoadsLength: data.recentLoads?.length, 
-          itemsPerPage, 
-          calculatedTotalPages 
-        })
-      } catch (err) {
-        console.error('Failed to fetch stats:', err)
-      } finally {
-        setLoading(false)
       }
-    }
-    fetchStats()
+      fetchStats()
+    }, 100)
+    
+    return () => clearTimeout(timer)
   }, [currentPage])
-  
-  // Remove the old loadMoreLoads function since we're using pagination now
 
   if (loading) {
     return (

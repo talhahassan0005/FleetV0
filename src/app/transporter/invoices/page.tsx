@@ -3,6 +3,7 @@ import { openDocument } from '@/lib/document-url'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout } from '@/components/ui'
+import { Pagination } from '@/components/ui/Pagination'
 import Link from 'next/link'
 
 interface Invoice {
@@ -29,15 +30,20 @@ export default function TransporterInvoicesPage() {
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const itemsPerPage = 10
 
   useEffect(() => {
     fetchInvoices()
-  }, [])
+  }, [currentPage])
 
   const fetchInvoices = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/transporter/invoices', {
+      const skip = (currentPage - 1) * itemsPerPage
+      const res = await fetch(`/api/transporter/invoices?skip=${skip}&limit=${itemsPerPage}`, {
         credentials: 'include',
         cache: 'no-store',
         headers: {
@@ -47,6 +53,9 @@ export default function TransporterInvoicesPage() {
       if (res.ok) {
         const data = await res.json()
         setInvoices(data.invoices || [])
+        const total = data.total || 0
+        setTotalCount(total)
+        setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
       }
     } catch (err) {
       console.error('Error fetching invoices:', err)
@@ -76,7 +85,9 @@ export default function TransporterInvoicesPage() {
         <div className="mb-6 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-[#1a2a5e]">My Invoices</h1>
-            <p className="text-gray-600 mt-1">Submit and track your invoices</p>
+            <p className="text-gray-600 mt-1">
+              {totalCount > 0 ? `${totalCount} invoice${totalCount !== 1 ? 's' : ''} total` : 'Submit and track your invoices'}
+            </p>
           </div>
           <Link
             href="/transporter/invoices/create"
@@ -209,6 +220,18 @@ export default function TransporterInvoicesPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="mt-8">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              loading={loading}
+            />
           </div>
         )}
       </PageLayout>
