@@ -27,7 +27,6 @@ export function ToastContainer() {
       const timer = setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== toast.id))
       }, 3000)
-      return () => clearTimeout(timer)
     }
 
     listeners.add(handleToast)
