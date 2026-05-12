@@ -13,6 +13,11 @@ if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','A
     }
 
     const db = await getDatabase()
+    
+    // Pagination parameters
+    const { searchParams } = new URL(req.url)
+    const skip = parseInt(searchParams.get('skip') || '0', 10)
+    const limit = parseInt(searchParams.get('limit') || '15', 10)
 
     // Get all stats
     const allLoads = await db.collection('loads').find({}).toArray()
@@ -34,7 +39,7 @@ if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','A
 
     const recentLoads = allLoads
       .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5)
+      .slice(skip, skip + limit)
       .map((l: any) => ({
         id: l._id,
         ref: l.ref,
@@ -50,6 +55,8 @@ if (!user || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','A
       totalValue,
       statusBreakdown,
       recentLoads,
+      totalRecentLoads: allLoads.length,
+      hasMore: (skip + limit) < allLoads.length,
       platformMetrics: {
         completedLoads: allLoads.filter((l: any) => l.status === 'DELIVERED').length,
         averageQuoteValue: allQuotes.length > 0 

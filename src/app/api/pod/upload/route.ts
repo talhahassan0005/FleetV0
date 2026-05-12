@@ -279,9 +279,17 @@ if (!user) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 403 })
     }
 
+    const skip = parseInt(req.nextUrl.searchParams.get('skip') || '0', 10)
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10)
+    
+    // Get total count
+    const total = await db.collection('documents').countDocuments(query)
+    
     const pods = await db.collection('documents')
       .find(query)
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray()
 
     console.log('[PODUpload-GET] 📦 Found documents:', pods.length, 'for role:', role)
@@ -315,7 +323,8 @@ if (!user) {
     return NextResponse.json({
       success: true,
       message: 'PODs retrieved successfully',
-      data: serializedPods
+      data: serializedPods,
+      total,
     })
 
   } catch (error: any) {

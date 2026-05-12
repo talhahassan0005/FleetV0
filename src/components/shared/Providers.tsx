@@ -3,6 +3,7 @@
 import { AuthProvider } from '@/hooks/useAuth'
 import { HeaderWrapper } from './HeaderWrapper'
 import { FooterWrapper } from './FooterWrapper'
+import { ToastContainer } from '@/components/ui'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <HeaderWrapper />
       {children}
       <FooterWrapper />
+      <ToastContainer />
     </AuthProvider>
   )
 }

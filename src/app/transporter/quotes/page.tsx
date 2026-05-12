@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Topbar, PageLayout } from '@/components/ui'
+import { Pagination } from '@/components/ui/Pagination'
 
 interface Quote {
   _id: string
@@ -40,6 +41,9 @@ export default function MyQuotesPage() {
   const [loading, setLoading] = useState(true)
   const [verified, setVerified] = useState(true)
   const [error, setError] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 10
 
   // Handle session auth
   useEffect(() => {
@@ -53,7 +57,8 @@ export default function MyQuotesPage() {
     const fetchQuotes = async () => {
       try {
         setLoading(true)
-        const res = await fetch('/api/transporter/my-quotes')
+        const skip = (currentPage - 1) * itemsPerPage
+        const res = await fetch(`/api/transporter/my-quotes?skip=${skip}&limit=${itemsPerPage}`)
 
         if (!res.ok) {
           const errorData = await res.json()
@@ -70,6 +75,7 @@ export default function MyQuotesPage() {
         }
 
         setQuotes(data.quotes || [])
+        setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
         setError('')
       } catch (err) {
         console.error('Error fetching quotes:', err)
@@ -82,7 +88,7 @@ export default function MyQuotesPage() {
     if (!!user && user?.role === 'TRANSPORTER') {
       fetchQuotes()
     }
-  }, [status, user?.role])
+  }, [status, user?.role, currentPage])
 
   if (loading || isLoading) {
     return (
@@ -263,6 +269,18 @@ export default function MyQuotesPage() {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {!loading && quotes.length > 0 && (
+          <div className="mt-8">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              loading={loading}
+            />
+          </div>
+        )}
       </PageLayout>
     </>
   )

@@ -24,15 +24,22 @@ if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAG
 
     const db = await getDatabase()
     const roleParam = req.nextUrl.searchParams.get('role')
+    const skip = parseInt(req.nextUrl.searchParams.get('skip') || '0', 10)
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10)
 
     const query: any = { role: { $ne: 'ADMIN' } }
     if (roleParam) {
       query.role = roleParam
     }
 
+    // Get total count
+    const total = await db.collection('users').countDocuments(query)
+
     const users = await db.collection('users')
       .find(query)
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray()
 
     return NextResponse.json({
@@ -46,6 +53,7 @@ if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAG
         verificationStatus: u.verificationStatus,
         createdAt: u.createdAt,
       })),
+      total,
     })
   } catch (err: any) {
     console.error('[AdminUsers] Error:', err)

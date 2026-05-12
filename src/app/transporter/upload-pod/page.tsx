@@ -4,8 +4,8 @@ import { getDocumentViewUrl } from '@/lib/document-url'
 // src/app/transporter/upload-pod/page.tsx
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Topbar, PageLayout } from '@/components/ui'
-import { AlertCircle, CheckCircle, Upload, FileText, Eye, Clock, CheckCircle2, Loader } from 'lucide-react'
+import { Topbar, PageLayout, Pagination, showToast } from '@/components/ui'
+import { AlertCircle, Upload, FileText, Eye, Clock, CheckCircle2, Loader, CheckCircle } from 'lucide-react'
 
 interface Load {
   _id: string
@@ -52,6 +52,9 @@ export default function UploadPODPage() {
   const [podsLoading, setPodsLoading] = useState(false)
   const [selectedPOD, setSelectedPOD] = useState<SubmittedPOD | null>(null)
   const [showPODDetails, setShowPODDetails] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 10
 
   // Invoice tracking state
   const [transporterInvoices, setTransporterInvoices] = useState<any[]>([])
@@ -61,7 +64,6 @@ export default function UploadPODPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
 
   // Auth check
   useEffect(() => {
@@ -106,9 +108,10 @@ export default function UploadPODPage() {
     const fetchSubmittedPODs = async () => {
       try {
         setPodsLoading(true)
+        const skip = (currentPage - 1) * itemsPerPage
         console.log('[TransporterPODs] Fetching PODs for transporter:', user?.email)
         
-        const res = await fetch('/api/pod/upload')
+        const res = await fetch(`/api/pod/upload?skip=${skip}&limit=${itemsPerPage}`)
         
         if (!isMounted) return
         
@@ -188,6 +191,7 @@ export default function UploadPODPage() {
         enrichedPODs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         console.log('[TransporterPODs] Enriched PODs:', enrichedPODs.length)
         setSubmittedPODs(enrichedPODs)
+        setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
       } catch (err) {
         console.error('[TransporterPODs] Failed to fetch submitted PODs:', err)
         if (isMounted) {
@@ -225,12 +229,11 @@ export default function UploadPODPage() {
     return () => {
       isMounted = false
     }
-  }, [user, success])
+  }, [user, success, currentPage])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    setSuccessMessage('')
 
     // Validation
     if (!selectedLoadId || !deliveryDate || !deliveryTime || !podFile || !invoiceFile) {
@@ -281,7 +284,7 @@ export default function UploadPODPage() {
       }
 
       setSuccess(true)
-      setSuccessMessage(`POD and Invoice uploaded successfully!`)
+      showToast('POD and Invoice uploaded successfully!')
       
       // Reset form
       setTimeout(() => {
@@ -292,7 +295,7 @@ export default function UploadPODPage() {
         setPodFile(null)
         setInvoiceFile(null)
         setSuccess(false)
-      }, 3000)
+      }, 1500)
 
     } catch (err: any) {
       setError(err.message || 'Network error. Please try again.')
@@ -371,7 +374,7 @@ export default function UploadPODPage() {
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex gap-3">
               <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-green-900">{successMessage}</p>
+                <p className="font-semibold text-green-900">POD and Invoice uploaded successfully!</p>
                 <p className="text-sm text-green-800 mt-1">Waiting for admin and client approval...</p>
               </div>
             </div>
@@ -641,6 +644,18 @@ export default function UploadPODPage() {
               </div>
             )}
           </div>
+
+          {/* Pagination */}
+          {!podsLoading && submittedPODs.length > 0 && (
+            <div className="mt-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                loading={podsLoading}
+              />
+            </div>
+          )}
         </div>
 
         {/* POD Details Modal */}

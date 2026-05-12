@@ -9,6 +9,9 @@ export default function TransporterDashboardPage() {
   const { refreshVerificationStatus } = useVerificationStatus()
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [recentQuotes, setRecentQuotes] = useState<any[]>([])
 
   // BUG FIX #3: Refresh verification status on mount
   useEffect(() => {
@@ -18,11 +21,13 @@ export default function TransporterDashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/dashboard/transporter-stats', {
+        const res = await fetch('/api/dashboard/transporter-stats?skip=0&limit=15', {
           credentials: 'include',
         })
         const data = await res.json()
         setStats(data)
+        setRecentQuotes(data.recentQuotes || [])
+        setHasMore(data.hasMore || false)
       } catch (err) {
         console.error('Failed to fetch stats:', err)
       } finally {
@@ -31,6 +36,27 @@ export default function TransporterDashboardPage() {
     }
     fetchStats()
   }, [])
+  
+  const loadMoreQuotes = async () => {
+    try {
+      setLoadingMore(true)
+      const skip = recentQuotes.length
+      const res = await fetch(`/api/dashboard/transporter-stats?skip=${skip}&limit=15`, {
+        credentials: 'include',
+      })
+      const data = await res.json()
+      
+      // Append new quotes, ensuring no duplicates
+      const existingIds = new Set(recentQuotes.map(q => q.id?.toString()))
+      const newQuotes = (data.recentQuotes || []).filter((q: any) => !existingIds.has(q.id?.toString()))
+      setRecentQuotes(prev => [...prev, ...newQuotes])
+      setHasMore(data.hasMore || false)
+    } catch (err) {
+      console.error('Failed to load more:', err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -125,7 +151,7 @@ export default function TransporterDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {stats?.recentQuotes?.map((quote: any) => (
+                {recentQuotes?.map((quote: any) => (
                   <tr key={quote.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm">{quote.route}</td>
                     <td className="px-4 py-3 font-semibold">{quote.currency || 'ZAR'} {quote.price?.toLocaleString()}</td>
@@ -143,6 +169,19 @@ export default function TransporterDashboardPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* Load More Button */}
+          {!loading && recentQuotes.length > 0 && hasMore && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={loadMoreQuotes}
+                disabled={loadingMore}
+                className="px-6 py-3 rounded-lg text-sm font-semibold bg-[#3ab54a] text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loadingMore ? 'Loading...' : 'Load More'}
+              </button>
+            </div>
+          )}
         </div>
       </PageLayout>
     </>

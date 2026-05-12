@@ -9,6 +9,8 @@ export default function ClientDocumentsPage() {
   const { user } = useAuth()
   const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedType, setSelectedType] = useState('COMPANY')
@@ -26,11 +28,19 @@ export default function ClientDocumentsPage() {
     { value: 'OTHER', label: 'Other' },
   ]
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = async (loadMore = false) => {
     try {
       console.log('[ClientDocuments] Fetching documents...')
-      setLoading(true)
-      const res = await fetch('/api/documents')
+      if (loadMore) {
+        setLoadingMore(true)
+      } else {
+        setLoading(true)
+      }
+      
+      const skip = loadMore ? documents.length : 0
+      const limit = 15
+      
+      const res = await fetch(`/api/documents?skip=${skip}&limit=${limit}`)
       
       if (!res.ok) {
         console.error('[ClientDocuments] API error:', res.status)
@@ -43,12 +53,23 @@ export default function ClientDocumentsPage() {
       
       const data = await res.json()
       console.log('[ClientDocuments] Received documents:', data.data?.length || 0)
-      setDocuments(data.data || [])
+      
+      if (loadMore) {
+        // Append new documents, ensuring no duplicates
+        const existingIds = new Set(documents.map(d => d._id))
+        const newDocs = (data.data || []).filter((d: any) => !existingIds.has(d._id))
+        setDocuments(prev => [...prev, ...newDocs])
+      } else {
+        setDocuments(data.data || [])
+      }
+      
+      setHasMore(data.hasMore || false)
     } catch (err) {
       console.error('[ClientDocuments] Failed to fetch documents:', err)
       setDocuments([])
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
@@ -335,6 +356,19 @@ export default function ClientDocumentsPage() {
               })}
             </div>
           )}
+          
+          {/* Load More Button */}
+          {!loading && ownDocuments.length > 0 && hasMore && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => fetchDocuments(true)}
+                disabled={loadingMore}
+                className="px-6 py-3 rounded-lg text-sm font-semibold bg-[#3ab54a] text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loadingMore ? 'Loading...' : 'Load More'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Transporter Documents - Reviewable */}
@@ -369,6 +403,19 @@ export default function ClientDocumentsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* Load More Button for Transporter Documents */}
+          {!loading && transporterDocuments.length > 0 && hasMore && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => fetchDocuments(true)}
+                disabled={loadingMore}
+                className="px-6 py-3 rounded-lg text-sm font-semibold bg-[#3ab54a] text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loadingMore ? 'Loading...' : 'Load More'}
+              </button>
             </div>
           )}
         </div>

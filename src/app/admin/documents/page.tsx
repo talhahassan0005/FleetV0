@@ -7,6 +7,8 @@ import AdminDocumentViewModal from '@/components/admin/AdminDocumentViewModal'
 export default function AdminDocumentsPage() {
   const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [selectedDoc, setSelectedDoc] = useState<any>(null)
   const [reviewComment, setReviewComment] = useState('')
   const [reviewStatus, setReviewStatus] = useState('APPROVED')
@@ -74,11 +76,19 @@ export default function AdminDocumentsPage() {
     }
   }
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = async (loadMore = false) => {
     try {
-      setLoading(true)
-      console.log('[AdminDocuments] Fetching documents...')
-      const res = await fetch('/api/documents')
+      if (loadMore) {
+        setLoadingMore(true)
+      } else {
+        setLoading(true)
+      }
+      
+      const skip = loadMore ? documents.length : 0
+      const limit = 15
+      
+      console.log('[AdminDocuments] Fetching documents...', { skip, limit })
+      const res = await fetch(`/api/documents?skip=${skip}&limit=${limit}`)
       
       if (!res.ok) {
         const error = await res.json()
@@ -89,12 +99,23 @@ export default function AdminDocumentsPage() {
       
       const data = await res.json()
       console.log('[AdminDocuments] Success! Documents:', data.data)
-      setDocuments(data.data || [])
+      
+      if (loadMore) {
+        // Append new documents, ensuring no duplicates
+        const existingIds = new Set(documents.map(d => d._id))
+        const newDocs = (data.data || []).filter((d: any) => !existingIds.has(d._id))
+        setDocuments(prev => [...prev, ...newDocs])
+      } else {
+        setDocuments(data.data || [])
+      }
+      
+      setHasMore(data.hasMore || false)
     } catch (err) {
       console.error('[AdminDocuments] Fetch failed:', err)
       setDocuments([])
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
@@ -375,6 +396,19 @@ export default function AdminDocumentsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* Load More Button */}
+          {!loading && documents.length > 0 && hasMore && !searchTerm && filterType === 'ALL' && filterStatus === 'ALL' && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => fetchDocuments(true)}
+                disabled={loadingMore}
+                className="px-6 py-3 rounded-lg text-sm font-semibold bg-[#3ab54a] text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loadingMore ? 'Loading...' : 'Load More'}
+              </button>
             </div>
           )}
         </div>

@@ -15,6 +15,11 @@ if (!user || user.role !== 'TRANSPORTER') {
 
     const db = await getDatabase()
     const transporterId = new ObjectId(user.id)
+    
+    // Pagination parameters
+    const { searchParams } = new URL(req.url)
+    const skip = parseInt(searchParams.get('skip') || '0', 10)
+    const limit = parseInt(searchParams.get('limit') || '15', 10)
 
     // Get assigned loads
     const assignedLoads = await db.collection('loads').find({ assignedTransporterId: transporterId }).toArray()
@@ -34,10 +39,10 @@ if (!user || user.role !== 'TRANSPORTER') {
     }
 
     // Recent quotes
-    const recentQuotes = quotes
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5)
-      .map(async (q: any) => {
+    const sortedQuotes = quotes.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    const recentQuotesSlice = sortedQuotes.slice(skip, skip + limit)
+    
+    const recentQuotes = recentQuotesSlice.map(async (q: any) => {
         const load = await db.collection('loads').findOne({ _id: q.loadId })
         return {
           id: q._id,
@@ -56,6 +61,7 @@ if (!user || user.role !== 'TRANSPORTER') {
       statusBreakdown,
       assignedLoads: assignedLoads.length,
       recentQuotes: populatedQuotes,
+      hasMore: (skip + limit) < sortedQuotes.length,
       monthlyData: generateMonthlyData(quotes),
     })
   } catch (err: any) {

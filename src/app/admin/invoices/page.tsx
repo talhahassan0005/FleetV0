@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout } from '@/components/ui'
+import { Pagination } from '@/components/ui/Pagination'
 import { hasPermission } from '@/lib/rbac'
 import {
   DollarSign,
@@ -17,6 +18,7 @@ import {
   Edit2,
   RefreshCw
 } from 'lucide-react'
+import { showToast } from '@/components/ui'
 
 interface Invoice {
   _id: string
@@ -52,6 +54,9 @@ export default function AdminInvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 10
   const [filter, setFilter] = useState<FilterState>({
     invoiceType: 'all',
     paymentStatus: 'all',
@@ -77,8 +82,8 @@ export default function AdminInvoicesPage() {
       router.push('/admin/unauthorized')
       return
     }
-    fetchInvoices()
-  }, [user, router, isLoading])
+    fetchInvoices(currentPage)
+  }, [user, router, isLoading, currentPage])
 
   const stats = {
     total: invoices.length,
@@ -89,10 +94,11 @@ export default function AdminInvoicesPage() {
     collectedAmount: invoices.reduce((sum, i) => sum + (i.paymentAmount || 0), 0),
   }
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (page: number = 1) => {
     try {
       setLoading(true)
-      const res = await fetch('/api/admin/invoices', {
+      const skip = (page - 1) * itemsPerPage
+      const res = await fetch(`/api/admin/invoices?skip=${skip}&limit=${itemsPerPage}`, {
         credentials: 'include',
       })
       
@@ -102,6 +108,7 @@ export default function AdminInvoicesPage() {
       
       const data = await res.json()
       setInvoices(data.invoices || [])
+      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
       setError('')
     } catch (err: any) {
       setError(err.message)
@@ -134,7 +141,7 @@ export default function AdminInvoicesPage() {
       }
 
       // Refresh invoices
-      await fetchInvoices()
+      await fetchInvoices(currentPage)
       setShowPaymentModal(false)
       setSelectedInvoice(null)
       setPaymentForm({
@@ -142,6 +149,7 @@ export default function AdminInvoicesPage() {
         paymentAmount: 0,
         paymentNotes: ''
       })
+      showToast('Payment status updated successfully')
     } catch (err: any) {
       setError(err.message)
       console.error('Error updating payment status:', err)
@@ -479,6 +487,16 @@ export default function AdminInvoicesPage() {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {!loading && filteredInvoices.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            loading={loading}
+          />
+        )}
 
         {/* Payment Status Modal */}
         {showPaymentModal && selectedInvoice && (

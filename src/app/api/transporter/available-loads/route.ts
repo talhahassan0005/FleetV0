@@ -64,12 +64,24 @@ console.log('[AvailableLoads] Session user:', user?.id)
 
     // Get final available loads - ONLY APPROVED loads are visible to transporters
     console.log('[AvailableLoads] 🔍 IMPORTANT: Showing ONLY APPROVED loads to transporters (not PENDING)')
+    
+    const skip = parseInt(req.nextUrl.searchParams.get('skip') || '0', 10)
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10)
+    
+    // Get total count
+    const total = await db.collection('loads').countDocuments({
+      status: 'APPROVED',
+      _id: { $nin: quotedLoadIds.map(id => new ObjectId(id)) }
+    })
+    
     const loads = await db.collection('loads')
       .find({
         status: 'APPROVED', // Only APPROVED loads - transporter cannot see PENDING loads until admin approves
         _id: { $nin: quotedLoadIds.map(id => new ObjectId(id)) }
       })
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray()
 
     console.log('[AvailableLoads] Available loads after filter:', loads.length)
@@ -87,7 +99,8 @@ console.log('[AvailableLoads] Session user:', user?.id)
         description: load.description,
         status: load.status,
         createdAt: load.createdAt,
-      }))
+      })),
+      total,
     })
   } catch (err: any) {
     console.error('[AvailableLoads] Error:', err)

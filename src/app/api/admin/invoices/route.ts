@@ -27,7 +27,15 @@ if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER
 
     const db = await getDatabase()
 
-    // Get all invoices with aggregation to get related data
+    // Pagination parameters
+    const { searchParams } = new URL(req.url)
+    const skip = parseInt(searchParams.get('skip') || '0', 10)
+    const limit = parseInt(searchParams.get('limit') || '10', 10)
+
+    // Get total count first
+    const total = await db.collection('invoices').countDocuments({})
+
+    // Get paginated invoices with aggregation to get related data
     const invoices = await db.collection('invoices').aggregate([
       {
         $match: {}
@@ -88,7 +96,10 @@ if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER
         }
       },
       {
-        $sort: { createdAt: -1 }
+        $skip: skip
+      },
+      {
+        $limit: limit
       },
       {
         $project: {
@@ -129,6 +140,7 @@ if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER
     return NextResponse.json({
       success: true,
       invoices,
+      total,
       stats: {
         total: invoices.length,
         unpaid: invoices.filter(i => i.paymentStatus === 'UNPAID').length,

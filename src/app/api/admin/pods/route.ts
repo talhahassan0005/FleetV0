@@ -24,6 +24,8 @@ if (!authUser?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_M
 
     const url = new URL(req.url)
     const statusFilter = url.searchParams.get('status')
+    const skip = parseInt(url.searchParams.get('skip') || '0', 10)
+    const limit = parseInt(url.searchParams.get('limit') || '10', 10)
 
     // Build query for documents collection (POD type)
     let query: any = { docType: 'POD' }
@@ -37,10 +39,15 @@ if (!authUser?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_M
       }
     }
 
-    // Fetch PODs from documents collection
+    // Get total count
+    const total = await db.collection('documents').countDocuments(query)
+
+    // Fetch paginated PODs from documents collection
     const pods = await db.collection('documents')
       .find(query)
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray()
 
     // Enrich with load, transporter, and client details
@@ -93,6 +100,7 @@ if (!authUser?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_M
     return Response.json({
       success: true,
       pods: podsWithDetails,
+      total,
       count: podsWithDetails.length,
     })
   } catch (error) {

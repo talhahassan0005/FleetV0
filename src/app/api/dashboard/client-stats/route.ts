@@ -15,6 +15,11 @@ if (!user || user.role !== 'CLIENT') {
 
     const db = await getDatabase()
     const clientId = new ObjectId(user.id)
+    
+    // Pagination parameters
+    const { searchParams } = new URL(req.url)
+    const skip = parseInt(searchParams.get('skip') || '0', 10)
+    const limit = parseInt(searchParams.get('limit') || '15', 10)
 
     // Get loads breakdown
     const loads = await db.collection('loads').find({ clientId }).toArray()
@@ -38,9 +43,10 @@ if (!user || user.role !== 'CLIENT') {
     const pendingQuotes = quotes.filter((q: any) => q.status === 'PENDING').length
 
     // Recent loads
-    const recentLoads = loads.sort((a: any, b: any) => 
+    const sortedLoads = loads.sort((a: any, b: any) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ).slice(0, 5)
+    )
+    const recentLoads = sortedLoads.slice(skip, skip + limit)
 
     return NextResponse.json({
       totalLoads: loads.length,
@@ -54,6 +60,7 @@ if (!user || user.role !== 'CLIENT') {
         status: l.status,
         price: l.finalPrice,
       })),
+      hasMore: (skip + limit) < sortedLoads.length,
       monthlyData: generateMonthlyData(loads),
     })
   } catch (err: any) {

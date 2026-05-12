@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Topbar, PageLayout } from '@/components/ui'
+import { Pagination } from '@/components/ui/Pagination'
 import { useVerificationStatus } from '@/hooks/useVerificationStatus'
 
 interface Load {
@@ -26,6 +27,9 @@ export default function AvailableLoadsPage() {
   const [loads, setLoads] = useState<Load[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 10
 
   // BUG FIX #3: Refresh verification status on mount
   useEffect(() => {
@@ -44,7 +48,8 @@ export default function AvailableLoadsPage() {
     const fetchLoads = async () => {
       try {
         setLoading(true)
-        const res = await fetch('/api/transporter/available-loads')
+        const skip = (currentPage - 1) * itemsPerPage
+        const res = await fetch(`/api/transporter/available-loads?skip=${skip}&limit=${itemsPerPage}`)
 
         if (!res.ok) {
           const errorData = await res.json()
@@ -54,6 +59,7 @@ export default function AvailableLoadsPage() {
 
         const data = await res.json()
         setLoads(data.loads || [])
+        setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
         setError('')
       } catch (err) {
         console.error('Error fetching loads:', err)
@@ -67,7 +73,7 @@ export default function AvailableLoadsPage() {
     if (user?.role === 'TRANSPORTER') {
       fetchLoads()
     }
-  }, [user, router])
+  }, [user, router, currentPage])
 
   if (loading) {
     return (
@@ -214,6 +220,18 @@ export default function AvailableLoadsPage() {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {!loading && loads.length > 0 && (
+          <div className="mt-8">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              loading={loading}
+            />
+          </div>
+        )}
       </PageLayout>
     </>
   )

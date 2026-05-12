@@ -4,7 +4,7 @@ import { getDocumentViewUrl, openDocument } from '@/lib/document-url'
 // src/app/admin/pod-management/page.tsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Topbar, PageLayout } from '@/components/ui'
+import { Topbar, PageLayout, Pagination, showToast } from '@/components/ui'
 
 interface POD {
   _id: string
@@ -27,18 +27,23 @@ export default function AdminPODManagementPage() {
   const [pods, setPods] = useState<POD[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [filter, setFilter] = useState<'PENDING' | 'VERIFIED' | 'APPROVED' | 'ALL'>('PENDING')
   const [selectedPOD, setSelectedPOD] = useState<POD | null>(null)
   const [verifyingId, setVerifyingId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 10
 
-  const fetchPODs = async () => {
+  const fetchPODs = async (page: number = 1) => {
     try {
       setLoading(true)
       setError('')
+      const skip = (page - 1) * itemsPerPage
       const params = new URLSearchParams()
       if (filter !== 'ALL') params.append('status', filter)
+      params.append('skip', skip.toString())
+      params.append('limit', itemsPerPage.toString())
 
       const res = await fetch(`/api/admin/pods?${params.toString()}`)
 
@@ -51,6 +56,7 @@ export default function AdminPODManagementPage() {
       const data = await res.json()
       if (data.success && Array.isArray(data.pods)) {
         setPods(data.pods)
+        setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
       }
     } catch (err) {
       console.error('[AdminPOD] Error fetching PODs:', err)
@@ -66,9 +72,9 @@ export default function AdminPODManagementPage() {
       return
     }
 
-    fetchPODs()
+    fetchPODs(currentPage)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, router, filter])
+  }, [user, router, filter, currentPage])
 
   const handleVerifyPOD = async (podId: string, approved: boolean) => {
     if (!approved && !rejectionReason?.trim()) {
@@ -101,10 +107,12 @@ export default function AdminPODManagementPage() {
       setSelectedPOD(null)
       setVerifyingId(null)
 
+      showToast(approved ? 'POD approved successfully!' : 'POD rejected. Transporter will be notified.')
+
       setTimeout(() => {
-        fetchPODs()
-        setSuccess('')
-      }, 2000)
+        setCurrentPage(1)
+        fetchPODs(1)
+      }, 1500)
     } catch (err) {
       console.error('[AdminPOD] Error updating POD:', err)
       setError('Failed to update POD. Please try again.')
@@ -138,15 +146,11 @@ export default function AdminPODManagementPage() {
     <>
       <Topbar title="Proof of Delivery (POD) Management" />
       <PageLayout>
+        )}
+
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 border-l-4 border-l-red-500 rounded text-red-800 text-sm">
             {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 border-l-4 border-l-green-500 rounded text-green-800 text-sm">
-            {success}
           </div>
         )}
 
@@ -218,6 +222,18 @@ export default function AdminPODManagementPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && pods.length > 0 && (
+          <div className="mt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              loading={loading}
+            />
           </div>
         )}
 

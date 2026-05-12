@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { AdminLoadActions } from '@/components/admin/AdminLoadActions'
+import { Pagination } from '@/components/ui/Pagination'
 
 const STATUSES = ['', 'PENDING', 'APPROVED', 'QUOTED', 'ASSIGNED', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED']
 const STATUS_LABELS: Record<string, string> = {
@@ -33,18 +34,23 @@ export default function AdminLoadsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedLoadId, setSelectedLoadId] = useState<string | null>(null)
   const [tabLoading, setTabLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     const fetchLoads = async () => {
       try {
+        const skip = (currentPage - 1) * itemsPerPage
         const url = status 
-          ? `/api/admin/loads?status=${status}`
-          : '/api/admin/loads'
+          ? `/api/admin/loads?status=${status}&skip=${skip}&limit=${itemsPerPage}`
+          : `/api/admin/loads?skip=${skip}&limit=${itemsPerPage}`
         
         const res = await fetch(url)
         if (res.ok) {
           const data = await res.json()
           setLoads(data.loads || [])
+          setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
         }
       } catch (err) {
         console.error('Error fetching loads:', err)
@@ -55,19 +61,21 @@ export default function AdminLoadsPage() {
     }
 
     fetchLoads()
-  }, [status])
+  }, [status, currentPage])
 
   const handleActionSuccess = () => {
     // Refresh loads after action
     const fetchLoads = async () => {
       try {
+        const skip = (currentPage - 1) * itemsPerPage
         const url = status 
-          ? `/api/admin/loads?status=${status}`
-          : '/api/admin/loads'
+          ? `/api/admin/loads?status=${status}&skip=${skip}&limit=${itemsPerPage}`
+          : `/api/admin/loads?skip=${skip}&limit=${itemsPerPage}`
         const res = await fetch(url)
         if (res.ok) {
           const data = await res.json()
           setLoads(data.loads || [])
+          setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
         }
       } catch (err) {
         console.error('Error refreshing loads:', err)
@@ -194,6 +202,16 @@ export default function AdminLoadsPage() {
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {!loading && loads.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          loading={loading}
+        />
+      )}
     </div>
   )
 }

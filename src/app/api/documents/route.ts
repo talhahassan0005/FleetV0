@@ -19,6 +19,11 @@ if (!user) {
     const userId = new ObjectId(user.id)
     const userRole = user.role
     
+    // Pagination parameters
+    const { searchParams } = new URL(req.url)
+    const skip = parseInt(searchParams.get('skip') || '0', 10)
+    const limit = parseInt(searchParams.get('limit') || '15', 10)
+    
     // Check if user is any type of admin
     const isAdmin = ['SUPER_ADMIN', 'POD_MANAGER', 'OPERATIONS_ADMIN', 'FINANCE_ADMIN'].includes(userRole)
     
@@ -42,6 +47,12 @@ if (!user) {
           },
           {
             $sort: { createdAt: -1 }
+          },
+          {
+            $skip: skip
+          },
+          {
+            $limit: limit
           },
           {
             $project: {
@@ -96,9 +107,10 @@ if (!user) {
       return NextResponse.json({
         success: true,
         data: serializedDocs,
+        hasMore: serializedDocs.length === limit,
       })
     } else {
-      const documents = await db.collection('documents').find({ userId: userId }).sort({ createdAt: -1 }).toArray()
+      const documents = await db.collection('documents').find({ userId: userId }).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
 
       const serializedDocs = documents.map((doc: any) => ({
         ...doc,
@@ -110,6 +122,7 @@ if (!user) {
       return NextResponse.json({
         success: true,
         data: serializedDocs,
+        hasMore: serializedDocs.length === limit,
       })
     }
   } catch (err: any) {

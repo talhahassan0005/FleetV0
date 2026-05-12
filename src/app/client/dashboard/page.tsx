@@ -13,6 +13,9 @@ export default function ClientDashboardPage() {
   const { isVerified, verificationStatus, verificationComment, refreshVerificationStatus } = useVerificationStatus()
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [recentLoads, setRecentLoads] = useState<any[]>([])
 
   // BUG FIX #2: Refresh verification status on mount
   useEffect(() => {
@@ -22,9 +25,11 @@ export default function ClientDashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/dashboard/client-stats')
+        const res = await fetch('/api/dashboard/client-stats?skip=0&limit=15')
         const data = await res.json()
         setStats(data)
+        setRecentLoads(data.recentLoads || [])
+        setHasMore(data.hasMore || false)
       } catch (err) {
         console.error('Failed to fetch stats:', err)
       } finally {
@@ -33,6 +38,25 @@ export default function ClientDashboardPage() {
     }
     fetchStats()
   }, [])
+  
+  const loadMoreLoads = async () => {
+    try {
+      setLoadingMore(true)
+      const skip = recentLoads.length
+      const res = await fetch(`/api/dashboard/client-stats?skip=${skip}&limit=15`)
+      const data = await res.json()
+      
+      // Append new loads, ensuring no duplicates
+      const existingIds = new Set(recentLoads.map(l => l.id?.toString()))
+      const newLoads = (data.recentLoads || []).filter((l: any) => !existingIds.has(l.id?.toString()))
+      setRecentLoads(prev => [...prev, ...newLoads])
+      setHasMore(data.hasMore || false)
+    } catch (err) {
+      console.error('Failed to load more:', err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -165,7 +189,7 @@ export default function ClientDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {stats?.recentLoads?.map((load: any) => (
+                  {recentLoads?.map((load: any) => (
                     <tr key={load.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-3 font-condensed font-bold text-[#1a2a5e]">{load.ref}</td>
                       <td className="px-4 py-3 text-sm">{load.route}</td>
@@ -184,6 +208,19 @@ export default function ClientDashboardPage() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Load More Button */}
+            {!loading && recentLoads.length > 0 && hasMore && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={loadMoreLoads}
+                  disabled={loadingMore}
+                  className="px-6 py-3 rounded-lg text-sm font-semibold bg-[#3ab54a] text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loadingMore ? 'Loading...' : 'Load More'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </PageLayout>

@@ -41,9 +41,19 @@ console.log('[MyQuotes] Session user:', user?.id)
     }
 
     // Get all quotes for this transporter with related load info
+    const skip = parseInt(req.nextUrl.searchParams.get('skip') || '0', 10)
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10)
+    
+    // Get total count
+    const total = await db.collection('quotes').countDocuments({
+      transporterId: new ObjectId(user.id)
+    })
+    
     const quotes = await db.collection('quotes')
       .find({ transporterId: new ObjectId(user.id) })
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray()
 
     console.log('[MyQuotes] Found quotes:', quotes.length)
@@ -87,7 +97,8 @@ console.log('[MyQuotes] Session user:', user?.id)
     return NextResponse.json({
       success: true,
       verified: true,
-      quotes: quotesWithLoads
+      quotes: quotesWithLoads,
+      total,
     })
   } catch (err: any) {
     console.error('[MyQuotes] Error:', err)

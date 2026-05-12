@@ -4,8 +4,8 @@ import { useAuth } from '@/hooks/useAuth'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Topbar, PageLayout } from '@/components/ui'
-import { Plus, AlertCircle, CheckCircle } from 'lucide-react'
+import { Topbar, PageLayout, showToast } from '@/components/ui'
+import { Plus, AlertCircle } from 'lucide-react'
 
 interface ApprovedPOD {
   _id: string
@@ -32,10 +32,11 @@ export default function CreateInvoicePage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
   // Form fields
   const [selectedPodId, setSelectedPodId] = useState('')
+  const [podSearchTerm, setPodSearchTerm] = useState('')
+  const [showPodDropdown, setShowPodDropdown] = useState(false)
   const [tonnageForThisInvoice, setTonnageForThisInvoice] = useState('')
   const [transporterInvoiceNumber, setTransporterInvoiceNumber] = useState('')
   const [transporterAmount, setTransporterAmount] = useState('')
@@ -58,6 +59,18 @@ export default function CreateInvoicePage() {
       fetchApprovedPODs()
     }
   }, [user])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('.pod-search-container')) {
+        setShowPodDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Calculate markup when amount or percentage changes
   useEffect(() => {
@@ -119,8 +132,21 @@ export default function CreateInvoicePage() {
     }
   }
 
+  // Filter PODs based on search term
+  const filteredPods = pods.filter(pod => {
+    const searchLower = podSearchTerm.toLowerCase()
+    return (
+      pod.loadRef.toLowerCase().includes(searchLower) ||
+      pod.origin.toLowerCase().includes(searchLower) ||
+      pod.destination.toLowerCase().includes(searchLower) ||
+      pod.filename.toLowerCase().includes(searchLower)
+    )
+  })
+
   const handlePodSelect = (podId: string) => {
     setSelectedPodId(podId)
+    setPodSearchTerm('')
+    setShowPodDropdown(false)
     const pod = pods.find(p => p._id === podId)
     if (pod) {
       setTransporterAmount(pod.transporterAmount.toString())
@@ -128,6 +154,14 @@ export default function CreateInvoicePage() {
       // Auto-fill transporter invoice number from POD filename
       setTransporterInvoiceNumber(pod.filename || `INV-${pod.loadRef}`)
     }
+  }
+
+  const getSelectedPodDisplay = () => {
+    const pod = pods.find(p => p._id === selectedPodId)
+    if (pod) {
+      return `${pod.loadRef} - ${pod.origin} → ${pod.destination}`
+    }
+    return '-- Choose a POD --'
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -166,7 +200,7 @@ export default function CreateInvoicePage() {
       }
 
       const data = await res.json()
-      setSuccess(`✅ Invoices created successfully!`)
+      showToast('Invoices created successfully!')
 
       // Reset form
       setTimeout(() => {
@@ -176,8 +210,7 @@ export default function CreateInvoicePage() {
         setTransporterAmount('')
         setMarkupPercentage('10')
         setNotes('')
-        setSuccess('')
-      }, 2000)
+      }, 1500)
     } catch (err: any) {
       setError(err.message || 'Failed to create invoices')
     } finally {
@@ -197,12 +230,7 @@ export default function CreateInvoicePage() {
             </div>
           )}
 
-          {success && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded text-green-800 flex gap-3">
-              <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-              <div>{success}</div>
-            </div>
-          )}
+
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <h2 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
@@ -216,24 +244,59 @@ export default function CreateInvoicePage() {
 
           <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
             
-            {/* POD Selection */}
-            <div>
+            {/* POD Selection - Searchable Dropdown */}
+            <div className="pod-search-container relative">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Select Approved POD *
               </label>
-              <select
-                value={selectedPodId}
-                onChange={(e) => handlePodSelect(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab54a]/50 text-black bg-white"
-                required
-              >
-                <option value="" className="text-gray-900">-- Choose a POD --</option>
-                {pods.map(pod => (
-                  <option key={pod._id} value={pod._id} className="text-gray-900">
-                    {pod.loadRef} - {pod.origin} → {pod.destination} - {pod.currency} {pod.transporterAmount.toLocaleString()}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                {/* Input field */}
+                <input
+                  type="text"
+                  placeholder="Search by Load Ref, Route, or Filename..."
+                  value={podSearchTerm}
+                  onChange={(e) => {
+                    setPodSearchTerm(e.target.value)
+                    setShowPodDropdown(true)
+                  }}
+                  onFocus={() => setShowPodDropdown(true)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3ab54a]/50 text-black bg-white"
+                />
+                
+                {/* Dropdown list */}
+                {showPodDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                    {filteredPods.length > 0 ? (
+                      filteredPods.map(pod => (
+                        <button
+                          key={pod._id}
+                          type="button"
+                          onClick={() => handlePodSelect(pod._id)}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-100 border-b border-gray-100 last:border-b-0 transition-colors"
+                        >
+                          <div className="font-semibold text-gray-900">{pod.loadRef}</div>
+                          <div className="text-sm text-gray-600">{pod.origin} → {pod.destination}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {pod.currency} {pod.transporterAmount.toLocaleString()} • {pod.filename}
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-gray-500 text-sm">
+                        {podSearchTerm ? 'No PODs found matching your search' : 'No PODs available'}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Selected POD display */}
+              {selectedPodId && (
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm font-semibold text-green-900">✓ Selected: {getSelectedPodDisplay()}</p>
+                </div>
+              )}
+              
               {pods.length === 0 && (
                 <p className="text-xs text-gray-500 mt-1">
                   ℹ️ No PODs available. Transporter must upload POD first.

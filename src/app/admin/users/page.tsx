@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { hasPermission } from '@/lib/rbac'
+import { Pagination } from '@/components/ui/Pagination'
+import { showToast } from '@/components/ui'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 
 interface User {
@@ -25,6 +27,9 @@ export default function AdminUsersPage() {
   
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 10
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [rejectModal, setRejectModal] = useState<{ userId: string; email: string } | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
@@ -47,14 +52,16 @@ export default function AdminUsersPage() {
 
     const fetchUsers = async () => {
       try {
+        const skip = (currentPage - 1) * itemsPerPage
         const url = roleFilter 
-          ? `/api/admin/users?role=${roleFilter}` 
-          : '/api/admin/users'
+          ? `/api/admin/users?role=${roleFilter}&skip=${skip}&limit=${itemsPerPage}` 
+          : `/api/admin/users?skip=${skip}&limit=${itemsPerPage}`
         
         const res = await fetch(url)
         if (res.ok) {
           const data = await res.json()
           setUsers(data.users || [])
+          setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
         } else if (res.status === 401) {
           router.push('/login')
         }
@@ -73,7 +80,7 @@ export default function AdminUsersPage() {
         .then(d => setSubAdmins(d.admins || []))
         .catch(console.error)
     }
-  }, [user, router, roleFilter, isLoading])
+  }, [user, router, roleFilter, isLoading, currentPage])
 
   const handleApproveUser = async (userId: string) => {
     try {
@@ -90,11 +97,11 @@ export default function AdminUsersPage() {
       if (res.ok) {
         setUsers(users.map(u => u._id === userId ? { ...u, isVerified: true, verificationStatus: 'APPROVED' } : u))
       } else {
-        alert('Failed to approve user')
+        showToast('Failed to approve user', 'error')
       }
     } catch (err) {
       console.error('Error approving user:', err)
-      alert('Error approving user')
+      showToast('Error approving user', 'error')
     } finally {
       setActioningId(null)
     }
@@ -102,7 +109,7 @@ export default function AdminUsersPage() {
 
   const handleRejectUser = async () => {
     if (!rejectModal?.userId || !rejectionReason.trim()) {
-      alert('Please enter rejection reason')
+      showToast('Please enter rejection reason', 'error')
       return
     }
 
@@ -122,11 +129,11 @@ export default function AdminUsersPage() {
         setRejectModal(null)
         setRejectionReason('')
       } else {
-        alert('Failed to reject user')
+        showToast('Failed to reject user', 'error')
       }
     } catch (err) {
       console.error('Error rejecting user:', err)
-      alert('Error rejecting user')
+      showToast('Error rejecting user', 'error')
     } finally {
       setActioningId(null)
     }
@@ -144,7 +151,7 @@ export default function AdminUsersPage() {
         body: JSON.stringify(subAdminForm),
       })
       if (res.ok) {
-        alert('Sub-admin created')
+        showToast('Sub-admin created successfully')
         setShowSubAdminModal(false)
         setSubAdminForm({ email: '', password: '', companyName: '', adminRole: 'pod_manager' })
         const r = await fetch('/api/admin/sub-admins')
@@ -152,11 +159,11 @@ export default function AdminUsersPage() {
         setSubAdmins(d.admins || [])
       } else {
         const err = await res.json()
-        alert(err.error || 'Failed to create sub-admin')
+        showToast(err.error || 'Failed to create sub-admin', 'error')
       }
     } catch (err) {
       console.error(err)
-      alert('Error creating sub-admin')
+      showToast('Error creating sub-admin', 'error')
     }
   }
 
@@ -297,6 +304,18 @@ export default function AdminUsersPage() {
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {!loading && users.length > 0 && (
+        <div className="mt-6">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            loading={loading}
+          />
+        </div>
+      )}
 
       {/* Rejection Reason Modal */}
       {rejectModal && (
