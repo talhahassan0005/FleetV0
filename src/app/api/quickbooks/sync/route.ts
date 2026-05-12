@@ -16,7 +16,7 @@ import { requirePermission } from '@/lib/rbac';
 export async function POST(request: NextRequest) {
   const authUser = await getAuthUser(request);
 
-  if (!authUser || !authUser.email || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(authUser?.role ?? '')) {
+  if (!authUser || !authUser.email || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(authUser?.role ?? '')) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }

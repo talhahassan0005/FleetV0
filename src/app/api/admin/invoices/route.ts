@@ -13,7 +13,7 @@ import { hasPermission } from '@/lib/rbac'
 export async function GET(req: NextRequest) {
   try {
     const user = await getAuthUser(req)
-if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
+if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(user?.role)) {
       return NextResponse.json(
         { error: 'Only admins can view invoices' },
         { status: 403 }
