@@ -2,13 +2,20 @@ import { NextRequest } from 'next/server';
 import { verifyAccessToken, JWTPayload } from './jwt-utils';
 
 /**
- * Get authenticated user from request cookies
+ * Get authenticated user from request cookies or Authorization header
  * Use this in API routes to verify JWT authentication
  */
 export async function getAuthUser(request: NextRequest): Promise<JWTPayload | null> {
   try {
-    // Get access token from cookie
-    const accessToken = request.cookies.get('accessToken')?.value;
+    let accessToken = request.cookies.get('accessToken')?.value;
+
+    // If no token in cookies, try Authorization header
+    if (!accessToken) {
+      const authHeader = request.headers.get('Authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
+      }
+    }
 
     if (!accessToken) {
       console.log('[Auth] No access token in request');
@@ -36,7 +43,7 @@ export async function getAuthUser(request: NextRequest): Promise<JWTPayload | nu
 export function isAdmin(user: JWTPayload | null): boolean {
   if (!user) return false;
   
-  const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER'];
+  const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN'];
   return ADMIN_ROLES.includes(user.role);
 }
 
