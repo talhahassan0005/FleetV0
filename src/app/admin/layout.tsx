@@ -4,7 +4,7 @@ import { verifyAccessToken } from '@/lib/jwt-utils'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/shared/Sidebar'
 
-const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
+const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const _cookies = await cookies()

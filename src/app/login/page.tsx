@@ -70,7 +70,7 @@ function LoginContent() {
       // Redirect based on role
       const role = data.user?.role
       console.log('[Login] User role:', role)
-      const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER']
+      const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
       
       if (adminRoles.includes(role)) {
         console.log('[Login] Redirecting to admin dashboard...')

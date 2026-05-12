@@ -36,7 +36,7 @@ export async function getAuthUser(request: NextRequest): Promise<JWTPayload | nu
 export function isAdmin(user: JWTPayload | null): boolean {
   if (!user) return false;
   
-  const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER'];
+  const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN'];
   return ADMIN_ROLES.includes(user.role);
 }
 

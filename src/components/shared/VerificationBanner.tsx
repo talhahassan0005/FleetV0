@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 export function VerificationBanner() {
   const { user } = useAuth()
 
-  if (['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '')) return null
+  if (['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(user?.role ?? '')) return null
 
   const verificationStatus = user?.verificationStatus
   if (!verificationStatus) return null

@@ -36,5 +36,5 @@ export function requirePermission(role: string | undefined, permission: string):
 
 // Helper to check if user is admin (any admin type)
 export function isAdmin(role: string): boolean {
-  return ['SUPER_ADMIN', 'POD_MANAGER', 'OPERATIONS_ADMIN', 'FINANCE_ADMIN'].includes(role)
+  return ['SUPER_ADMIN', 'POD_MANAGER', 'OPERATIONS_ADMIN', 'FINANCE_ADMIN', 'ADMIN'].includes(role)
 }
