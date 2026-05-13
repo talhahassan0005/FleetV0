@@ -33,9 +33,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
-          setAccessToken(data.accessToken || 'cookie'); // mark as authenticated
+          setAccessToken(data.accessToken || 'cookie');
         } else {
-          // Not authenticated — clear any stale localStorage
           if (typeof window !== 'undefined') {
             localStorage.removeItem('accessToken');
           }
@@ -68,8 +67,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await response.json();
-
-      // httpOnly cookie is set by the server — just update local state
       setAccessToken(data.accessToken || 'cookie');
       setUser(data.user);
 
@@ -80,12 +77,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(async () => {
-    // Clear client state FIRST so UI immediately reflects logout
+    // 1. Clear React state immediately so UI reflects logout
     setAccessToken(null);
     setUser(null);
 
     try {
-      // Tell server to clear httpOnly cookies — await so cookies are gone before redirect
+      // 2. Tell server to clear httpOnly cookies — AWAIT so Set-Cookie header is received
+      //    before we navigate away
       await fetch('/api/auth/jwt-logout', {
         method: 'POST',
         credentials: 'include',
@@ -95,11 +93,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (typeof window !== 'undefined') {
+      // 3. Also manually expire cookies client-side (belt + suspenders)
+      //    Handles non-httpOnly copies and ensures middleware sees no token on redirect
+      const expireStr = 'expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+      document.cookie = `accessToken=; ${expireStr}`;
+      document.cookie = `refreshToken=; ${expireStr}`;
+
       localStorage.clear();
       sessionStorage.clear();
-      // Replace so back button doesn't return to dashboard
-      // Use href instead of replace so middleware re-evaluates with cleared cookies
-      window.location.href = '/login';
+
+      // 4. Full page replace — forces middleware to re-check cookies from scratch
+      //    replace() prevents back-button returning to dashboard
+      window.location.replace('/login');
     }
   }, []);
 
@@ -118,7 +123,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await response.json();
       setAccessToken(data.accessToken || 'cookie');
 
-      // Decode new token to update user state
       if (data.accessToken) {
         try {
           const parts = data.accessToken.split('.');
