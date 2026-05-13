@@ -43,7 +43,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     if (isLoading) return
-    if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role)) {
+    if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(user?.role)) {
       router.push('/login')
       return
     }
