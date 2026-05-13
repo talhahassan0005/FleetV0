@@ -8,13 +8,10 @@ import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
   try {
-    console.log('[Documents API] Starting fetch...')
     const user = await getAuthUser(req)
-if (!user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    console.log('[Documents API] User:', user.email, 'Role:', user.role)
     const db = await getDatabase()
     const userId = new ObjectId(user.id)
     const userRole = user.role
@@ -85,8 +82,6 @@ if (!user) {
         ])
         .toArray()
 
-      console.log('[Documents API] Found', documents.length, 'documents')
-
       const serializedDocs = documents.map((doc: any) => ({
         ...doc,
         _id: doc._id?.toString?.() || doc._id,
@@ -136,8 +131,7 @@ if (!user) {
 
 export async function POST(req: NextRequest) {
   const user = await getAuthUser(req)
-if (!user) {
-    console.log('[PostDocument] No session found')
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 
@@ -150,7 +144,6 @@ if (!user) {
     const visibleTo = (form.get('visibleTo') as string ?? 'ADMIN').toUpperCase()
 
     if (!file) {
-      console.log('[PostDocument] No file provided')
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
@@ -163,50 +156,31 @@ if (!user) {
       )
     }
 
-    console.log('[PostDocument] Processing upload:', {
-      userId: user.id,
-      userRole: user.role,
-      docType,
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type
-    })
-
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Check if Cloudinary is configured
     const useCloudinary = !!(process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && process.env.CLOUDINARY_CLOUD_NAME)
-    console.log('[PostDocument] Cloudinary configured:', useCloudinary)
     
     let fileUrl = ''
     let publicId = ''
 
     if (useCloudinary) {
       try {
-        // Use Cloudinary for production
         const folder = docType === 'POD' ? 'pods' : docType === 'INVOICE' ? 'invoices' : 'docs'
-        console.log('[PostDocument] Uploading to Cloudinary folder:', folder)
         const { publicId: id, secureUrl } = await uploadFile(buffer, file.name, folder)
         publicId = id
         fileUrl = secureUrl
-        console.log('[PostDocument] Cloudinary upload success:', { publicId, secureUrl: secureUrl.substring(0, 50) })
       } catch (cloudinaryErr: any) {
-        console.error('[PostDocument] Cloudinary upload failed:', cloudinaryErr)
-        // Fallback to base64 if Cloudinary fails
-        console.log('[PostDocument] Falling back to base64 storage')
         const base64Data = buffer.toString('base64')
         const mimeType = file.type || 'application/octet-stream'
         publicId = `DATA:${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         fileUrl = `data:${mimeType};base64,${base64Data}`
       }
     } else {
-      // Store as base64 in MongoDB for development
-      console.log('[PostDocument] Using base64 storage (Cloudinary not configured)')
       const base64Data = buffer.toString('base64')
       const mimeType = file.type || 'application/octet-stream'
       publicId = `DATA:${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      fileUrl = `data:${mimeType};base64,${base64Data}` // Full base64
+      fileUrl = `data:${mimeType};base64,${base64Data}`
     }
 
     // Ensure document is always visible to uploader + their role + ADMIN
@@ -245,15 +219,6 @@ if (!user) {
     }
     
     const docResult = await db.collection('documents').insertOne(docObject)
-
-    console.log('[PostDocument] Saved document:', {
-      docId: docResult.insertedId.toString(),
-      userId: user.id,
-      docType,
-      uploadedByRole: user.role,
-      visibleTo,
-    })
-
     const docId = docResult.insertedId
 
     // Send upload acknowledgement email to user

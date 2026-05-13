@@ -50,14 +50,7 @@ export default function AdminLoadsPage() {
         if (res.ok) {
           const data = await res.json()
           setLoads(data.loads || [])
-          const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.loads?.length || 0) / itemsPerPage))
-          setTotalPages(calculatedTotalPages)
-          console.log('Admin Loads Pagination Debug:', { 
-            total: data.total, 
-            loadsLength: data.loads?.length, 
-            itemsPerPage, 
-            calculatedTotalPages 
-          })
+          setTotalPages(Math.max(1, Math.ceil((data.total || 0) / itemsPerPage)))
         }
       } catch (err) {
         console.error('Error fetching loads:', err)

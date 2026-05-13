@@ -9,8 +9,7 @@ import { ObjectId } from 'mongodb'
 export async function GET(req: NextRequest) {
   try {
     const user = await getAuthUser(req)
-console.log('[AvailableLoads] Session user:', user?.id)
-    
+
     if (!user?.role || user.role !== 'TRANSPORTER') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -18,8 +17,9 @@ console.log('[AvailableLoads] Session user:', user?.id)
       )
     }
 
-    // Check if transporter is verified
     const db = await getDatabase()
+
+    // Check if transporter exists and is verified
     const transporter = await db.collection('users').findOne({
       _id: new ObjectId(user.id),
       role: 'TRANSPORTER'
@@ -40,51 +40,37 @@ console.log('[AvailableLoads] Session user:', user?.id)
       })
     }
 
-    // Get all loads first to debug
-    const allLoads = await db.collection('loads').find({}).toArray()
-    console.log('[AvailableLoads] Total loads in database:', allLoads.length)
-    allLoads.forEach((load: any) => {
-      console.log('[AvailableLoads] Load:', { 
-        _id: load._id.toString(), 
-        ref: load.ref, 
-        status: load.status,
-        clientId: load.clientId?.toString?.() || load.clientId
-      })
-    })
-
-    // Get quotes from this transporter
+    // Get load IDs this transporter has already quoted on
     const myQuotes = await db.collection('quotes')
       .find({ transporterId: new ObjectId(user.id) })
       .project({ loadId: 1 })
       .toArray()
-    console.log('[AvailableLoads] My quotes count:', myQuotes.length)
-    
-    const quotedLoadIds = myQuotes.map(q => q.loadId?.toString?.() || q.loadId)
-    console.log('[AvailableLoads] Quoted load IDs:', quotedLoadIds)
 
-    // Get final available loads - ONLY APPROVED loads are visible to transporters
-    console.log('[AvailableLoads] 🔍 IMPORTANT: Showing ONLY APPROVED loads to transporters (not PENDING)')
-    
+    // Build a clean ObjectId[] with no nulls — fixes TS Filter<Document> type error
+    const quotedLoadIds = myQuotes.reduce<ObjectId[]>((acc, q) => {
+      try {
+        if (q.loadId) acc.push(new ObjectId(q.loadId.toString()))
+      } catch {}
+      return acc
+    }, [])
+
     const skip = parseInt(req.nextUrl.searchParams.get('skip') || '0', 10)
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10)
-    
-    // Get total count
-    const total = await db.collection('loads').countDocuments({
+
+    // Typed as Record<string, any> so MongoDB Filter<Document> accepts it
+    const loadFilter: Record<string, any> = {
       status: 'APPROVED',
-      _id: { $nin: quotedLoadIds.map(id => new ObjectId(id)) }
-    })
-    
+      ...(quotedLoadIds.length > 0 && { _id: { $nin: quotedLoadIds } })
+    }
+
+    const total = await db.collection('loads').countDocuments(loadFilter)
+
     const loads = await db.collection('loads')
-      .find({
-        status: 'APPROVED', // Only APPROVED loads - transporter cannot see PENDING loads until admin approves
-        _id: { $nin: quotedLoadIds.map(id => new ObjectId(id)) }
-      })
+      .find(loadFilter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .toArray()
-
-    console.log('[AvailableLoads] Available loads after filter:', loads.length)
 
     return NextResponse.json({
       success: true,

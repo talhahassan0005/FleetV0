@@ -9,7 +9,6 @@ import { ObjectId } from 'mongodb'
 export async function GET(req: NextRequest) {
   try {
     const user = await getAuthUser(req)
-console.log('[MyQuotes] Session user:', user?.id)
     
     if (!user?.role || user.role !== 'TRANSPORTER') {
       return NextResponse.json(
@@ -56,19 +55,11 @@ console.log('[MyQuotes] Session user:', user?.id)
       .limit(limit)
       .toArray()
 
-    console.log('[MyQuotes] Found quotes:', quotes.length)
-
     // Fetch load details for each quote
     const quotesWithLoads = await Promise.all(
       quotes.map(async (quote) => {
         const load = await db.collection('loads').findOne({
           _id: quote.loadId
-        })
-
-        console.log('[MyQuotes] Quote:', { 
-          quoteId: quote._id.toString(), 
-          loadId: quote.loadId.toString(),
-          hasLoad: !!load
         })
 
         return {
@@ -91,8 +82,6 @@ console.log('[MyQuotes] Session user:', user?.id)
         }
       })
     )
-
-    console.log('[MyQuotes] Returning quotes with loads:', quotesWithLoads.length)
 
     return NextResponse.json({
       success: true,
