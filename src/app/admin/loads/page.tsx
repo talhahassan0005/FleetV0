@@ -1,7 +1,7 @@
 // src/app/admin/loads/page.tsx
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { AdminLoadActions } from '@/components/admin/AdminLoadActions'
 import { Pagination } from '@/components/ui/Pagination'
@@ -25,7 +25,7 @@ interface Load {
 
 import { hasPermission } from '@/lib/rbac'
 
-export default function AdminLoadsPage() {
+function AdminLoadsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const status = searchParams.get('status') ?? ''
@@ -51,9 +51,6 @@ export default function AdminLoadsPage() {
           const data = await res.json()
           setLoads(data.loads || [])
           setTotalPages(Math.max(1, Math.ceil((data.total || 0) / itemsPerPage)))
-        } else if (res.status === 401) {
-          router.replace('/login')
-          return
         }
       } catch (err) {
         console.error('Error fetching loads:', err)
@@ -80,9 +77,6 @@ export default function AdminLoadsPage() {
           setLoads(data.loads || [])
           const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.loads?.length || 0) / itemsPerPage))
           setTotalPages(calculatedTotalPages)
-        } else if (res.status === 401) {
-          router.replace('/login')
-          return
         }
       } catch (err) {
         console.error('Error refreshing loads:', err)
@@ -225,5 +219,17 @@ export default function AdminLoadsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function AdminLoadsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3ab54a]"></div>
+      </div>
+    }>
+      <AdminLoadsContent />
+    </Suspense>
   )
 }

@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   
   // Performance Optimizations for Google Ads Quality Score
   compress: true,
@@ -31,6 +31,17 @@ experimental: {
   async headers() {
     return [
       {
+        // Static assets only — safe to cache long term
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ],
+      },
+      {
+        // HTML pages — must NOT cache, otherwise logout causes stale auth state
         source: '/:path*',
         headers: [
           {
@@ -51,7 +62,7 @@ experimental: {
           },
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
+            value: 'no-cache, no-store, must-revalidate'
           }
         ],
       },
@@ -64,7 +75,6 @@ experimental: {
           }
         ],
       },
-      
     ];
   },
 };
