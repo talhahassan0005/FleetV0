@@ -1,17 +1,10 @@
 // src/app/admin/layout.tsx
-import { cookies } from 'next/headers'
-import { verifyAccessToken } from '@/lib/jwt-utils'
-import { redirect } from 'next/navigation'
+// Auth is already handled by middleware.ts for all /admin/* routes
+// No need to re-verify token here — doing so causes a flash/redirect to /login
+// on every client-side navigation because server re-runs this layout
 import { Sidebar } from '@/components/shared/Sidebar'
 
-const ADMIN_ROLES = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
-
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const _cookies = await cookies()
-  const _token = _cookies.get('accessToken')?.value
-  const user = _token ? verifyAccessToken(_token) : null
-  if (!user || !ADMIN_ROLES.includes(user.role)) redirect('/login')
-  
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar />
