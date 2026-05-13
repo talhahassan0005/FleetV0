@@ -49,7 +49,7 @@ function AdminLoadsContent() {
           ? `/api/admin/loads?status=${status}&skip=${skip}&limit=${itemsPerPage}`
           : `/api/admin/loads?skip=${skip}&limit=${itemsPerPage}`
 
-        const res = await fetch(url)
+        const res = await fetch(url, { credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
           setLoads(data.loads || [])
@@ -74,7 +74,7 @@ function AdminLoadsContent() {
         const url = status
           ? `/api/admin/loads?status=${status}&skip=${skip}&limit=${itemsPerPage}`
           : `/api/admin/loads?skip=${skip}&limit=${itemsPerPage}`
-        const res = await fetch(url)
+        const res = await fetch(url, { credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
           setLoads(data.loads || [])
