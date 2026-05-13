@@ -1,6 +1,6 @@
 'use client'
 // src/app/login/page.tsx
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -21,20 +21,26 @@ function LoginContent() {
   const [isMounted, setIsMounted] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
 
-  // Redirect authenticated users
+  // Redirect already-authenticated users ONLY on initial mount (e.g. user visits /login while logged in)
+  // We use a ref to ensure this only runs once after loading completes,
+  // and NOT after handleSubmit (which does its own redirect to avoid double-redirect blink)
+  const hasRedirectedRef = React.useRef(false)
+
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
+    // Only redirect if: loading just finished, user is authenticated, and handleSubmit hasn't already navigated
+    if (!isLoading && isAuthenticated && user && !hasRedirectedRef.current && !loading) {
+      hasRedirectedRef.current = true
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
-      
       if (adminRoles.includes(user.role)) {
-        window.location.replace('/admin/dashboard')
+        router.replace('/admin/dashboard')
       } else if (user.role === 'TRANSPORTER') {
-        window.location.replace('/transporter/dashboard')
+        router.replace('/transporter/dashboard')
       } else {
-        window.location.replace('/client/dashboard')
+        router.replace('/client/dashboard')
       }
     }
-  }, [isAuthenticated, user, isLoading])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]) // Only run when loading state changes
 
   // Ensure component is mounted before using searchParams to avoid hydration errors
   useEffect(() => {
@@ -80,35 +86,23 @@ function LoginContent() {
       }
 
       const data = await response.json()
-      console.log('[Login] Success! Response data:', data)
-      console.log('[Login] User data:', data.user)
-      console.log('[Login] Access token received:', data.accessToken ? 'YES' : 'NO')
+      console.log('[Login] Success! User role:', data.user?.role)
       
-      // Store token in localStorage BEFORE redirect
-      if (data.accessToken) {
-        console.log('[Login] Storing access token in localStorage...')
-        localStorage.setItem('accessToken', data.accessToken)
-        console.log('[Login] Token stored, length:', data.accessToken.length)
-      }
-      
-      // Redirect based on role
+      // Token is already in httpOnly cookie set by server
+      // Use router.replace for smooth SPA navigation — avoids full-page reload blink
       const role = data.user?.role
-      console.log('[Login] User role:', role)
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
       
-      // Wait 100ms to ensure localStorage is flushed
-      setTimeout(() => {
-        if (adminRoles.includes(role)) {
-          console.log('[Login] Redirecting to admin dashboard...')
-          window.location.href = '/admin/dashboard'
-        } else if (role === 'TRANSPORTER') {
-          console.log('[Login] Redirecting to transporter dashboard...')
-          window.location.href = '/transporter/dashboard'
-        } else {
-          console.log('[Login] Redirecting to client dashboard...')
-          window.location.href = '/client/dashboard'
-        }
-      }, 100)
+      // Mark as redirected so the useEffect doesn't fire a second redirect
+      hasRedirectedRef.current = true
+
+      if (adminRoles.includes(role)) {
+        router.replace('/admin/dashboard')
+      } else if (role === 'TRANSPORTER') {
+        router.replace('/transporter/dashboard')
+      } else {
+        router.replace('/client/dashboard')
+      }
     } catch (err: any) {
       console.error('[Login] Catch error:', err)
       setLoading(false)
