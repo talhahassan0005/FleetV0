@@ -22,7 +22,8 @@ export default function AdminDashboardPage() {
           const skip = (currentPage - 1) * itemsPerPage
           const res = await fetch(`/api/dashboard/admin-stats?skip=${skip}&limit=${itemsPerPage}`, {
             credentials: 'include',
-          }, { cache: 'no-store' })
+            cache: 'no-store'
+          })
           
           // Silently handle 401 without logging
           if (res.status === 401) {
