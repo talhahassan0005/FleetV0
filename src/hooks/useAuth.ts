@@ -81,24 +81,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(async () => {
     try {
-      // Tell server to clear httpOnly cookies
+      // FIX: First clear client state to prevent blinking
+      setAccessToken(null);
+      setUser(null);
+
+      // Clear browser storage immediately
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        sessionStorage.clear();
+      }
+
+      // Then tell server to clear httpOnly cookies
       await fetch('/api/auth/jwt-logout', {
         method: 'POST',
         credentials: 'include',
       });
+
+      // FIX: Use a small delay to ensure state is cleared before redirect
+      // This prevents the blinking issue
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          // Use replace to prevent back button from returning to dashboard
+          window.location.replace('/login');
+        }, 100);
+      }
     } catch (e) {
-      // ignore network errors on logout
-    }
-
-    // Clear client state
-    setAccessToken(null);
-    setUser(null);
-
-    if (typeof window !== 'undefined') {
-      localStorage.clear();
-      sessionStorage.clear();
-      // Replace so back button doesn't return to dashboard
-      window.location.replace('/login');
+      // Even on network error, still redirect
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          window.location.replace('/login');
+        }, 100);
+      }
     }
   }, []);
 
