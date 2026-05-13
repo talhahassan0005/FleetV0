@@ -63,11 +63,7 @@ export default function ClientDashboard() {
   }, [user?.id, isInitialized, router, currentPage])
 
   if (!isInitialized || loading) {
-    return (
-      <div className="p-6">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3ab54a]"></div>
-      </div>
-    )
+    
   }
 
   return (
@@ -154,7 +150,7 @@ export default function ClientDashboard() {
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center">
                     <p className="text-gray-500 mb-4">No loads posted yet.</p>
-                    <Link href="/book-a-load" className="inline-block px-4 py-2 bg-[#3ab54a] text-white rounded hover:bg-[#2d9e3c] transition-colors text-sm font-semibold">
+                    <Link href="/client/post-load" className="inline-block px-4 py-2 bg-[#3ab54a] text-white rounded hover:bg-[#2d9e3c] transition-colors text-sm font-semibold">
                       Post your first load →
                     </Link>
                   </td>
