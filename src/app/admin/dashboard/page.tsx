@@ -1,4 +1,6 @@
 'use client'
+
+export const dynamic = 'force-dynamic'
 // src/app/admin/dashboard/page.tsx
 import { useEffect, useState } from 'react'
 import { Topbar, PageLayout, StatCard, Pagination } from '@/components/ui'
@@ -20,7 +22,7 @@ export default function AdminDashboardPage() {
           const skip = (currentPage - 1) * itemsPerPage
           const res = await fetch(`/api/dashboard/admin-stats?skip=${skip}&limit=${itemsPerPage}`, {
             credentials: 'include',
-          })
+          }, { cache: 'no-store' })
           
           // Silently handle 401 without logging
           if (res.status === 401) {
@@ -182,7 +184,7 @@ export default function AdminDashboardPage() {
           </div>
           
           {/* Pagination */}
-          {!loading && totalPages > 1 && (
+          {!loading && (
             <div className="flex justify-center mt-6">
               <Pagination
                 currentPage={currentPage}
