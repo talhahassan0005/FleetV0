@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useContext, createContext } from 'react';
 import { JWTPayload } from '@/lib/jwt-utils';
+import Cookies from 'js-cookie';
 
 interface AuthContextType {
   user: JWTPayload | null;
@@ -9,7 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   accessToken: string | null;
   login: (email: string, password: string) => Promise<any>;
-  logout: () => Promise<void>;
+  logout: () => void;
   refreshToken: () => Promise<boolean>;
 }
 
@@ -20,98 +21,100 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // On mount: verify session with server (source of truth = httpOnly cookie)
+  // Initialize from localStorage
   useEffect(() => {
-    async function initSession() {
+    const storedToken = localStorage.getItem('accessToken');
+    if (storedToken) {
       try {
-        const res = await fetch('/api/auth/me', {
-          method: 'GET',
-          credentials: 'include',
-          cache: 'no-store',
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-          setAccessToken(data.accessToken || 'cookie'); // mark as authenticated
-        } else {
-          // Not authenticated — clear any stale localStorage
-          if (typeof window !== 'undefined') {
+        // Decode token to verify it's valid
+        const parts = storedToken.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          
+          // Check if token is expired
+          if (payload.exp && Date.now() < payload.exp * 1000) {
+            setAccessToken(storedToken);
+            setUser(payload);
+          } else {
+            // Token expired, clear it
             localStorage.removeItem('accessToken');
+            refreshTokenHandler();
           }
-          setUser(null);
-          setAccessToken(null);
         }
-      } catch (err) {
-        console.error('[useAuth] Session init error:', err);
-        setUser(null);
-        setAccessToken(null);
-      } finally {
-        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to parse stored token:', error);
+        localStorage.removeItem('accessToken');
       }
     }
-    initSession();
+    setIsLoading(false);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
+      console.log('[useAuth] Login attempt for:', email);
+      
       const response = await fetch('/api/auth/jwt-login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
 
+      console.log('[useAuth] Response status:', response.status);
+      console.log('[useAuth] Response OK:', response.ok);
+
       if (!response.ok) {
         const error = await response.json();
+        console.error('[useAuth] Login error:', error);
         throw new Error(error.error || 'Login failed');
       }
 
       const data = await response.json();
-
-      // httpOnly cookie is set by the server — just update local state
-      setAccessToken(data.accessToken || 'cookie');
+      console.log('[useAuth] Response data received:', {
+        hasAccessToken: !!data.accessToken,
+        hasUser: !!data.user,
+        userRole: data.user?.role,
+        accessTokenLength: data.accessToken?.length,
+      });
+      
+      if (!data.accessToken) {
+        throw new Error('No access token in response');
+      }
+      
+      // Store access token in localStorage
+      localStorage.setItem('accessToken', data.accessToken);
+      setAccessToken(data.accessToken);
       setUser(data.user);
 
+      console.log('[useAuth] Login successful for user:', data.user?.email);
       return { success: true, user: data.user };
     } catch (error: any) {
+      console.error('[useAuth] Login error:', error.message);
       return { success: false, error: error.message };
     }
   }, []);
 
-  const logout = useCallback(async () => {
-    try {
-      // FIX: First clear client state to prevent blinking
-      setAccessToken(null);
-      setUser(null);
-
-      // Clear browser storage immediately
-      if (typeof window !== 'undefined') {
-        localStorage.clear();
-        sessionStorage.clear();
-      }
-
-      // Then tell server to clear httpOnly cookies
-      await fetch('/api/auth/jwt-logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      // FIX: Use a small delay to ensure state is cleared before redirect
-      // This prevents the blinking issue
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          // Use replace to prevent back button from returning to dashboard
-          window.location.replace('/login');
-        }, 100);
-      }
-    } catch (e) {
-      // Even on network error, still redirect
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          window.location.replace('/login');
-        }, 100);
-      }
+  const logout = useCallback(() => {
+    // Clear server-side httpOnly cookies via API (silently)
+    fetch('/api/auth/jwt-logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    
+    // Clear client-side storage
+    localStorage.removeItem('accessToken');
+    setAccessToken(null);
+    setUser(null);
+    Cookies.remove('refreshToken');
+    Cookies.remove('accessToken');
+    
+    // Clear browser history and redirect to login
+    if (typeof window !== 'undefined') {
+      // Clear all browser storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Navigate to login page with replace to prevent back button
+      window.location.replace('/login');
     }
   }, []);
 
@@ -123,28 +126,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (!response.ok) {
-        await logout();
+        logout();
         return false;
       }
 
       const data = await response.json();
-      setAccessToken(data.accessToken || 'cookie');
+      localStorage.setItem('accessToken', data.accessToken);
+      setAccessToken(data.accessToken);
 
-      // Decode new token to update user state
-      if (data.accessToken) {
-        try {
-          const parts = data.accessToken.split('.');
-          if (parts.length === 3) {
-            const payload = JSON.parse(atob(parts[1]));
-            setUser(payload);
-          }
-        } catch (e) {}
+      // Decode new token to update user
+      const parts = data.accessToken.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        setUser(payload);
       }
 
       return true;
     } catch (error) {
-      console.error('[useAuth] Token refresh failed:', error);
-      await logout();
+      console.error('Token refresh failed:', error);
+      logout();
       return false;
     }
   }, [logout]);
@@ -159,7 +159,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshToken: refreshTokenHandler,
   };
 
-  return React.createElement(AuthContext.Provider, { value: contextValue }, children);
+  return React.createElement(
+    AuthContext.Provider,
+    { value: contextValue },
+    children
+  );
 };
 
 export function useAuth(): AuthContextType {
@@ -170,30 +174,39 @@ export function useAuth(): AuthContextType {
   return context;
 }
 
+/**
+ * Hook to automatically refresh token before expiry
+ */
 export function useAutoRefreshToken() {
   const { accessToken, refreshToken } = useAuth();
 
   useEffect(() => {
-    if (!accessToken || accessToken === 'cookie') return;
+    if (!accessToken) return;
 
     try {
       const parts = accessToken.split('.');
       if (parts.length !== 3) return;
+
       const payload = JSON.parse(atob(parts[1]));
       if (!payload.exp) return;
 
+      // Refresh token 5 minutes before expiry
       const expiresIn = payload.exp * 1000 - Date.now();
-      const refreshTime = expiresIn - 5 * 60 * 1000;
+      const refreshTime = expiresIn - 5 * 60 * 1000; // 5 minutes before expiry
 
       if (refreshTime <= 0) {
+        // Token already expired or expiring soon
         refreshToken();
         return;
       }
 
-      const timer = setTimeout(() => refreshToken(), refreshTime);
+      const timer = setTimeout(() => {
+        refreshToken();
+      }, refreshTime);
+
       return () => clearTimeout(timer);
     } catch (error) {
-      console.error('[useAuth] Failed to setup token refresh:', error);
+      console.error('Failed to setup token refresh:', error);
     }
   }, [accessToken, refreshToken]);
 }
