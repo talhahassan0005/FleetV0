@@ -119,7 +119,7 @@ export default function AdminInvoicesPage() {
         setAllInvoicesStats(data.stats)
       }
       
-      const calculatedTotalPages = (data.total || data.invoices?.length ?? 0) > 0 ? Math.ceil((data.total || data.invoices?.length ?? 0) / itemsPerPage) : 1
+      const calculatedTotalPages = (data.total || (data.invoices?.length ?? 0)) > 0 ? Math.ceil((data.total || (data.invoices?.length ?? 0)) / itemsPerPage) : 1
       setTotalPages(calculatedTotalPages)
       console.log('Invoice Pagination Debug:', { 
         total: data.total, 

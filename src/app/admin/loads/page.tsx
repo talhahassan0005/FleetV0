@@ -77,7 +77,7 @@ export default function AdminLoadsPage() {
         if (res.ok) {
           const data = await res.json()
           setLoads(data.loads || [])
-          const calculatedTotalPages = (data.total || data.loads?.length ?? 0) > 0 ? Math.ceil((data.total || data.loads?.length ?? 0) / itemsPerPage) : 1
+          const calculatedTotalPages = (data.total || (data.loads?.length ?? 0)) > 0 ? Math.ceil((data.total || (data.loads?.length ?? 0)) / itemsPerPage) : 1
           setTotalPages(calculatedTotalPages)
         }
       } catch (err) {

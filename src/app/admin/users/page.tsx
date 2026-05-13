@@ -63,7 +63,7 @@ export default function AdminUsersPage() {
         if (res.ok) {
           const data = await res.json()
           setUsers(data.users || [])
-          const calculatedTotalPages = (data.total || data.users?.length ?? 0) > 0 ? Math.ceil((data.total || data.users?.length ?? 0) / itemsPerPage) : 1
+          const calculatedTotalPages = (data.total || (data.users?.length ?? 0)) > 0 ? Math.ceil((data.total || (data.users?.length ?? 0)) / itemsPerPage) : 1
           setTotalPages(calculatedTotalPages)
           console.log('Users Pagination Debug:', { 
             total: data.total, 

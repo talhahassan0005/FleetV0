@@ -100,7 +100,7 @@ export default function AdminDocumentsPage() {
       console.log('[AdminDocuments] Success! Documents:', data.data?.length)
       
       setDocuments(data.data || [])
-      const calculatedTotalPages = (data.total || data.data?.length ?? 0) > 0 ? Math.ceil((data.total || data.data?.length ?? 0) / itemsPerPage) : 1
+      const calculatedTotalPages = (data.total || (data.data?.length ?? 0)) > 0 ? Math.ceil((data.total || (data.data?.length ?? 0)) / itemsPerPage) : 1
       setTotalPages(calculatedTotalPages)
       console.log('Admin Documents Pagination Debug:', { 
         total: data.total, 
