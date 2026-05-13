@@ -34,6 +34,7 @@ export default function AdminLoadsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedLoadId, setSelectedLoadId] = useState<string | null>(null)
   const [tabLoading, setTabLoading] = useState(false)
+  const [clickedTab, setClickedTab] = useState<string | null>(null) // track WHICH tab was clicked
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const itemsPerPage = 10
@@ -57,6 +58,7 @@ export default function AdminLoadsPage() {
       } finally {
         setLoading(false)
         setTabLoading(false)
+        setClickedTab(null) // reset clicked tab tracker
       }
     }
 
@@ -86,25 +88,6 @@ export default function AdminLoadsPage() {
     setSelectedLoadId(null)
   }
 
-  // FIX: Handle tab clicks properly to stay on loads page
-  const handleTabClick = (newStatus: string) => {
-    // Prevent unnecessary navigation if already on the same tab
-    if (status === newStatus) {
-      return
-    }
-    
-    setTabLoading(true)
-    setCurrentPage(1) // Reset to first page when changing tabs
-    
-    // Navigate to loads page with status filter
-    if (newStatus) {
-      router.push(`/admin/loads?status=${newStatus}`)
-    } else {
-      // For "All" tab, go to loads without any query params
-      router.push('/admin/loads')
-    }
-  }
-
   if (loading) {
     return (
       <div className="p-6">
@@ -121,7 +104,13 @@ export default function AdminLoadsPage() {
         {STATUSES.map(s => (
           <button
             key={s}
-            onClick={() => handleTabClick(s)}
+            onClick={() => {
+              if (tabLoading || status === s) return // prevent double-click same tab
+              setTabLoading(true)
+              setClickedTab(s)
+              setCurrentPage(1) // reset to page 1 on tab change
+              router.push(`/admin/loads${s ? `?status=${s}` : ''}`)
+            }}
             disabled={tabLoading}
             className={`whitespace-nowrap px-4 py-2 rounded text-sm font-semibold transition-colors flex items-center gap-2 ${
               status === s
@@ -129,7 +118,7 @@ export default function AdminLoadsPage() {
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             } ${tabLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
-            {tabLoading && status === s && (
+            {tabLoading && clickedTab === s && (
               <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
             )}
             {STATUS_LABELS[s]}
@@ -223,9 +212,6 @@ export default function AdminLoadsPage() {
       {/* Pagination */}
       {!loading && loads.length > 0 && totalPages > 0 && (
         <div className="mt-6">
-          <div className="text-sm text-gray-600 mb-2">
-            Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Loads: {loads.length}
-          </div>
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

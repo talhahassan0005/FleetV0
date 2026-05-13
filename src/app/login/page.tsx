@@ -21,20 +21,22 @@ function LoginContent() {
   const [isMounted, setIsMounted] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
 
-  // Redirect authenticated users
+  // Redirect already-authenticated users (e.g. visiting /login while logged in)
+  // Only fires on initial mount when session is detected — NOT after handleSubmit
+  // handleSubmit does its own redirect to avoid double-redirect blink
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
-      
       if (adminRoles.includes(user.role)) {
-        window.location.replace('/admin/dashboard')
+        router.replace('/admin/dashboard')
       } else if (user.role === 'TRANSPORTER') {
-        window.location.replace('/transporter/dashboard')
+        router.replace('/transporter/dashboard')
       } else {
-        window.location.replace('/client/dashboard')
+        router.replace('/client/dashboard')
       }
     }
-  }, [isAuthenticated, user, isLoading])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]) // Only run once when loading finishes — not on every auth state change
 
   // Ensure component is mounted before using searchParams to avoid hydration errors
   useEffect(() => {
@@ -83,15 +85,16 @@ function LoginContent() {
       console.log('[Login] Success! User role:', data.user?.role)
       
       // Token is already in httpOnly cookie set by server
+      // Use router.replace for smooth SPA navigation — avoids full-page reload blink
       const role = data.user?.role
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
       
       if (adminRoles.includes(role)) {
-        window.location.replace('/admin/dashboard')
+        router.replace('/admin/dashboard')
       } else if (role === 'TRANSPORTER') {
-        window.location.replace('/transporter/dashboard')
+        router.replace('/transporter/dashboard')
       } else {
-        window.location.replace('/client/dashboard')
+        router.replace('/client/dashboard')
       }
     } catch (err: any) {
       console.error('[Login] Catch error:', err)
