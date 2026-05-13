@@ -1,7 +1,7 @@
 // src/app/admin/loads/page.tsx
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { AdminLoadActions } from '@/components/admin/AdminLoadActions'
 import { Pagination } from '@/components/ui/Pagination'
@@ -25,7 +25,8 @@ interface Load {
 
 import { hasPermission } from '@/lib/rbac'
 
-export default function AdminLoadsPage() {
+// ─── Inner component uses useSearchParams — must be inside Suspense ───────────
+function AdminLoadsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const status = searchParams.get('status') ?? ''
@@ -34,19 +35,20 @@ export default function AdminLoadsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedLoadId, setSelectedLoadId] = useState<string | null>(null)
   const [tabLoading, setTabLoading] = useState(false)
-  const [clickedTab, setClickedTab] = useState<string | null>(null) // track WHICH tab was clicked
+  const [clickedTab, setClickedTab] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const itemsPerPage = 10
 
   useEffect(() => {
+    setLoading(true)
     const fetchLoads = async () => {
       try {
         const skip = (currentPage - 1) * itemsPerPage
-        const url = status 
+        const url = status
           ? `/api/admin/loads?status=${status}&skip=${skip}&limit=${itemsPerPage}`
           : `/api/admin/loads?skip=${skip}&limit=${itemsPerPage}`
-        
+
         const res = await fetch(url)
         if (res.ok) {
           const data = await res.json()
@@ -58,7 +60,7 @@ export default function AdminLoadsPage() {
       } finally {
         setLoading(false)
         setTabLoading(false)
-        setClickedTab(null) // reset clicked tab tracker
+        setClickedTab(null)
       }
     }
 
@@ -66,19 +68,17 @@ export default function AdminLoadsPage() {
   }, [status, currentPage])
 
   const handleActionSuccess = () => {
-    // Refresh loads after action
     const fetchLoads = async () => {
       try {
         const skip = (currentPage - 1) * itemsPerPage
-        const url = status 
+        const url = status
           ? `/api/admin/loads?status=${status}&skip=${skip}&limit=${itemsPerPage}`
           : `/api/admin/loads?skip=${skip}&limit=${itemsPerPage}`
         const res = await fetch(url)
         if (res.ok) {
           const data = await res.json()
           setLoads(data.loads || [])
-          const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.loads?.length || 0) / itemsPerPage))
-          setTotalPages(calculatedTotalPages)
+          setTotalPages(Math.max(1, Math.ceil((data.total || data.loads?.length || 0) / itemsPerPage)))
         }
       } catch (err) {
         console.error('Error refreshing loads:', err)
@@ -105,10 +105,10 @@ export default function AdminLoadsPage() {
           <button
             key={s}
             onClick={() => {
-              if (tabLoading || status === s) return // prevent double-click same tab
+              if (tabLoading || status === s) return
               setTabLoading(true)
               setClickedTab(s)
-              setCurrentPage(1) // reset to page 1 on tab change
+              setCurrentPage(1)
               router.push(`/admin/loads${s ? `?status=${s}` : ''}`)
             }}
             disabled={tabLoading}
@@ -167,7 +167,7 @@ export default function AdminLoadsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
-                      <Link 
+                      <Link
                         href={`/admin/loads/${load._id}`}
                         className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-semibold transition-colors"
                       >
@@ -194,7 +194,7 @@ export default function AdminLoadsPage() {
                   <td colSpan={5} className="px-4 py-4">
                     <div className="bg-white p-4 rounded border border-blue-200">
                       <h3 className="font-bold text-[#1a2a5e] mb-4">Manage Load - {loads.find(l => l._id === selectedLoadId)?.ref}</h3>
-                      <AdminLoadActions 
+                      <AdminLoadActions
                         loadId={selectedLoadId}
                         action="loadManagement"
                         onSuccess={handleActionSuccess}
@@ -209,7 +209,6 @@ export default function AdminLoadsPage() {
         </div>
       </div>
 
-      {/* Pagination */}
       {!loading && loads.length > 0 && totalPages > 0 && (
         <div className="mt-6">
           <Pagination
@@ -221,5 +220,20 @@ export default function AdminLoadsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+// ─── Default export wraps content in Suspense ─────────────────────────────────
+// REQUIRED: useSearchParams() crashes without Suspense in Next.js App Router
+// Without this, Next.js silently redirects to /admin → /admin/dashboard
+export default function AdminLoadsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3ab54a]"></div>
+      </div>
+    }>
+      <AdminLoadsContent />
+    </Suspense>
   )
 }
