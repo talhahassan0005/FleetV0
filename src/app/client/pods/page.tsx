@@ -62,14 +62,14 @@ export default function ClientPodsPage() {
     try {
       setLoading(true)
       const skip = (currentPage - 1) * itemsPerPage
-      const res = await fetch(`/api/client/pods/all?skip=${skip}&limit=${itemsPerPage}`)
+      const res = await fetch(`/api/client/pods/all?skip=${skip}&limit=${itemsPerPage}`, { cache: 'no-store' })
       if (!res.ok) throw new Error('Failed to fetch PODs')
 
       const data = await res.json()
       setPods(data.data || [])
       const total = data.total || 0
       setTotalCount(total)
-      setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
+      setTotalPages(total > 0 ? Math.ceil(total / itemsPerPage) : 1)
       setError('')
     } catch (err) {
       console.error('[ClientPODs] Error:', err)
@@ -308,7 +308,7 @@ export default function ClientPodsPage() {
           </div>
         )}
 
-        {totalPages > 1 && (
+        {(
           <div className="mt-8">
             <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} loading={loading} />
           </div>

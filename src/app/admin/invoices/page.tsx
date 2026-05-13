@@ -1,5 +1,7 @@
 // src/app/admin/invoices/page.tsx
 'use client'
+
+export const dynamic = 'force-dynamic'
 import { useAuth } from '@/hooks/useAuth'
 
 import { useEffect, useState } from 'react'
@@ -102,7 +104,8 @@ export default function AdminInvoicesPage() {
       const skip = (page - 1) * itemsPerPage
       const res = await fetch(`/api/admin/invoices?skip=${skip}&limit=${itemsPerPage}`, {
         credentials: 'include',
-      })
+            cache: 'no-store'
+          })
       
       if (!res.ok) {
         throw new Error('Failed to fetch invoices')
@@ -116,7 +119,7 @@ export default function AdminInvoicesPage() {
         setAllInvoicesStats(data.stats)
       }
       
-      const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.invoices?.length || 0) / itemsPerPage))
+      const calculatedTotalPages = (data.total || data.invoices?.length ?? 0) > 0 ? Math.ceil((data.total || data.invoices?.length ?? 0) / itemsPerPage) : 1
       setTotalPages(calculatedTotalPages)
       console.log('Invoice Pagination Debug:', { 
         total: data.total, 

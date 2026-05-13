@@ -31,22 +31,26 @@ if (!user?.id || user.role !== 'TRANSPORTER') {
     console.log('[TransporterLoads] Found quotes:', quotes.length)
 
     if (quotes.length === 0) {
-      console.log('[TransporterLoads] No quotes found, returning empty array')
-      return NextResponse.json({
-        success: true,
-        data: [],
-      })
+      return NextResponse.json({ success: true, data: [], total: 0 })
     }
+
+    const skip = parseInt(req.nextUrl.searchParams.get('skip') || '0', 10)
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10)
 
     // Get associated loads
     const loadIds = [...new Set(quotes.map(q => q.loadId.toString()))]
-    console.log('[TransporterLoads] Fetching loads with IDs:', loadIds)
-    
+    const loadObjectIds = loadIds.map(id => new ObjectId(id))
+
+    const total = await db.collection('loads').countDocuments({
+      _id: { $in: loadObjectIds }
+    })
+
     const loads = await db
       .collection('loads')
-      .find({
-        _id: { $in: loadIds.map(id => new ObjectId(id)) }
-      })
+      .find({ _id: { $in: loadObjectIds } })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray()
 
     console.log('[TransporterLoads] Found loads:', loads.length)
@@ -89,6 +93,7 @@ if (!user?.id || user.role !== 'TRANSPORTER') {
     return NextResponse.json({
       success: true,
       data: loadsWithClient,
+      total,
     })
   } catch (err: any) {
     console.error('[TransporterLoads] Error:', err)

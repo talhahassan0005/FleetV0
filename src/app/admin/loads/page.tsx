@@ -1,5 +1,7 @@
 // src/app/admin/loads/page.tsx
 'use client'
+
+export const dynamic = 'force-dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -46,11 +48,11 @@ export default function AdminLoadsPage() {
           ? `/api/admin/loads?status=${status}&skip=${skip}&limit=${itemsPerPage}`
           : `/api/admin/loads?skip=${skip}&limit=${itemsPerPage}`
         
-        const res = await fetch(url)
+        const res = await fetch(url, { cache: 'no-store' })
         if (res.ok) {
           const data = await res.json()
           setLoads(data.loads || [])
-          setTotalPages(Math.max(1, Math.ceil((data.total || 0) / itemsPerPage)))
+          setTotalPages((data.total ?? 0) > 0 ? Math.ceil((data.total ?? 0) / itemsPerPage) : 1)
         }
       } catch (err) {
         console.error('Error fetching loads:', err)
@@ -71,11 +73,11 @@ export default function AdminLoadsPage() {
         const url = status 
           ? `/api/admin/loads?status=${status}&skip=${skip}&limit=${itemsPerPage}`
           : `/api/admin/loads?skip=${skip}&limit=${itemsPerPage}`
-        const res = await fetch(url)
+        const res = await fetch(url, { cache: 'no-store' })
         if (res.ok) {
           const data = await res.json()
           setLoads(data.loads || [])
-          const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.loads?.length || 0) / itemsPerPage))
+          const calculatedTotalPages = (data.total || data.loads?.length ?? 0) > 0 ? Math.ceil((data.total || data.loads?.length ?? 0) / itemsPerPage) : 1
           setTotalPages(calculatedTotalPages)
         }
       } catch (err) {
@@ -205,7 +207,7 @@ export default function AdminLoadsPage() {
       </div>
 
       {/* Pagination */}
-      {!loading && loads.length > 0 && totalPages > 0 && (
+      {!loading && loads.length > 0 && (
         <div className="mt-6">
           <div className="text-sm text-gray-600 mb-2">
             Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Loads: {loads.length}

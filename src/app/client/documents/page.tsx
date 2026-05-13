@@ -42,7 +42,7 @@ export default function ClientDocumentsPage() {
       const data = await res.json()
       setDocuments(data.data || [])
       const total = data.total || data.data?.length || 0
-      setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
+      setTotalPages(total > 0 ? Math.ceil(total / itemsPerPage) : 1)
     } catch (err) {
       setDocuments([])
     } finally {
@@ -333,7 +333,7 @@ export default function ClientDocumentsPage() {
             </div>
           )}
           
-          {totalPages > 1 && (
+          {(
             <div className="mt-6">
               <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} loading={loading} />
             </div>

@@ -1,5 +1,7 @@
 // src/app/admin/users/page.tsx
 'use client'
+
+export const dynamic = 'force-dynamic'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -57,11 +59,11 @@ export default function AdminUsersPage() {
           ? `/api/admin/users?role=${roleFilter}&skip=${skip}&limit=${itemsPerPage}` 
           : `/api/admin/users?skip=${skip}&limit=${itemsPerPage}`
         
-        const res = await fetch(url)
+        const res = await fetch(url, { cache: 'no-store' })
         if (res.ok) {
           const data = await res.json()
           setUsers(data.users || [])
-          const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.users?.length || 0) / itemsPerPage))
+          const calculatedTotalPages = (data.total || data.users?.length ?? 0) > 0 ? Math.ceil((data.total || data.users?.length ?? 0) / itemsPerPage) : 1
           setTotalPages(calculatedTotalPages)
           console.log('Users Pagination Debug:', { 
             total: data.total, 
@@ -161,7 +163,7 @@ export default function AdminUsersPage() {
         showToast('Sub-admin created successfully')
         setShowSubAdminModal(false)
         setSubAdminForm({ email: '', password: '', companyName: '', adminRole: 'pod_manager' })
-        const r = await fetch('/api/admin/sub-admins')
+        const r = await fetch('/api/admin/sub-admins', { cache: 'no-store' })
         const d = await r.json()
         setSubAdmins(d.admins || [])
       } else {
@@ -313,7 +315,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Pagination */}
-      {!loading && users.length > 0 && totalPages > 0 && (
+      {!loading && users.length > 0 && (
         <div className="mt-6">
           <div className="text-sm text-gray-600 mb-2">
             Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Users: {users.length}

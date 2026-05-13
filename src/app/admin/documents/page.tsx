@@ -1,4 +1,6 @@
 'use client'
+
+export const dynamic = 'force-dynamic'
 // src/app/admin/documents/page.tsx
 import { useEffect, useState } from 'react'
 import { Topbar, PageLayout, DocumentsTableSkeleton, Pagination } from '@/components/ui'
@@ -85,7 +87,7 @@ export default function AdminDocumentsPage() {
       const limit = itemsPerPage
       
       console.log('[AdminDocuments] Fetching documents...', { skip, limit, page })
-      const res = await fetch(`/api/documents?skip=${skip}&limit=${limit}`)
+      const res = await fetch(`/api/documents?skip=${skip}&limit=${limit}`, { cache: 'no-store' })
       
       if (!res.ok) {
         const error = await res.json()
@@ -98,7 +100,7 @@ export default function AdminDocumentsPage() {
       console.log('[AdminDocuments] Success! Documents:', data.data?.length)
       
       setDocuments(data.data || [])
-      const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.data?.length || 0) / itemsPerPage))
+      const calculatedTotalPages = (data.total || data.data?.length ?? 0) > 0 ? Math.ceil((data.total || data.data?.length ?? 0) / itemsPerPage) : 1
       setTotalPages(calculatedTotalPages)
       console.log('Admin Documents Pagination Debug:', { 
         total: data.total, 
@@ -395,7 +397,7 @@ export default function AdminDocumentsPage() {
           )}
           
           {/* Pagination */}
-          {!loading && documents.length > 0 && totalPages > 0 && (
+          {!loading && documents.length > 0 && (
             <div className="flex justify-center mt-6">
               <div className="text-sm text-gray-600 mb-2">
                 Debug: Current Page: {currentPage}, Total Pages: {totalPages}, Documents: {documents.length}

@@ -52,14 +52,14 @@ export default function MyQuotesPage() {
     if (!user?.role || user.role !== 'TRANSPORTER') {
       router.push('/login')
     }
-  }, [user, router, status])
+  }, [user, router, isLoading])
 
   useEffect(() => {
     const fetchQuotes = async () => {
       try {
         setLoading(true)
         const skip = (currentPage - 1) * itemsPerPage
-        const res = await fetch(`/api/transporter/my-quotes?skip=${skip}&limit=${itemsPerPage}`)
+        const res = await fetch(`/api/transporter/my-quotes?skip=${skip}&limit=${itemsPerPage}`, { cache: 'no-store' })
 
         if (!res.ok) {
           const errorData = await res.json()
@@ -78,7 +78,7 @@ export default function MyQuotesPage() {
         setQuotes(data.quotes || [])
         const total = data.total || 0
         setTotalCount(total)
-        setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
+        setTotalPages(total > 0 ? Math.ceil(total / itemsPerPage) : 1)
         setError('')
       } catch (err) {
         console.error('Error fetching quotes:', err)
@@ -91,7 +91,7 @@ export default function MyQuotesPage() {
     if (!!user && user?.role === 'TRANSPORTER') {
       fetchQuotes()
     }
-  }, [status, user?.role, currentPage])
+  }, [user, currentPage])
 
   if (loading || isLoading) {
     return (
@@ -274,7 +274,7 @@ export default function MyQuotesPage() {
         </div>
 
         {/* Pagination */}
-        {!loading && totalPages > 1 && (
+        {!loading && (
           <div className="mt-8">
             <Pagination
               currentPage={currentPage}

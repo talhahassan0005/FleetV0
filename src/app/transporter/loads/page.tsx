@@ -50,7 +50,7 @@ export default function AvailableLoadsPage() {
       try {
         setLoading(true)
         const skip = (currentPage - 1) * itemsPerPage
-        const res = await fetch(`/api/transporter/available-loads?skip=${skip}&limit=${itemsPerPage}`)
+        const res = await fetch(`/api/transporter/available-loads?skip=${skip}&limit=${itemsPerPage}`, { cache: 'no-store' })
 
         if (!res.ok) {
           const errorData = await res.json()
@@ -59,8 +59,8 @@ export default function AvailableLoadsPage() {
         }
 
         const data = await res.json()
-        setLoads(data.loads || [])
-        const total = data.total || 0
+        setLoads(data.data || data.loads || [])
+        const total = data.total ?? 0
         setTotalCount(total)
         setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
         setError('')
@@ -225,7 +225,7 @@ export default function AvailableLoadsPage() {
         </div>
 
         {/* Pagination */}
-        {!loading && totalPages > 1 && (
+        {!loading && (
           <div className="mt-8">
             <Pagination
               currentPage={currentPage}

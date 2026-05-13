@@ -55,7 +55,7 @@ export default function TransporterInvoicesPage() {
         setInvoices(data.invoices || [])
         const total = data.total || 0
         setTotalCount(total)
-        setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
+        setTotalPages(total > 0 ? Math.ceil(total / itemsPerPage) : 1)
       }
     } catch (err) {
       console.error('Error fetching invoices:', err)
@@ -224,7 +224,7 @@ export default function TransporterInvoicesPage() {
         )}
 
         {/* Pagination */}
-        {!loading && totalPages > 1 && (
+        {!loading && (
           <div className="mt-8">
             <Pagination
               currentPage={currentPage}

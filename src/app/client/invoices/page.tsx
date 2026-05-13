@@ -104,7 +104,7 @@ export default function ClientInvoicesPage() {
     try {
       setLoading(true)
       setError('')
-      const res = await fetch('/api/client/loads-with-pods')
+      const res = await fetch('/api/client/loads-with-pods', { cache: 'no-store' })
       if (!res.ok) {
         const errorData = await res.json()
         setError(errorData.error || 'Failed to fetch loads')
@@ -123,7 +123,7 @@ export default function ClientInvoicesPage() {
 
   const fetchQBInvoices = async () => {
     try {
-      const res = await fetch('/api/client/invoices')
+      const res = await fetch('/api/client/invoices', { cache: 'no-store' })
       if (!res.ok) return
       const data = await res.json()
       if (data.success && Array.isArray(data.invoices)) {
@@ -492,7 +492,7 @@ export default function ClientInvoicesPage() {
               </div>
             )}
 
-            {computedTotalPages > 1 && (
+            {(
               <div className="mt-8">
                 <Pagination currentPage={currentPage} totalPages={computedTotalPages} onPageChange={setCurrentPage} loading={loading} />
               </div>
