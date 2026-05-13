@@ -51,6 +51,9 @@ export default function AdminLoadsPage() {
           const data = await res.json()
           setLoads(data.loads || [])
           setTotalPages(Math.max(1, Math.ceil((data.total || 0) / itemsPerPage)))
+        } else if (res.status === 401) {
+          router.replace('/login')
+          return
         }
       } catch (err) {
         console.error('Error fetching loads:', err)
@@ -77,6 +80,9 @@ export default function AdminLoadsPage() {
           setLoads(data.loads || [])
           const calculatedTotalPages = Math.max(1, Math.ceil((data.total || data.loads?.length || 0) / itemsPerPage))
           setTotalPages(calculatedTotalPages)
+        } else if (res.status === 401) {
+          router.replace('/login')
+          return
         }
       } catch (err) {
         console.error('Error refreshing loads:', err)
