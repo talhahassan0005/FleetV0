@@ -109,6 +109,9 @@ if (!user?.id || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER
         }
       },
       {
+        $sort: { createdAt: -1 }
+      },
+      {
         $skip: skip
       },
       {
