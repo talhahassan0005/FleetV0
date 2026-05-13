@@ -23,7 +23,7 @@ interface Load {
 }
 
 export default function ClientDashboard() {
-  const { user } = useAuth()
+  const { user, isInitialized } = useAuth()
   const router = useRouter()
   const [loads, setLoads] = useState<Load[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,6 +33,7 @@ export default function ClientDashboard() {
   const itemsPerPage = 10
 
   useEffect(() => {
+    if (!isInitialized) return
     if (!user?.id) {
       router.push('/login')
       return
@@ -59,9 +60,9 @@ export default function ClientDashboard() {
     }
 
     fetchLoads()
-  }, [user, router, currentPage])
+  }, [user?.id, isInitialized, router, currentPage])
 
-  if (loading) {
+  if (!isInitialized || loading) {
     return (
       <div className="p-6">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3ab54a]"></div>

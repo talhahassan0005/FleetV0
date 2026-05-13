@@ -21,7 +21,7 @@ interface Load {
 }
 
 export default function AvailableLoadsPage() {
-  const { user, isLoading } = useAuth()
+  const { user, isInitialized } = useAuth()
   const router = useRouter()
   const { isVerified, refreshVerificationStatus } = useVerificationStatus()
   const [loads, setLoads] = useState<Load[]>([])
@@ -38,12 +38,12 @@ export default function AvailableLoadsPage() {
   }, [])
 
   useEffect(() => {
-    if (isLoading) return
+    if (!isInitialized) return
     if (!user?.role || user.role !== 'TRANSPORTER') {
       router.push('/login')
       return
     }
-  }, [user, status, router])
+  }, [user, isInitialized, router])
 
   useEffect(() => {
     const fetchLoads = async () => {
@@ -72,13 +72,13 @@ export default function AvailableLoadsPage() {
       }
     }
 
-    // Only fetch once on mount when session is verified
-    if (user?.role === 'TRANSPORTER') {
+    // Only fetch after auth is confirmed
+    if (isInitialized && user?.role === 'TRANSPORTER') {
       fetchLoads()
     }
-  }, [user, router, currentPage])
+  }, [isInitialized, user, router, currentPage])
 
-  if (loading) {
+  if (!isInitialized || loading) {
     return (
       <>
         <Topbar title="Available Loads" />

@@ -22,7 +22,7 @@ interface User {
 }
 
 export default function AdminUsersPage() {
-  const { user, isLoading } = useAuth()
+  const { user, isInitialized } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const roleFilter = searchParams.get('role') || ''
@@ -42,7 +42,7 @@ export default function AdminUsersPage() {
   const isSuperAdmin = ['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER'].includes(user?.role ?? '') && (!(user as any)?.adminRole || (user as any)?.adminRole === 'superadmin')
 
   useEffect(() => {
-    if (isLoading) return
+    if (!isInitialized) return
     if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(user?.role)) {
       router.push('/login')
       return
@@ -89,7 +89,7 @@ export default function AdminUsersPage() {
         .then(d => setSubAdmins(d.admins || []))
         .catch(console.error)
     }
-  }, [user, router, roleFilter, isLoading, currentPage])
+  }, [user, router, roleFilter, isInitialized, currentPage])
 
   const handleApproveUser = async (userId: string) => {
     try {
@@ -176,7 +176,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  if (loading) {
+  if (!isInitialized || loading) {
     return (
       <div className="p-6">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3ab54a]"></div>

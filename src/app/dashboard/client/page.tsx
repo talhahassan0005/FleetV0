@@ -15,12 +15,13 @@ interface User {
 }
 
 export default function ClientDashboard() {
-  const { user: authUser } = useAuth()
+  const { user: authUser, isInitialized } = useAuth()
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!isInitialized) return
     if (!authUser?.email) {
       router.push('/login')
       return
@@ -43,7 +44,15 @@ export default function ClientDashboard() {
     }
 
     fetchUser()
-  }, [authUser, router])
+  }, [authUser, router, isInitialized])
+
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0d1535] to-[#1a2a5e] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3ab54a]"></div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

@@ -51,7 +51,7 @@ interface FilterState {
 }
 
 export default function AdminInvoicesPage() {
-  const { user, isLoading } = useAuth()
+  const { user, isInitialized } = useAuth()
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [allInvoicesStats, setAllInvoicesStats] = useState<any>(null)
@@ -75,7 +75,7 @@ export default function AdminInvoicesPage() {
   const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
-    if (isLoading) return
+    if (!isInitialized) return
     if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(user?.role)) {
       router.push('/login')
       return
@@ -86,7 +86,7 @@ export default function AdminInvoicesPage() {
       return
     }
     fetchInvoices(currentPage)
-  }, [user, router, isLoading, currentPage])
+  }, [user, router, isInitialized, currentPage])
 
   // Use stats from API instead of calculating from current page invoices
   const stats = allInvoicesStats || {

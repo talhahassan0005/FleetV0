@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, isAuthenticated, isLoading } = useAuth()
+  const { user, isAuthenticated, isInitialized, login } = useAuth()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
@@ -27,8 +27,8 @@ function LoginContent() {
   const hasRedirectedRef = React.useRef(false)
 
   useEffect(() => {
-    // Only redirect if: loading just finished, user is authenticated, and handleSubmit hasn't already navigated
-    if (!isLoading && isAuthenticated && user && !hasRedirectedRef.current && !loading) {
+    if (!isInitialized) return
+    if (isAuthenticated && user && !hasRedirectedRef.current && !loading) {
       hasRedirectedRef.current = true
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
       if (adminRoles.includes(user.role)) {
@@ -40,7 +40,7 @@ function LoginContent() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]) // Only run when loading state changes
+  }, [isInitialized, isAuthenticated])
 
   // Ensure component is mounted before using searchParams to avoid hydration errors
   useEffect(() => {
@@ -59,41 +59,19 @@ function LoginContent() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    
-    console.log('[Login] Starting login process...')
-    console.log('[Login] Email:', email)
-    
+
     try {
-      console.log('[Login] Calling /api/auth/jwt-login...')
-      const response = await fetch('/api/auth/jwt-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      })
+      const result = await login(email, password)
 
-      console.log('[Login] Response status:', response.status)
-      console.log('[Login] Response ok:', response.ok)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('[Login] Error response:', errorData)
+      if (!result.success) {
         setLoading(false)
-        setError(errorData.error || 'Login failed. Please try again.')
+        setError(result.error || 'Login failed. Please try again.')
         return
       }
 
-      const data = await response.json()
-      console.log('[Login] Success! User role:', data.user?.role)
-      
-      // Token is already in httpOnly cookie set by server
-      // Use router.replace for smooth SPA navigation — avoids full-page reload blink
-      const role = data.user?.role
+      const role = result.user?.role
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
-      
-      // Mark as redirected so the useEffect doesn't fire a second redirect
+
       hasRedirectedRef.current = true
 
       if (adminRoles.includes(role)) {
@@ -104,7 +82,6 @@ function LoginContent() {
         router.replace('/client/dashboard')
       }
     } catch (err: any) {
-      console.error('[Login] Catch error:', err)
       setLoading(false)
       setError(err.message || 'Login failed. Please try again.')
     }

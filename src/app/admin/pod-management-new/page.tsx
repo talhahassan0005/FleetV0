@@ -82,7 +82,7 @@ async function fetchAndEnrichPods(): Promise<POD[]> {
 }
 
 export default function PODManagementPage() {
-  const { user, isLoading } = useAuth()
+  const { user, isInitialized } = useAuth()
   const router = useRouter()
 
   const [pods, setPods] = useState<POD[]>([])
@@ -98,11 +98,11 @@ export default function PODManagementPage() {
   const [invoiceRejectionReason, setInvoiceRejectionReason] = useState('')
 
   useEffect(() => {
-    if (isLoading) return
+    if (!isInitialized) return
     if (!user) { router.push('/login'); return }
     if (!isAdmin(user.role)) { router.push('/login'); return }
     if (user.role !== 'SUPER_ADMIN' && !hasPermission(user.role, 'pods')) { router.push('/admin/unauthorized'); return }
-  }, [user, router, isLoading])
+  }, [user, router, isInitialized])
 
   useEffect(() => {
     let isMounted = true
@@ -126,9 +126,9 @@ export default function PODManagementPage() {
         if (isMounted) setLoading(false)
       }
     }
-    if (user?.id) fetchPODs()
+    if (isInitialized && user?.id) fetchPODs()
     return () => { isMounted = false }
-  }, [user])
+  }, [isInitialized, user])
 
   const filteredPods = pods.filter(pod => {
     const status = pod.adminApprovalStatus || 'PENDING_ADMIN'
@@ -192,7 +192,7 @@ export default function PODManagementPage() {
     return <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full">{status}</span>
   }
 
-  if (loading) {
+  if (!isInitialized || loading) {
     return (
       <>
         <Topbar title="POD Management" />

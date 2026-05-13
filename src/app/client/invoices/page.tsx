@@ -67,7 +67,7 @@ interface QBInvoice {
 }
 
 export default function ClientInvoicesPage() {
-  const { user } = useAuth()
+  const { user, isInitialized } = useAuth()
   const router = useRouter()
   const [loads, setLoads] = useState<LoadForInvoice[]>([])
   const [qbInvoices, setQbInvoices] = useState<QBInvoice[]>([])
@@ -88,13 +88,14 @@ export default function ClientInvoicesPage() {
 
 
   useEffect(() => {
+    if (!isInitialized) return
     if (!user?.id) {
       router.push('/login')
       return
     }
     fetchLoads()
     fetchQBInvoices()
-  }, [user, router])
+  }, [user?.id, isInitialized, router])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -301,7 +302,7 @@ export default function ClientInvoicesPage() {
   const paginatedInvoices = filteredQBInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
   const computedTotalPages = Math.max(1, Math.ceil(filteredQBInvoices.length / itemsPerPage))
 
-  if (loading) {
+  if (!isInitialized || loading) {
     return (
       <>
         <Topbar title="Portal" />

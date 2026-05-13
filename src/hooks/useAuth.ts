@@ -1,187 +1,86 @@
-'use client';
+'use client'
+import { useCallback, useEffect } from 'react'
+import { useAppDispatch } from './useAppDispatch'
+import { useAppSelector } from './useAppSelector'
+import { clearAuth, loginUser, refreshToken } from '@/store/authSlice'
 
-import React, { useState, useEffect, useCallback, useContext, createContext } from 'react';
-import { JWTPayload } from '@/lib/jwt-utils';
+export function useAuth() {
+  const dispatch = useAppDispatch()
+  const { user, accessToken, isLoading, isInitialized, error } = useAppSelector(
+    (state) => state.auth
+  )
 
-interface AuthContextType {
-  user: JWTPayload | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  accessToken: string | null;
-  login: (email: string, password: string) => Promise<any>;
-  logout: () => Promise<void>;
-  refreshToken: () => Promise<boolean>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<JWTPayload | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // On mount: verify session with server (source of truth = httpOnly cookie)
-  useEffect(() => {
-    async function initSession() {
-      try {
-        const res = await fetch('/api/auth/me', {
-          method: 'GET',
-          credentials: 'include',
-          cache: 'no-store',
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-          setAccessToken(data.accessToken || 'cookie');
-        } else {
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('accessToken');
-          }
-          setUser(null);
-          setAccessToken(null);
-        }
-      } catch (err) {
-        console.error('[useAuth] Session init error:', err);
-        setUser(null);
-        setAccessToken(null);
-      } finally {
-        setIsLoading(false);
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const result = await dispatch(loginUser({ email, password }))
+      if (loginUser.fulfilled.match(result)) {
+        return { success: true, user: result.payload.user }
       }
-    }
-    initSession();
-  }, []);
-
-  const login = useCallback(async (email: string, password: string) => {
-    try {
-      const response = await fetch('/api/auth/jwt-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Login failed');
-      }
-
-      const data = await response.json();
-      setAccessToken(data.accessToken || 'cookie');
-      setUser(data.user);
-
-      return { success: true, user: data.user };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  }, []);
+      return { success: false, error: result.payload as string }
+    },
+    [dispatch]
+  )
 
   const logout = useCallback(async () => {
-    // 1. Clear React state immediately so UI reflects logout
-    setAccessToken(null);
-    setUser(null);
-
+    dispatch(clearAuth())
     try {
-      // 2. MUST await server logout FIRST — server sets Set-Cookie to clear httpOnly cookies.
-      //    accessToken is httpOnly so JS cannot delete it — only the server can.
-      //    If we navigate before this resolves, middleware still sees the cookie and
-      //    redirects back to dashboard instead of showing login.
-      await fetch('/api/auth/jwt-logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-    } catch (e) {
-      // ignore network errors on logout — proceed anyway
-    }
-
+      await fetch('/api/auth/jwt-logout', { method: 'POST', credentials: 'include' })
+    } catch {}
     if (typeof window !== 'undefined') {
-      localStorage.clear();
-      sessionStorage.clear();
-
-      // 3. Full page replace AFTER server has cleared httpOnly cookies.
-      //    replace() prevents back-button returning to dashboard.
-      window.location.replace('/login');
+      localStorage.clear()
+      sessionStorage.clear()
+      window.location.replace('/login')
     }
-  }, []);
+  }, [dispatch])
 
-  const refreshTokenHandler = useCallback(async (): Promise<boolean> => {
-    try {
-      const response = await fetch('/api/auth/jwt-refresh', {
-        method: 'POST',
-        credentials: 'include',
-      });
+  const refresh = useCallback(async (): Promise<boolean> => {
+    const result = await dispatch(refreshToken())
+    return refreshToken.fulfilled.match(result)
+  }, [dispatch])
 
-      if (!response.ok) {
-        await logout();
-        return false;
-      }
-
-      const data = await response.json();
-      setAccessToken(data.accessToken || 'cookie');
-
-      if (data.accessToken) {
-        try {
-          const parts = data.accessToken.split('.');
-          if (parts.length === 3) {
-            const payload = JSON.parse(atob(parts[1]));
-            setUser(payload);
-          }
-        } catch (e) {}
-      }
-
-      return true;
-    } catch (error) {
-      console.error('[useAuth] Token refresh failed:', error);
-      await logout();
-      return false;
-    }
-  }, [logout]);
-
-  const contextValue: AuthContextType = {
+  return {
     user,
-    isLoading,
-    isAuthenticated: !!user && !!accessToken,
     accessToken,
+    isLoading,
+    isInitialized,
+    isAuthenticated: !!user,
+    error,
     login,
     logout,
-    refreshToken: refreshTokenHandler,
-  };
-
-  return React.createElement(AuthContext.Provider, { value: contextValue }, children);
-};
-
-export function useAuth(): AuthContextType {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within AuthProvider');
+    refreshToken: refresh,
   }
-  return context;
 }
 
+/**
+ * Auto-refresh access token based on the JWT expiry claim in `accessToken`.
+ * Uses Redux state via `useAuth()`.
+ */
 export function useAutoRefreshToken() {
-  const { accessToken, refreshToken } = useAuth();
+  const { accessToken, refreshToken } = useAuth()
 
+  // If we don't have a real JWT string, there is nothing to decode.
   useEffect(() => {
-    if (!accessToken || accessToken === 'cookie') return;
+    if (!accessToken || accessToken === 'cookie') return
 
     try {
-      const parts = accessToken.split('.');
-      if (parts.length !== 3) return;
-      const payload = JSON.parse(atob(parts[1]));
-      if (!payload.exp) return;
+      const parts = accessToken.split('.')
+      if (parts.length !== 3) return
 
-      const expiresIn = payload.exp * 1000 - Date.now();
-      const refreshTime = expiresIn - 5 * 60 * 1000;
+      const payload = JSON.parse(atob(parts[1]))
+      if (!payload.exp) return
+
+      const expiresIn = payload.exp * 1000 - Date.now()
+      const refreshTime = expiresIn - 5 * 60 * 1000
 
       if (refreshTime <= 0) {
-        refreshToken();
-        return;
+        refreshToken()
+        return
       }
 
-      const timer = setTimeout(() => refreshToken(), refreshTime);
-      return () => clearTimeout(timer);
+      const timer = setTimeout(() => refreshToken(), refreshTime)
+      return () => clearTimeout(timer)
     } catch (error) {
-      console.error('[useAuth] Failed to setup token refresh:', error);
+      console.error('[useAuth] Failed to setup token refresh:', error)
     }
-  }, [accessToken, refreshToken]);
+  }, [accessToken, refreshToken])
 }

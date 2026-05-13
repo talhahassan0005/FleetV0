@@ -22,7 +22,7 @@ interface POD {
 }
 
 export default function AdminPODManagementPage() {
-  const { user } = useAuth()
+  const { user, isInitialized } = useAuth()
   const router = useRouter()
   const [pods, setPods] = useState<POD[]>([])
   const [loading, setLoading] = useState(true)
@@ -74,6 +74,9 @@ export default function AdminPODManagementPage() {
   }
 
   useEffect(() => {
+    // Wait for the FIRST auth check to complete before doing role-based redirects.
+    if (!isInitialized) return
+
     if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(user?.role)) {
       router.push('/login')
       return
@@ -81,7 +84,7 @@ export default function AdminPODManagementPage() {
 
     fetchPODs(currentPage)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, router, filter, currentPage])
+  }, [user, isInitialized, router, filter, currentPage])
 
   const handleVerifyPOD = async (podId: string, approved: boolean) => {
     if (!approved && !rejectionReason?.trim()) {

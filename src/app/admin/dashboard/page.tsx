@@ -3,10 +3,14 @@
 export const dynamic = 'force-dynamic'
 // src/app/admin/dashboard/page.tsx
 import { useEffect, useState } from 'react'
+import { useAuth } from '@/hooks/useAuth'
+import { useRouter } from 'next/navigation'
 import { Topbar, PageLayout, StatCard, Pagination } from '@/components/ui'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function AdminDashboardPage() {
+  const { user, isInitialized } = useAuth()
+  const router = useRouter()
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [recentLoads, setRecentLoads] = useState<any[]>([])
@@ -15,6 +19,11 @@ export default function AdminDashboardPage() {
   const itemsPerPage = 15
 
   useEffect(() => {
+    if (!isInitialized) return
+    if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(user.role)) {
+      router.push('/login')
+      return
+    }
     // Add small delay to prevent API calls during logout
     const timer = setTimeout(() => {
       const fetchStats = async () => {
@@ -55,7 +64,7 @@ export default function AdminDashboardPage() {
     }, 100)
     
     return () => clearTimeout(timer)
-  }, [currentPage])
+  }, [currentPage, user?.role, isInitialized, router])
 
   if (loading) {
     return (

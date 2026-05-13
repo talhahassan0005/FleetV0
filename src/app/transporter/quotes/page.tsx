@@ -35,7 +35,7 @@ const QUOTE_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 }
 
 export default function MyQuotesPage() {
-  const { user, isLoading } = useAuth()
+  const { user, isInitialized } = useAuth()
   const router = useRouter()
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,11 +48,11 @@ export default function MyQuotesPage() {
 
   // Handle session auth
   useEffect(() => {
-    if (isLoading) return
+    if (!isInitialized) return
     if (!user?.role || user.role !== 'TRANSPORTER') {
       router.push('/login')
     }
-  }, [user, router, isLoading])
+  }, [user, router, isInitialized])
 
   useEffect(() => {
     const fetchQuotes = async () => {
@@ -88,21 +88,21 @@ export default function MyQuotesPage() {
       }
     }
 
-    if (!!user && user?.role === 'TRANSPORTER') {
+    if (isInitialized && !!user && user?.role === 'TRANSPORTER') {
       fetchQuotes()
     }
-  }, [user, currentPage])
+  }, [isInitialized, user, currentPage])
 
-  if (loading || isLoading) {
+  if (!isInitialized || loading) {
     return (
       <>
         <Topbar title="My Quotes" />
         <PageLayout>
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#3ab54a]"></div>
-            <p className="text-gray-600 mt-4">
-              {isLoading ? 'Verifying session...' : 'Loading your quotes...'}
-            </p>
+              <p className="text-gray-600 mt-4">
+                Loading your quotes...
+              </p>
           </div>
         </PageLayout>
       </>

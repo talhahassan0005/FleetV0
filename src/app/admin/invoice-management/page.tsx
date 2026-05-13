@@ -23,7 +23,7 @@ interface Invoice {
 }
 
 export default function AdminInvoiceManagementPage() {
-  const { user } = useAuth()
+  const { user, isInitialized } = useAuth()
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,6 +61,7 @@ export default function AdminInvoiceManagementPage() {
   }
 
   useEffect(() => {
+    if (!isInitialized) return
     if (!user?.role || !['SUPER_ADMIN','FINANCE_ADMIN','OPERATIONS_ADMIN','POD_MANAGER','ADMIN'].includes(user?.role)) {
       router.push('/login')
       return
@@ -68,7 +69,7 @@ export default function AdminInvoiceManagementPage() {
 
     fetchInvoices()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, router, filter])
+  }, [user, router, filter, isInitialized])
 
   const handleApproveInvoice = async (invoiceId: string) => {
     try {

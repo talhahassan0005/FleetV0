@@ -35,7 +35,7 @@ interface SubmittedPOD {
 }
 
 export default function UploadPODPage() {
-  const { user } = useAuth()
+  const { user, isInitialized } = useAuth()
   const router = useRouter()
 
   // Form states
@@ -67,10 +67,11 @@ export default function UploadPODPage() {
 
   // Auth check
   useEffect(() => {
+    if (!isInitialized) return
     if (user && user.role !== 'TRANSPORTER') {
       router.push('/login')
     }
-  }, [user, router])
+  }, [user, router, isInitialized])
 
   // Fetch assigned loads
   useEffect(() => {
@@ -96,10 +97,10 @@ export default function UploadPODPage() {
       }
     }
 
-    if (user) {
+    if (isInitialized && user) {
       fetchLoads()
     }
-  }, [user])
+  }, [isInitialized, user])
 
   // Fetch submitted PODs
   useEffect(() => {
@@ -228,7 +229,7 @@ export default function UploadPODPage() {
       }
     }
 
-    if (user && user.role === 'TRANSPORTER') {
+    if (isInitialized && user && user.role === 'TRANSPORTER') {
       fetchSubmittedPODs()
       fetchTransporterInvoices()
     }
@@ -236,7 +237,7 @@ export default function UploadPODPage() {
     return () => {
       isMounted = false
     }
-  }, [user, success, currentPage])
+  }, [isInitialized, user, success, currentPage])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -336,7 +337,7 @@ export default function UploadPODPage() {
   const getInvoiceForLoad = (loadId: string) => 
     transporterInvoices.find(inv => inv.loadId === loadId || inv.loadId?.toString() === loadId)
 
-  if (loading) {
+  if (!isInitialized || loading) {
     return (
       <>
         <Topbar title="Upload POD & Invoice" />
