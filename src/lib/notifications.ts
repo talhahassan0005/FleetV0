@@ -100,7 +100,7 @@ export async function notifyAccountVerified(user: any) {
            Login Now
          </a>
          <p style="margin-top:20px;font-size:12px;color:#666;">
-           Need help? Contact support@fleetxchange.com
+           Need help? Contact info@fleetxchange.africa
          </p>`
       );
       console.log(`[Notification] ✅ Account verification notification sent to ${user.email}`);

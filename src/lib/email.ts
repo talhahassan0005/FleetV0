@@ -394,7 +394,7 @@ export const welcomeEmail = (companyName: string, role: string, loginUrl: string
     <h3 style="color: #1a2a5e; margin-bottom: 10px;">Need Help?</h3>
     <p style="font-size: 14px; color: #666; margin: 0;">
       If you have any questions, feel free to reach out to our support team at 
-      <a href="mailto:support@fleetxchange.com" style="color: #3ab54a; text-decoration: none; font-weight: bold;">support@fleetxchange.com</a>
+      <a href="mailto:info@fleetxchange.africa" style="color: #3ab54a; text-decoration: none; font-weight: bold;">info@fleetxchange.africa</a>
     </p>
     
     <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
