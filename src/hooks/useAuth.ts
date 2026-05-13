@@ -82,28 +82,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
 
     try {
-      // 2. Tell server to clear httpOnly cookies — AWAIT so Set-Cookie header is received
-      //    before we navigate away
+      // 2. MUST await server logout FIRST — server sets Set-Cookie to clear httpOnly cookies.
+      //    accessToken is httpOnly so JS cannot delete it — only the server can.
+      //    If we navigate before this resolves, middleware still sees the cookie and
+      //    redirects back to dashboard instead of showing login.
       await fetch('/api/auth/jwt-logout', {
         method: 'POST',
         credentials: 'include',
       });
     } catch (e) {
-      // ignore network errors on logout
+      // ignore network errors on logout — proceed anyway
     }
 
     if (typeof window !== 'undefined') {
-      // 3. Also manually expire cookies client-side (belt + suspenders)
-      //    Handles non-httpOnly copies and ensures middleware sees no token on redirect
-      const expireStr = 'expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-      document.cookie = `accessToken=; ${expireStr}`;
-      document.cookie = `refreshToken=; ${expireStr}`;
-
       localStorage.clear();
       sessionStorage.clear();
 
-      // 4. Full page replace — forces middleware to re-check cookies from scratch
-      //    replace() prevents back-button returning to dashboard
+      // 3. Full page replace AFTER server has cleared httpOnly cookies.
+      //    replace() prevents back-button returning to dashboard.
       window.location.replace('/login');
     }
   }, []);
