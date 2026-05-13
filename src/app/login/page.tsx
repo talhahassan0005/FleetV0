@@ -69,7 +69,7 @@ function LoginContent() {
         return
       }
 
-      const role = result.user?.role
+      const role = result.user?.role ?? ''
       const adminRoles = ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'POD_MANAGER', 'ADMIN']
 
       hasRedirectedRef.current = true
