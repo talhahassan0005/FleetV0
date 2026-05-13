@@ -41,8 +41,10 @@ export default function AdminDashboardPage() {
           }
           
           setRecentLoads(data.recentLoads || [])
-          const calculatedTotalPages = Math.max(1, Math.ceil((data.totalRecentLoads || data.totalLoads || 0) / itemsPerPage))
+          const total = data.totalRecentLoads ?? data.totalLoads ?? 0
+          const calculatedTotalPages = total > 0 ? Math.ceil(total / itemsPerPage) : 1
           setTotalPages(calculatedTotalPages)
+          console.log("[Dashboard] total:", total, "pages:", calculatedTotalPages)
         } catch (err) {
           // Silently handle errors
         } finally {
