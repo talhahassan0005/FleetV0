@@ -86,6 +86,25 @@ export default function AdminLoadsPage() {
     setSelectedLoadId(null)
   }
 
+  // FIX: Handle tab clicks properly to stay on loads page
+  const handleTabClick = (newStatus: string) => {
+    // Prevent unnecessary navigation if already on the same tab
+    if (status === newStatus) {
+      return
+    }
+    
+    setTabLoading(true)
+    setCurrentPage(1) // Reset to first page when changing tabs
+    
+    // Navigate to loads page with status filter
+    if (newStatus) {
+      router.push(`/admin/loads?status=${newStatus}`)
+    } else {
+      // For "All" tab, go to loads without any query params
+      router.push('/admin/loads')
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-6">
@@ -102,10 +121,7 @@ export default function AdminLoadsPage() {
         {STATUSES.map(s => (
           <button
             key={s}
-            onClick={() => {
-              setTabLoading(true)
-              router.push(`/admin/loads${s ? `?status=${s}` : ''}`)
-            }}
+            onClick={() => handleTabClick(s)}
             disabled={tabLoading}
             className={`whitespace-nowrap px-4 py-2 rounded text-sm font-semibold transition-colors flex items-center gap-2 ${
               status === s
